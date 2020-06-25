@@ -8,14 +8,14 @@ DIM        = 3
 COMP	   = gcc
 FCOMP	   = gfortran
 
-USE_MPI    = TRUE
-USE_OMP    = TRUE
+USE_MPI    = FALSE
+USE_OMP    = FALSE
 
 FUEGO_GAS  = TRUE
 
 TINY_PROFILE = TRUE
 
-USE_CUDA   = FALSE
+USE_CUDA   = TRUE
 
 # define the location of the PELE_PHYSICS top directory
 PELE_PHYSICS_HOME    := ../../..
@@ -49,6 +49,9 @@ else
   USE_RK64_PP = FALSE
 endif
 
+USE_CUDA_SUNDIALS_PP = TRUE
+USE_ARKODE_PP = TRUE
+
 
 #######################
 ifeq ($(FUEGO_GAS), TRUE)
@@ -65,5 +68,7 @@ endif
 
 Bpack   := ./Make.package
 Blocs   := .
+
+LIBRARIES += -lnvToolsExt
 
 include $(PELE_PHYSICS_HOME)/Testing/Exec/Make.PelePhysics
