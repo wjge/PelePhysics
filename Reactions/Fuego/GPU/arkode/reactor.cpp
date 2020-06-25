@@ -65,13 +65,12 @@ int react( realtype *dt_react, realtype *time,
         double reltol,double abstol)
 {
 
-    int NCELLS, NEQ, neq_tot,flag;
+    int NCELLS, NEQ,flag;
     realtype time_init, time_out;
     void *arkode_mem    = NULL;
 
     NEQ = NUM_SPECIES;
     NCELLS         = *Ncells;
-    neq_tot        = (NEQ + 1) * NCELLS;
 
     /* User data */
     UserData user_data;
@@ -131,16 +130,14 @@ int react( realtype *dt_react, realtype *time,
     *time  = time_init + (*dt_react);
 #endif
     /* Pack data to return in main routine external */
-    //get_nvector_cuda(yvec_d, state_y, (NEQ+1)*NCELLS);
     BL_PROFILE_VAR_START(AsyncCpy);
     //cudaMemcpy(rY_in, yvec_d, ((NEQ+1)*NCELLS)*sizeof(realtype), cudaMemcpyDeviceToHost);
+    BL_PROFILE_VAR_STOP(AsyncCpy);
 
     for  (int i = 0; i < NCELLS; i++) 
     {
         reactor_arrays::rhoe_init[i] += (*dt_react) * reactor_arrays::rhoesrc_ext[i];
     }
-    BL_PROFILE_VAR_STOP(AsyncCpy);
-
 
     /* Get estimate of how hard the integration process was */
     long int nfe,nfi;
@@ -178,9 +175,9 @@ static int cF_RHS(realtype t, N_Vector y_in, N_Vector ydot_in,
     /* Get Device pointers for Kernel call */
     realtype *yvec_d      = N_VGetDeviceArrayPointer_Cuda(y_in);
 
-    realtype *rhoe_init=reactor_arrays::rhoe_init;
-    realtype* rhoesrc_ext=reactor_arrays::rhoesrc_ext;
-    realtype* rysrc=reactor_arrays::rYsrc;
+    realtype *rhoe_init   = reactor_arrays::rhoe_init;
+    realtype* rhoesrc_ext = reactor_arrays::rhoesrc_ext;
+    realtype* rysrc       = reactor_arrays::rYsrc;
 
     realtype *ydot_d      = N_VGetDeviceArrayPointer_Cuda(ydot_in);
 
