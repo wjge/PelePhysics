@@ -11277,14 +11277,42 @@ class CPickler(CMill):
         # print(self.is_needed)
         # print(self.is_needed_count)
 
-    # def _getQSSgroups(self, mechanism):
-    # 
-    #     group = {}
-    #     already_accounted_for = []
-    # 
-    #     for spec in self.needs.keys():
-    #         if spec not in already_accounted_for:
-                
+    # get two-way dependencies accounted for: (s1 needs s2) and (s2 needs s1) = group
+    def _getQSSgroups(self, mechanism):
+    
+        self.group = OrderedDict()
+        already_accounted_for = []
+        group_count = 0
+        # print(self.needs)
+        # print(self.is_needed)
+        # print
+
+        # for each species spec that has needs
+        for spec in self.needs.keys():
+            print("dealing with species: ", spec)
+            print
+            # for each of the needs of that species spec, we could have a potential group
+            for needs in self.needs[spec]:
+                print(needs)
+                print(self.is_needed[spec])
+                print
+                potential_group = []
+                potential_group.append(spec)
+                # check that this group was not already found through a search with the other species involved
+                if (needs,spec) not in already_accounted_for:
+                    # if species spec is also needed by the current needs, then we have a group
+                    if any(species == needs for species in self.is_needed[spec]):
+                        print("here!")
+                        print("species "+spec+" and "+needs+" depend on eachother")
+                        potential_group.append(needs)
+                        self.group['group'+str(group_count)] = potential_group
+
+                        # Add this group to a list so that it doesn't get counted again in the event that the needs species is also a spec in the needs key list
+                        already_accounted_for.append((spec,needs))
+                        group_count += 1
+                    print(potential_group)
+                    print "\n\n"
+        print(self.group)
         
     # Check that the QSS given are actually valid options
     # Exit if species is not valid
@@ -11465,7 +11493,8 @@ class CPickler(CMill):
         
         self._setQSSneeds(mechanism)
         self._setQSSisneeded(mechanism)
-        
+
+        self._getQSSgroups(mechanism)
 
     ####################
     #unused
