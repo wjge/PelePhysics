@@ -11248,6 +11248,9 @@ class CPickler(CMill):
         self.needs = OrderedDict()
         self.needs_count = OrderedDict()
 
+        self.needs_running = OrderedDict()
+        self.needs_count_running = OrderedDict()
+        
         for i in range(self.nQSS):
             needs_species = []
             count = 0
@@ -11257,6 +11260,10 @@ class CPickler(CMill):
                     count += 1
             self.needs[self.QSS_species[i]] = needs_species
             self.needs_count[self.QSS_species[i]] = count
+
+        self.needs_running = self.needs.copy()
+        self.needs_count_running = self.needs_count.copy()
+            
         # print(self.needs)
         # print(self.needs_count)
 
@@ -11264,6 +11271,9 @@ class CPickler(CMill):
 
         self.is_needed = OrderedDict()
         self.is_needed_count = OrderedDict()
+
+        self.is_needed_running = OrderedDict()
+        self.is_needed_count_running = OrderedDict()
 
         for i in range(self.nQSS):
             is_needed_species = []
@@ -11274,6 +11284,10 @@ class CPickler(CMill):
                     count += 1
             self.is_needed[self.QSS_species[i]] = is_needed_species
             self.is_needed_count[self.QSS_species[i]] = count
+
+        self.is_needed_running = self.is_needed.copy()
+        self.is_needed_count_running = self.is_needed_count.copy()
+
         # print(self.is_needed)
         # print(self.is_needed_count)
 
@@ -11305,7 +11319,7 @@ class CPickler(CMill):
                         print("here!")
                         print("species "+spec+" and "+needs+" depend on eachother")
                         potential_group.append(needs)
-                        self.group['group'+str(group_count)] = potential_group
+                        self.group['group_'+str(group_count)] = potential_group
 
                         # Add this group to a list so that it doesn't get counted again in the event that the needs species is also a spec in the needs key list
                         already_accounted_for.append((spec,needs))
@@ -11313,6 +11327,391 @@ class CPickler(CMill):
                     print(potential_group)
                     print "\n\n"
         print(self.group)
+
+        self._updateGroupNeeds(mechanism)
+        self._updateGroupDependencies(mechanism)
+
+    # get intergroup dependencies accounted for: (this needs that) and (that needs this) = supergroup, where this and that can be individual species or groups
+    def _getQSSsupergroups(self, mechanism):
+
+        self.super_group = OrderedDict()
+        already_accounted_for = []
+        super_group_count = 0
+
+        for member in self.needs_running.keys():
+            for needs in self.needs_running[member]:
+                potential_super_group = []
+                potential_super_group.append(member)
+
+                if(needs,member) not in already_accounted_for:
+
+                    if any(components == needs for components in self.is_needed_running[member]):
+                        potential_super_group.append(needs)
+                        self.super_group['super_group_'+str(super_group_count)] = potential_super_group
+
+                        alread_accounted_for.append((member,needs))
+                        supergroup_count += 1
+
+        print
+        print("The super groups are: ", self.super_group)
+
+        self._updateSupergroupNeeds(mechanism)
+        self._updateSupergroupDependencies(mechanism)
+
+    # Sort order that QSS species need to be computed based on dependencies
+    def _sortQSScomputation(self, mechanism):
+
+        self.decouple_index = OrderedDict()
+        self.decouple_count = 0
+
+        # look at how many dependencies each component has
+        needs_count_regress = self.needs_count_running.copy()
+        print
+        print(needs_count_regress)
+
+        # There should always be a component present that loses all dependencies as you update the computation
+        while 0 in needs_count_regress.values():
+            needs_count_base = needs_count_regress.copy()
+
+            # for each component (species, group, sup group, etc.) that needs things... 
+            for member in needs_count_base:
+
+                # if that component doesn't need anything
+                if needs_count_base[member] == 0:
+
+                    # solve that component now
+                    self.decouple_index[member] = self.decouple_count
+                    # then delete it out of the updating needs list
+                    del needs_count_regress[member]
+
+                    # for anything needed by that component
+                    for needed in self.is_needed_running[member]:
+                        # decrease that thing's dependency since it has now been taken care of
+                        needs_count_regress[needed] -= 1
+                        
+                    self.decouple_count += 1
+                    
+        # If your decouple count doesn't match the number of components with needs, then the system is more complicated than what these functions can handle currently
+        if len(self.decouple_index) != len(self.needs_running):
+            print("WARNING: Some components may not have been taken into account")
+
+        print(self.decouple_index)
+
+    # Update group member needs with group names:
+    # group member needs species -> group needs species
+    # group member is needed by species -> group is needed by species
+    def _updateGroupNeeds(self, mechanism):
+
+        for group_key in self.group.keys():
+            
+            update_needs = []
+            update_is_needed = []
+            update_needs_count = 0
+            update_needed_count = 0
+
+            group_needs = {}
+            group_needs_count = {}
+            group_is_needed = {}
+            group_is_needed_count = {}
+            
+            other_groups = self.group.keys()
+            other_groups.remove(group_key)
+            
+            # print("other groups are: ", other_groups)
+            # print("we are in group: ", group_key)
+            # print(self.group[group_key])
+
+            # for each species in the current group
+            for spec in self.group[group_key]:
+                print("for group member: ",spec)
+                # look at any additional needs that are not already accounted for with the group
+                for need in list(set(self.needs_running[spec]) - set(self.group[group_key])):
+                    print("need is ", need)
+                    not_in_group = True
+                    # check the other groups to see if the need can be found in one of them
+                    for other_group in other_groups:
+                        # if the other group is not already accounted for and it contains the need we're looking for, update the group needs with that group that contains the need
+                        if other_group not in update_needs and any(member == need for member in self.group[other_group]):
+                            print("this is in a different group")
+                            not_in_group = False
+                            update_needs.append(other_group)
+                            update_needs_count += 1
+                    # alternatively, if this is just a solo need that's not in another group, update the group needs with just that need. 
+                    if not_in_group and need not in update_needs:
+                        print("Need ", need, " was not in a group")
+                        update_needs.append(need)
+                        update_needs_count += 1
+                # look at any additional species (outside of the group) that depend on the current group member
+                for needed in list(set(self.is_needed_running[spec]) - set(self.group[group_key])):
+                    not_in_group = True
+                    # for the other groups
+                    for other_group in other_groups:
+                        # if the other group hasn't alredy been accounted for and the species is in that group, then that other group depends on a species in the current group
+                        if other_group not in update_is_needed and any(member == needed for member in self.group[other_group]):
+                            not_in_group = False
+                            update_is_needed.append(other_group)
+                            update_needed_count += 1
+                    # if the species is not in another group, then that lone species just depends on the current group. 
+                    if not_in_group and needed not in update_is_needed:
+                        update_is_needed.append(needed)
+                        update_needed_count += 1
+
+                del self.needs_running[spec]
+                del self.needs_count_running[spec]
+                del self.is_needed_running[spec]
+
+            group_needs[group_key] = update_needs
+            group_needs_count[group_key] = update_needs_count
+            group_is_needed[group_key] = update_is_needed
+            group_is_needed_count[group_key] = update_needed_count
+
+            self.needs_running.update(group_needs)
+            self.needs_count_running.update(group_needs_count)
+            self.is_needed_running.update(group_is_needed)
+            self.is_needed_count_running.update(group_is_needed_count)
+
+        print
+        print(self.needs_running)
+        print(self.needs_count_running)
+        print(self.is_needed_running)
+        print(self.is_needed_count_running)
+
+        
+    # Update solo species dependendent on group members with group names:
+    # species needs member -> species needs group
+    # species is needed by group member -> species is needed by group
+    def _updateGroupDependencies(self, mechanism):
+
+        solo_needs = self.needs_running.copy()
+        solo_needs_count = self.needs_count_running.copy()
+        solo_is_needed = self.is_needed_running.copy()
+        solo_is_needed_count = self.is_needed_count_running.copy()
+
+        # remove the groups because we're just dealing with things that aren't in groups now
+        for group in self.group.keys():
+            del solo_needs[group]
+            del solo_needs_count[group]
+            del solo_is_needed[group]
+            del solo_is_needed_count[group]
+
+        print
+        print(solo_needs)
+        print(solo_is_needed)
+        
+        for solo in solo_needs.keys():
+            
+            update_needs = []
+            update_is_needed = []
+            update_needs_count = 0
+            update_needed_count = 0
+
+            for need in solo_needs[solo]:
+                print(need)
+                not_in_group = True
+                for group in self.group.keys():
+                    if group not in update_needs and any(member == need for member in self.group[group]):
+                        print("Species ", need, " is in group: ", group)
+                        not_in_group = False
+
+                        update_needs.append(group)
+                        update_needs_count += 1
+                if not_in_group and need not in update_needs:
+
+                    update_needs.append(need)
+                    update_needs_count += 1
+
+            for needed in solo_is_needed[solo]:
+                not_in_group = True
+                for group in self.group.keys():
+                    if group not in update_is_needed and any(member == needed for member in self.group[group]):
+                        not_in_group = False
+
+                        update_is_needed.append(group)
+                        update_needed_count +=1
+
+                if not_in_group and needed not in update_is_needed:
+
+                    update_is_needed.append(needed)
+                    update_needed_count += 1
+
+            solo_needs[solo] = update_needs
+            solo_needs_count[solo] = update_needs_count
+            solo_is_needed[solo] = update_is_needed
+            solo_is_needed_count[solo] = update_needed_count
+
+        self.needs_running.update(solo_needs)
+        self.needs_count_running.update(solo_needs_count)
+        self.is_needed_running.update(solo_is_needed)
+        self.is_needed_count_running.update(solo_is_needed_count)
+
+        print
+        print(self.needs_running)
+        print(self.needs_count_running)
+        print(self.is_needed_running)
+        print(self.is_needed_count_running)
+
+
+    ###############################################################
+    #
+    # Updates for Super Groups are essentially the same as those
+    # for Groups. Have not actually been tested yet because my baby
+    # example isn't that complicated
+    #
+    ###############################################################
+        
+                        
+    def _updateSupergroupNeeds(self, mechanism):
+        
+        for super_group_key in self.super_group.keys():
+            
+            update_needs = []
+            update_is_needed = []
+            update_needs_count = 0
+            update_needed_count = 0
+
+            super_group_needs = {}
+            super_group_needs_count = {}
+            super_group_is_needed = {}
+            super_group_is_needed_count = {}
+            
+            other_super_groups = self.super_group.keys()
+            other_super_groups.remove(super_group_key)
+            
+            # print("other super groups are: ", other_super_groups)
+            # print("we are in supergroup: ", super_group_key)
+            # print(self.supergroup[super_group_key])
+
+            # for each species in the current group
+            for spec in self.super_group[super_group_key]:
+                print("for super group member: ",spec)
+                # look at any additional needs that are not already accounted for with the group
+                for need in list(set(self.needs_running[spec]) - set(self.super_group[super_group_key])):
+                    print("need is ", need)
+                    not_in_super_group = True
+                    # check the other groups to see if the need can be found in one of them
+                    for other_super_group in other_super_groups:
+                        # if the other group is not already accounted for and it contains the need we're looking for, update the group needs with that group that contains the need
+                        if other_super_group not in update_needs and any(member == need for member in self.super_group[other_super_group]):
+                            print("this is in a different super group")
+                            not_in_super_group = False
+                            update_needs.append(other_super_group)
+                            update_needs_count += 1
+                    # alternatively, if this is just a solo need that's not in another group, update the group needs with just that need. 
+                    if not_in_super_group and need not in update_needs:
+                        print("Need ", need, " was not in a super group")
+                        update_needs.append(need)
+                        update_needs_count += 1
+                # look at any additional species (outside of the group) that depend on the current group member
+                for needed in list(set(self.is_needed_running[spec]) - set(self.super_group[super_group_key])):
+                    not_in_super_group = True
+                    # for the other groups
+                    for other_super_group in other_super_groups:
+                        # if the other group hasn't alredy been accounted for and the species is in that group, then that other group depends on a species in the current group
+                        if other_super_group not in update_is_needed and any(member == needed for member in self.super_group[other_super_group]):
+                            not_in_super_group = False
+                            update_is_needed.append(other_super_group)
+                            update_needed_count += 1
+                    # if the species is not in another group, then that lone species just depends on the current group. 
+                    if not_in_super_group and needed not in update_is_needed:
+                        update_is_needed.append(needed)
+                        update_needed_count += 1
+
+                del self.needs_running[spec]
+                del self.needs_count_running[spec]
+                del self.is_needed_running[spec]
+
+            super_group_needs[super_group_key] = update_needs
+            super_group_needs_count[super_group_key] = update_needs_count
+            super_group_is_needed[super_group_key] = update_is_needed
+            super_group_is_needed_count[super_group_key] = update_needed_count
+
+            self.needs_running.update(super_group_needs)
+            self.needs_count_running.update(super_group_needs_count)
+            self.is_needed_running.update(super_group_is_needed)
+            self.is_needed_count_running.update(super_group_is_needed_count)
+
+        print
+        print(self.needs_running)
+        print(self.needs_count_running)
+        print(self.is_needed_running)
+        print(self.is_needed_count_running)
+
+    # Update solo species dependendent on group members with group names:
+    # species needs member -> species needs group
+    # species is needed by group member -> species is needed by group
+    def _updateSupergroupDependencies(self, mechanism):
+
+        super_solo_needs = self.needs_running.copy()
+        super_solo_needs_count = self.needs_count_running.copy()
+        super_solo_is_needed = self.is_needed_running.copy()
+        super_solo_is_needed_count = self.is_needed_count_running.copy()
+
+        # remove the groups because we're just dealing with things that aren't in groups now
+        for super_group in self.super_group.keys():
+            del super_solo_needs[super_group]
+            del super_solo_needs_count[super_group]
+            del super_solo_is_needed[super_group]
+            del super_solo_is_needed_count[super_group]
+
+        print
+        print(super_solo_needs)
+        print(super_solo_is_needed)
+        
+        for solo in super_solo_needs.keys():
+            
+            update_needs = []
+            update_is_needed = []
+            update_needs_count = 0
+            update_needed_count = 0
+
+            for need in super_solo_needs[solo]:
+                print(need)
+                not_in_super_group = True
+                for super_group in self.super_group.keys():
+                    if super_group not in update_needs and any(member == need for member in self.super_group[super_group]):
+                        print("Species ", need, " is in super group: ", super_group)
+                        not_in_super_group = False
+
+                        update_needs.append(super_group)
+                        update_needs_count += 1
+                if not_in_super_group and need not in update_needs:
+
+                    update_needs.append(need)
+                    update_needs_count += 1
+
+            for needed in super_solo_is_needed[solo]:
+                not_in_super_group = True
+                for super_group in self.super_group.keys():
+                    if super_group not in update_is_needed and any(member == needed for member in self.super_group[super_group]):
+                        not_in_super_group = False
+
+                        update_is_needed.append(super_group)
+                        update_needed_count +=1
+
+                if not_in_super_group and needed not in update_is_needed:
+
+                    update_is_needed.append(needed)
+                    update_needed_count += 1
+
+            super_solo_needs[solo] = update_needs
+            super_solo_needs_count[solo] = update_needs_count
+            super_solo_is_needed[solo] = update_is_needed
+            super_solo_is_needed_count[solo] = update_needed_count
+
+        self.needs_running.update(super_solo_needs)
+        self.needs_count_running.update(super_solo_needs_count)
+        self.is_needed_running.update(super_solo_is_needed)
+        self.is_needed_count_running.update(super_solo_is_needed_count)
+
+        print
+        print(self.needs_running)
+        print(self.needs_count_running)
+        print(self.is_needed_running)
+        print(self.is_needed_count_running)
+                        
+    ###################################################################
+    #
+    ###################################################################
         
     # Check that the QSS given are actually valid options
     # Exit if species is not valid
@@ -11490,12 +11889,14 @@ class CPickler(CMill):
         # Testing QSS Coupling
         self._QSSCoupling(mechanism)
 
-        
         self._setQSSneeds(mechanism)
         self._setQSSisneeded(mechanism)
 
         self._getQSSgroups(mechanism)
+        self._getQSSsupergroups(mechanism)
 
+        self._sortQSScomputation(mechanism)
+        
     ####################
     #unused
     ####################
