@@ -238,8 +238,10 @@ class CPickler(CMill):
         # GPU version
         self._productionRate_GPU(mechanism)
         # ORI CPU version
-        self._productionRate(mechanism)
+        ###  QSS IMPLEMENTATION TESTING
         self._test(mechanism)
+        ###
+        self._productionRate(mechanism)
         # ORI CPU vectorized version
         self._vproductionRate(mechanism)
         self._DproductionRatePrecond(mechanism)
@@ -5386,7 +5388,7 @@ class CPickler(CMill):
 
         # qdot
         self._write()
-        self._write('void comp_qfqr(double *  qf, double *  qr, double *  sc, double *  tc, double invT)')
+        self._write('void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double *  tc, double invT)')
         self._write('{')
         self._indent()
 
@@ -5398,11 +5400,11 @@ class CPickler(CMill):
             reaction = mechanism.reaction(id=i)
             self._write(self.line('reaction %d: %s' % (reaction.id, reaction.equation())))
             if (len(reaction.ford) > 0):
-                self._write("qf[%d] = %s;" % (i, self._sortedPhaseSpace(mechanism, reaction.ford)))
+                self._write("qf[%d] = %s;" % (i, self._QSSsortedPhaseSpace(mechanism, reaction.ford)))
             else:
-                self._write("qf[%d] = %s;" % (i, self._sortedPhaseSpace(mechanism, reaction.reactants)))
+                self._write("qf[%d] = %s;" % (i, self._QSSsortedPhaseSpace(mechanism, reaction.reactants)))
             if reaction.reversible:
-                self._write("qr[%d] = %s;" % (i, self._sortedPhaseSpace(mechanism, reaction.products)))
+                self._write("qr[%d] = %s;" % (i, self._QSSsortedPhaseSpace(mechanism, reaction.products)))
             else:
                 self._write("qr[%d] = 0.0;" % (i))
 
@@ -11231,18 +11233,22 @@ class CPickler(CMill):
 
         # for each reaction in the mechanism
         for i, r in enumerate(mechanism.reaction()):
-            slist = []
+            reactant_list = []
+            product_list = []
             reaction_number = i
             # get a list of species involved in the reactants and products
             for symbol, coefficient in r.reactants:
-                slist.append(symbol)
+                reactant_list.append(symbol)
             for	symbol,	coeffecient in r.products:
-                slist.append(symbol)
+                product_list.append(symbol)
             # if species s is in reaction number i, 
             # denote they are linked in the Species-Reaction network
-            for	s in slist:
+            # with positive if s is a reactant(forward) and negative if s is a product(backward)
+            for	s in reactant_list:
                 self.QSS_SRnet[mechanism.species(s).id][reaction_number] = 1
-
+            for s in product_list:
+                self.QSS_SRnet[mechanism.species(s).id][reaction_number] = -1
+        
     def _setQSSneeds(self, mechanism):
 
         self.needs = OrderedDict()
@@ -11814,8 +11820,8 @@ class CPickler(CMill):
 
         # print("\n\n SS network for QSS: ")
         # print(self.QSS_SSnet)
-        # print("SR network for QSS: ")
-        # print(self.QSS_SRnet)
+        print("SR network for QSS: ")
+        print(self.QSS_SRnet)
 
         # print(self.QSS_SS_Si)
         # print(self.QSS_SS_Sj)
@@ -11855,7 +11861,54 @@ class CPickler(CMill):
                         
         self.QSS_SC_Si, self.QSS_SC_Sj = np.nonzero(self.QSS_SCnet)
         print(self.QSS_SCnet)
+        print
 
+    # Components needed to set up QSS algebraic expressions from AX = B, where A contains coeffiencts from qf's and qr's, X contains QSS species concentrations, and B contains:
+    # RHS vector (non-QSS and QSS qf's and qr's), coefficient of species (self), coefficient of group mates
+    def _sortQSSsolution_elements(self, mechanism):
+
+        self.QSS_rhs = OrderedDict()
+        self.QSS_self = OrderedDict()
+        
+        for i in range(self.nQSS):
+            coupled = []
+            rhs_hold = []
+            for r in self.QSS_SR_Rj[self.QSS_SR_Si == i]:
+
+                reaction = mechanism.reaction(id=r)
+                direction = self.QSS_SRnet[i][r]
+                
+                # Check if reaction contains other QSS species
+                coupled = [species for species in list(set(self.QSS_SR_Si[self.QSS_SR_Rj == r])) if species != i]
+
+                if not coupled:
+                    print("reaction ", r, " only contains QSS species ", self.QSS_species[i])
+                    print
+                    # if QSS species is a reactant
+                    if direction == 1:
+                        print("for species ", self.QSS_species[i], " in reaction ", r, " is a reactant")
+                        if reaction.reversible:
+                            print("MOVE THIS SPECIES TO RHS")
+                            print
+                            print
+                            rhs_hold.append('-qb['+str(r)+']')
+                        else:
+                            print("not reversible => qr = 0")
+                            print
+                            print
+                    # if QSS species is a product
+                    elif direction == -1:
+                        print("for species ", self.QSS_species[i], " in reaction ", r, " is a product")
+                        print("MOVE THIS SPECIES TO RHS")
+                        rhs_hold.append('-qf['+str(r)+']')
+
+            self.QSS_rhs[self.QSS_species[i]] = " ".join(rhs_hold)
+
+        print(self.QSS_rhs)
+        
+                        
+                
+        
     # Testing all of my garbage for now
     # Order of operation as of right now: run setQSSspecies, QSSvalidation, then QSSCoupling
     def _test(self, mechanism):
@@ -11896,7 +11949,299 @@ class CPickler(CMill):
         self._getQSSsupergroups(mechanism)
 
         self._sortQSScomputation(mechanism)
+
+        self._sortQSSsolution_elements(mechanism)
+
+    def _QSSsortedPhaseSpace(self, mechanism, reagents):
+
+        phi = []
+
+        for symbol, coefficient in sorted(reagents,key=lambda x:mechanism.species(x[0]).id):
+            if symbol in self.QSS_species:
+                if (float(coefficient) == 1.0):
+                    conc = "qss_sc[%d]" % self.QSS_species.index(symbol)
+                else:
+                    conc = "pow(qss_sc[%d], %f)" % (self.QSS_species.index(symbol), float(coefficient))
+                phi += [conc]
+            else:
+                if (float(coefficient) == 1.0):
+                    conc = "sc[%d]" % mechanism.species(symbol).id
+                else:
+                    conc = "pow(sc[%d], %f)" % (mechanism.species(symbol).id, float(coefficient))
+                phi += [conc]
+        return "*".join(phi)
+
+    
+        # qss_coefficients
+        self._write()
+        self._write('void comp_qss_qfqr_coeff(double *  qf_co, double *  qr_co, double *  sc, double * qss_sc, double *  tc, double invT)')
+        self._write('{')
+        self._indent()
+
+        nclassd = nReactions - nspecial
+        nCorr   = n3body + ntroe + nsri + nlindemann
+
+        for i in range(nclassd):
+            self._write()
+            reaction = mechanism.reaction(id=i)
+            self._write(self.line('reaction %d: %s' % (reaction.id, reaction.equation())))
+            if (len(reaction.ford) > 0):
+                self._write("qf_co[%d] = %s;" % (i, self._QSSsortedPhaseSpace(mechanism, reaction.ford)))
+            else:
+                self._write("qf_co[%d] = %s;" % (i, self._QSSsortedPhaseSpace(mechanism, reaction.reactants)))
+            if reaction.reversible:
+                self._write("qr_co[%d] = %s;" % (i, self._QSSsortedPhaseSpace(mechanism, reaction.products)))
+            else:
+                self._write("qr_co[%d] = 0.0;" % (i))
+
+        self._write()
+        self._write('double T = tc[1];')
+        self._write()
+        self._write(self.line('compute the mixture concentration'))
+        self._write('double mixture = 0.0;')
+        self._write('for (int i = 0; i < %d; ++i) {' % nSpecies)
+        self._indent()
+        self._write('mixture += sc[i];')
+        self._outdent()
+        self._write('}')
+
+        self._write()
+        self._write("double Corr[%d];" % nclassd)
+        self._write('for (int i = 0; i < %d; ++i) {' % nclassd)
+        self._indent()
+        self._write('Corr[i] = 1.0;')
+        self._outdent()
+        self._write('}')
+
+        if ntroe > 0:
+            self._write()
+            self._write(self.line(" troe"))
+            self._write("{")
+            self._indent()
+            self._write("double alpha[%d];" % ntroe)
+            alpha_d = {}
+            for i in range(itroe[0],itroe[1]):
+                ii = i - itroe[0]
+                reaction = mechanism.reaction(id=i)
+                if reaction.thirdBody:
+                    alpha = self._enhancement(mechanism, reaction)
+                    if alpha in alpha_d:
+                        self._write("alpha[%d] = %s;" %(ii,alpha_d[alpha]))
+                    else:
+                        self._write("alpha[%d] = %s;" %(ii,alpha))
+                        alpha_d[alpha] = "alpha[%d]" % ii
+
+            if ntroe >= 4:
+                self._outdent()
+                self._outdent()
+                self._write('#ifdef __INTEL_COMPILER')
+                self._indent()
+                self._indent()
+                self._write(' #pragma simd')
+                self._outdent()
+                self._outdent()
+                self._write('#endif')
+                self._indent()
+                self._indent()
+            self._write("for (int i=%d; i<%d; i++)" %(itroe[0],itroe[1]))
+            self._write("{")
+            self._indent()
+            self._write("double redP, F, logPred, logFcent, troe_c, troe_n, troe, F_troe;")
+            self._write("redP = alpha[i-%d] / k_f_save[i] * phase_units[i] * low_A[i] * exp(low_beta[i] * tc[0] - activation_units[i] * low_Ea[i] *invT);" % itroe[0])
+            self._write("F = redP / (1.0 + redP);")
+            self._write("logPred = log10(redP);")
+            self._write('logFcent = log10(')
+            self._write('    (fabs(troe_Tsss[i]) > 1.e-100 ? (1.-troe_a[i])*exp(-T/troe_Tsss[i]) : 0.) ')
+            self._write('    + (fabs(troe_Ts[i]) > 1.e-100 ? troe_a[i] * exp(-T/troe_Ts[i]) : 0.) ')
+            self._write('    + (troe_len[i] == 4 ? exp(-troe_Tss[i] * invT) : 0.) );')
+            self._write("troe_c = -.4 - .67 * logFcent;")
+            self._write("troe_n = .75 - 1.27 * logFcent;")
+            self._write("troe = (troe_c + logPred) / (troe_n - .14*(troe_c + logPred));")
+            self._write("F_troe = pow(10., logFcent / (1.0 + troe*troe));")
+            self._write("Corr[i] = F * F_troe;")
+            self._outdent()
+            self._write('}')
+
+            self._outdent()
+            self._write("}")
+
+        if nsri > 0:
+            self._write()
+            self._write(self.line(" SRI"))
+            self._write("{")
+            self._indent()
+            self._write("double alpha[%d];" % nsri)
+            self._write("double redP, F, X, F_sri;")
+            alpha_d = {}
+            for i in range(isri[0],isri[1]):
+                ii = i - isri[0]
+                reaction = mechanism.reaction(id=i)
+                if reaction.thirdBody:
+                    alpha = self._enhancement(mechanism, reaction)
+                    if alpha in alpha_d:
+                        self._write("alpha[%d] = %s;" %(ii,alpha_d[alpha]))
+                    else:
+                        self._write("alpha[%d] = %s;" %(ii,alpha))
+                        alpha_d[alpha] = "alpha[%d]" % ii
+
+            if nsri >= 4:
+                self._outdent()
+                self._outdent()
+                self._write('#ifdef __INTEL_COMPILER')
+                self._indent()
+                self._indent()
+                self._write(' #pragma simd')
+                self._outdent()
+                self._outdent()
+                self._write('#endif')
+                self._indent()
+                self._indent()
+            self._write("for (int i=%d; i<%d; i++)" %(isri[0],isri[1]))
+            self._write("{")
+            self._indent()
+            self._write("redP = alpha[i-%d] / k_f_save[i] * phase_units[i] * low_A[i] * exp(low_beta[i] * tc[0] - activation_units[i] * low_Ea[i] *invT);" % itroe[0])
+            self._write("F = redP / (1.0 + redP);")
+            self._write("logPred = log10(redP);")
+            self._write("X = 1.0 / (1.0 + logPred*logPred);")
+            self._write("F_sri = exp(X * log(sri_a[i] * exp(-sri_b[i]*invT)")
+            self._write("   +  (sri_c[i] > 1.e-100 ? exp(T/sri_c[i]) : 0.0) )")
+            self._write("   *  (sri_len[i] > 3 ? sri_d[i]*exp(sri_e[i]*tc[0]) : 1.0);")
+            self._write("Corr[i] = F * F_sri;")
+            self._outdent()
+            self._write('}')
+
+            self._outdent()
+            self._write("}")
+
+        if nlindemann > 0:
+            self._write()
+            self._write(self.line(" Lindemann"))
+            self._write("{")
+            self._indent()
+            if nlindemann > 1:
+                self._write("double alpha[%d];" % nlindemann)
+            else:
+                self._write("double alpha;")
+
+            for i in range(ilindemann[0],ilindemann[1]):
+                ii = i - ilindemann[0]
+                reaction = mechanism.reaction(id=i)
+                if reaction.thirdBody:
+                    alpha = self._enhancement(mechanism, reaction)
+                    if nlindemann > 1:
+                        self._write("alpha[%d] = %s;" %(ii,alpha))
+                    else:
+                        self._write("alpha = %s;" %(alpha))
+
+            if nlindemann == 1:
+                self._write("double redP = alpha / k_f_save[%d] * phase_units[%d] * low_A[%d] * exp(low_beta[%d] * tc[0] - activation_units[%d] * low_Ea[%d] * invT);" 
+                            % (ilindemann[0],ilindemann[0],ilindemann[0],ilindemann[0],ilindemann[0],ilindemann[0]))
+                self._write("Corr[%d] = redP / (1. + redP);" % ilindemann[0])
+            else:
+                if nlindemann >= 4:
+                    self._outdent()
+                    self._write('#ifdef __INTEL_COMPILER')
+                    self._indent()
+                    self._write(' #pragma simd')
+                    self._outdent()
+                    self._write('#endif')
+                    self._indent()
+                self._write("for (int i=%d; i<%d; i++)" % (ilindemann[0], ilindemann[1]))
+                self._write("{")
+                self._indent()
+                self._write("double redP = alpha[i-%d] / k_f_save[i] * phase_units[i] * low_A[i] * exp(low_beta[i] * tc[0] - activation_units[i] * low_Ea[i] * invT);"
+                            % ilindemann[0])
+                self._write("Corr[i] = redP / (1. + redP);")
+                self._outdent()
+                self._write('}')
+
+            self._outdent()
+            self._write("}")
+
+        if n3body > 0:
+            self._write()
+            self._write(self.line(" simple three-body correction"))
+            self._write("{")
+            self._indent()
+            self._write("double alpha;")
+            alpha_save = ""
+            for i in range(i3body[0],i3body[1]):
+                reaction = mechanism.reaction(id=i)
+                if reaction.thirdBody:
+                    alpha = self._enhancement(mechanism, reaction)
+                    if alpha != alpha_save:
+                        alpha_save = alpha
+                        self._write("alpha = %s;" % alpha)
+                    self._write("Corr[%d] = alpha;" % i)
+            self._outdent()
+            self._write("}")
+
+        self._write()
+        self._write("for (int i=0; i<%d; i++)" % nclassd)
+        self._write("{")
+        self._indent()
+        self._write("qf[i] *= Corr[i] * k_f_save[i];")
+        self._write("qr[i] *= Corr[i] * k_f_save[i] / Kc_save[i];")
+        self._outdent()
+        self._write("}")
         
+        if nspecial > 0:
+
+            print "\n\n ***** WARNING: %d unclassified reactions\n" % nspecial
+
+            self._write()
+            self._write(self.line('unclassified reactions'))
+            self._write('{')
+            self._indent()
+
+            self._write(self.line("reactions: %d to %d" % (ispecial[0]+1,ispecial[1])))
+
+            #self._write('double Kc;                      ' + self.line('equilibrium constant'))
+            self._write('double k_f;                     ' + self.line('forward reaction rate'))
+            self._write('double k_r;                     ' + self.line('reverse reaction rate'))
+            self._write('double q_f;                     ' + self.line('forward progress rate'))
+            self._write('double q_r;                     ' + self.line('reverse progress rate'))
+            self._write('double phi_f;                   '
+                        + self.line('forward phase space factor'))
+            self._write('double phi_r;                   ' + self.line('reverse phase space factor'))
+            self._write('double alpha;                   ' + self.line('enhancement'))
+
+            #self._write('double redP;                    ' + self.line('reduced pressure'))
+            #self._write('double logPred;                 ' + self.line('log of above'))
+            #self._write('double F;                       ' + self.line('fallof rate enhancement'))
+            #self._write()
+            #self._write('double F_troe;                  ' + self.line('TROE intermediate'))
+            #self._write('double logFcent;                ' + self.line('TROE intermediate'))
+            #self._write('double troe;                    ' + self.line('TROE intermediate'))
+            #self._write('double troe_c;                  ' + self.line('TROE intermediate'))
+            #self._write('double troe_n;                  ' + self.line('TROE intermediate'))
+
+            for i in range(ispecial[0],ispecial[1]):
+                self._write()
+                reaction = mechanism.reaction(id=i)
+                self._write(self.line('reaction %d: %s' % (reaction.id, reaction.equation())))
+
+                # compute the rates
+                self._forwardRate(mechanism, reaction)
+                self._reverseRate(mechanism, reaction)
+
+                # store the progress rate
+                self._write("qf[%d] = q_f;" % i)
+                self._write("qr[%d] = q_r;" % i)
+
+            self._outdent()
+            self._write('}')
+
+        self._write()
+        self._write('return;')
+        self._outdent()
+        self._write('}')
+
+        self._write("#endif")
+
+        return
+
+
     ####################
     #unused
     ####################

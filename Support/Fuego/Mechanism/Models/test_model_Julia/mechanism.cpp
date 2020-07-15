@@ -2932,6 +2932,7 @@ AMREX_GPU_HOST_DEVICE inline void comp_qfqr(double *  qf, double * qr, double * 
 }
 #endif
 
+/*Does this write to the file? */
 
 #ifndef AMREX_USE_CUDA
 static double T_save = -1;
@@ -3080,43 +3081,43 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double *  tc, double in
 {
 
     /*reaction 1: O + HO2 => OH + O2 */
-    qf[0] = sc[2]*sc[6];
+    qf[0] = sc[2]*qss_sc[2];
     qr[0] = 0.0;
 
     /*reaction 2: H + HO2 => O + H2O */
-    qf[1] = sc[1]*sc[6];
+    qf[1] = sc[1]*qss_sc[2];
     qr[1] = 0.0;
 
     /*reaction 3: H + H2O2 <=> OH + H2O */
-    qf[2] = sc[1]*sc[7];
-    qr[2] = sc[4]*sc[5];
+    qf[2] = sc[1]*qss_sc[3];
+    qr[2] = sc[4]*qss_sc[1];
 
     /*reaction 4: O + CH => H + CO */
-    qf[3] = sc[2]*sc[9];
+    qf[3] = sc[2]*qss_sc[5];
     qr[3] = 0.0;
 
     /*reaction 5: H + CH <=> C + H2 */
-    qf[4] = sc[1]*sc[9];
-    qr[4] = sc[0]*sc[8];
+    qf[4] = sc[1]*qss_sc[5];
+    qr[4] = sc[0]*qss_sc[4];
 
     /*reaction 6: O + CH2 <=> H + HCO */
-    qf[5] = sc[2]*sc[10];
+    qf[5] = sc[2]*qss_sc[6];
     qr[5] = sc[1]*sc[13];
 
     /*reaction 7: H + O2 <=> O + OH */
-    qf[6] = sc[1]*sc[3];
+    qf[6] = sc[1]*qss_sc[0];
     qr[6] = sc[2]*sc[4];
 
     /*reaction 8: H + HO2 <=> 2.000000 OH */
-    qf[7] = sc[1]*sc[6];
+    qf[7] = sc[1]*qss_sc[2];
     qr[7] = pow(sc[4], 2.000000);
 
     /*reaction 9: OH + CO <=> H + CO2 */
-    qf[8] = sc[4]*sc[11];
+    qf[8] = sc[4]*qss_sc[7];
     qr[8] = sc[1]*sc[12];
 
     /*reaction 10: OH + CH <=> H + HCO */
-    qf[9] = sc[4]*sc[9];
+    qf[9] = sc[4]*qss_sc[5];
     qr[9] = sc[1]*sc[13];
 
     double T = tc[1];
@@ -3141,7 +3142,6 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double *  tc, double in
     return;
 }
 #endif
-/*Does this write to the file? */
 
 
 #ifndef AMREX_USE_CUDA
