@@ -475,19 +475,21 @@ class Mechanism(object):
     # other methods  
 
     def __init__(self, name=""):
-        from ElementSet import ElementSet
-        from SpeciesSet import SpeciesSet
-        from ReactionSet import ReactionSet
+        from ElementSet    import ElementSet
+        from SpeciesSet    import SpeciesSet
+        from QssSpeciesSet import QssSpeciesSet
+        from ReactionSet   import ReactionSet
 
         self._name = name
         self._thermdb = "therm.dat"
         self._transdb = "tran.dat"
         self._externalDb = None
 
-        self._elements = ElementSet()
-        self._species = SpeciesSet()
-        self._reactions = ReactionSet()
-
+        self._elements    = ElementSet()
+        self._species     = SpeciesSet()
+        self._qss_species = QssSpeciesSet()
+        self._reactions   = ReactionSet()
+        
         self._thermoRange = ()
 
         self._info = journal.debug("fuego.serialization")
