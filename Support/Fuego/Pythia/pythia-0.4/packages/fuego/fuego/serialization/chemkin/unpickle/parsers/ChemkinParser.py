@@ -26,7 +26,7 @@ class ChemkinParser(BaseParser):
         import journal
         from fuego.serialization.chemkin.unpickle.tokens.Token import Token
 
-        #print "JE PARSE"
+        print "Hello Chemkin Parser !!"
 
         Token._constructed = 0
         Token._destructed = 0
@@ -59,7 +59,6 @@ class ChemkinParser(BaseParser):
         self._reactionParser = Reactions(mechanism, tokenizer)
 
         # enter the parsing loop
-
         return BaseParser.parse(self, scanner, tokenizer)
 
 
@@ -73,6 +72,7 @@ class ChemkinParser(BaseParser):
 
     def aQssSpeciesSection(self, token):
         return self._qss_speciesParser.aQssSpeciesSection(token)
+        #return self._qss_speciesParser.aSpeciesSection(token)
 
     def aThermoSection(self, token):
         return self._thermoParser.aThermoSection(token)
@@ -107,7 +107,6 @@ class ChemkinParser(BaseParser):
 
     def __init__(self):
         
-        #print " J'INITIALISE PARSER ..."
         BaseParser.__init__(self)
 
         # the table of declared species
