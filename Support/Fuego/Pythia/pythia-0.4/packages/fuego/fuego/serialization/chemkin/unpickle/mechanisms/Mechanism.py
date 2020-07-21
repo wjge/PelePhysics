@@ -102,7 +102,6 @@ class Mechanism(object):
 
     # thermo
 
-
     def declareThermalProperties(self, species):
         symbol = species.symbol
         duplicate = self._thermoDb.find(symbol)
@@ -188,7 +187,6 @@ class Mechanism(object):
 
     def reaction(self, species=None):
         return self._reactions.find(species)
-
 
     def reactionDeclarations(self):
         return self._reactions
