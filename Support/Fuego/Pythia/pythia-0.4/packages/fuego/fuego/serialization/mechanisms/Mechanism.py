@@ -39,6 +39,7 @@ class Mechanism(object):
         print "Mechanism '%s'" % self._name
         print "    elements:", self._elements.size()
         print "     species:", self._species.size()
+        print " qss species:", self._qss_species.size()
         print "   reactions:", self._reactions.size()
 
 
@@ -75,6 +76,20 @@ class Mechanism(object):
     def species(self, symbol=None):
         return self._species.find(symbol)
 
+    # qss species
+    
+    def newQssSpecies(self, symbol, locator=None):
+        duplicated = self._qss_species.find(symbol)
+
+        qss_species = self._qss_species.qss_species(symbol, locator)
+
+        if duplicate:
+            raise self.DuplicateQssSpecies(symbol)
+
+        return qss_species
+
+    def qss_species(self, symbol=None):
+        return self._qss_species.find(symbol)
 
     # thermal properties are recorded directly in the species
 

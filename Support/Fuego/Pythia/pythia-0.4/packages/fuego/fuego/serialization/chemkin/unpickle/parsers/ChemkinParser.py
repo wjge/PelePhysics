@@ -45,9 +45,12 @@ class ChemkinParser(BaseParser):
         from Species import Species
         self._speciesParser = Species(mechanism, tokenizer)
 
+        from QssSpecies import QssSpecies
+        self._qss_speciesParser = QssSpecies(mechanism, tokenizer)
+
         from Thermo import Thermo
         self._thermoParser = Thermo(mechanism, tokenizer)
-
+        
         #if doTrans/='n':
         from Trans import Trans
         self._transParser = Trans(mechanism, tokenizer)
@@ -68,6 +71,9 @@ class ChemkinParser(BaseParser):
     def aSpeciesSection(self, token):
         return self._speciesParser.aSpeciesSection(token)
 
+    def aQssSpeciesSection(self, token):
+        return self._qss_speciesParser.aQssSpeciesSection(token)
+
     def aThermoSection(self, token):
         return self._thermoParser.aThermoSection(token)
 
@@ -83,6 +89,7 @@ class ChemkinParser(BaseParser):
     def onEndOfFile(self):
         self._elementParser.onEndOfFile()
         self._speciesParser.onEndOfFile()
+        self._qss_speciesParser.onEndOfFile()
         self._thermoParser.onEndOfFile()
         #if doTrans/='n':
         self._transParser.onEndOfFile()
@@ -105,10 +112,12 @@ class ChemkinParser(BaseParser):
 
         # the table of declared species
         self._species = {}
+        self._qss_species = {}
 
         # section parsers
         self._elementParser = None
         self._speciesParser = None
+        self._qss_speciesParser = None
         self._thermoParser = None
         self._transParser = None
         self._reactionParser = None
@@ -122,6 +131,9 @@ class ChemkinParser(BaseParser):
 
         species = self._speciesParser._scanner._pattern()
         print "Species parser (%d): %s" % (len(species), species)
+
+        qss_species = self._qss_speciesParser._scanner._pattern()
+        print "QSS Species Parser (%d): %s" % (len(qss_species), qss_species)
 
         thermo = self._thermoParser._scanner._pattern()
         print "Thermo parser (%d): %s" % (len(thermo), thermo)
