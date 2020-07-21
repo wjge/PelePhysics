@@ -69,6 +69,7 @@ def speciesTokenClasses():
 
     from SpeciesName import SpeciesName
 
+
     tokenClasses = [
         Whitespace, Comments,
         EndSection, ElementSection, SpeciesSection, QssSpeciesSection, ThermoSection, TransSection, ReactionSection,
@@ -95,7 +96,7 @@ def qss_speciesTokenClasses():
     tokenClasses = [
         Whitespace, Comments,
         EndSection, ElementSection, SpeciesSection, QssSpeciesSection, ThermoSection, TransSection, ReactionSection,
-        SpeciesName
+        QssSpeciesName
         ]
 
     return tokenClasses
