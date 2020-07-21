@@ -17,7 +17,7 @@ class QssSpeciesDb:
 
     def qss_species(self, qss_species):
         self._qss_species.append(qss_species)
-        self._index[qss_species.symbol] = qss_species
+        self._qss_index[qss_species.symbol] = qss_species
         return
 
 
