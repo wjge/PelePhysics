@@ -23,7 +23,7 @@ class Mill(Stationery, Indenter):
 
         self._begin()
         if document:
-            self._renderDocument_CHOP(document)
+            self._renderDocument_QSS(document)
         self._end()
 
         return self._rep
