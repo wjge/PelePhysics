@@ -101,6 +101,11 @@ class CPickler(CMill):
                 self.species.append(tempsp)
                 nonQSS.append(species.symbol)
 
+        # Initialize QSS species-species, species-reaction, and species coupling networks        
+        self.QSS_SSnet = np.zeros([self.nQSSspecies, self.nQSSspecies], 'd')
+        self.QSS_SRnet = np.zeros([self.nQSSspecies, len(mechanism.reaction())], 'd')
+        self.QSS_SCnet = np.zeros([self.nQSSspecies, self.nQSSspecies], 'd')
+
         print "Transported species list =", list(nonQSS)
         print "QSS species list =", self.qss_list
 
@@ -119,7 +124,7 @@ class CPickler(CMill):
         self._setSpecies(mechanism)
         self.reactionIndex = mechanism._sort_reactions()
 
-        self._test2(mechanism)
+        # self._test2(mechanism)
             
         #chemistry_file.H
         self._includes(True)
@@ -195,6 +200,7 @@ class CPickler(CMill):
         # Fuego Functions
         # ORI CPU version
         # should be chopped
+        self._test(mechanism)
         self._productionRate(mechanism)
         # ORI CPU vectorized version
         self._DproductionRatePrecond(mechanism)
@@ -551,14 +557,10 @@ class CPickler(CMill):
             ki_qss = []
             nu_qss = []
 
-            print self.qss_list
-            print
             
             for symbol, coefficient in reaction.reactants:
                 # print symbol, mechanism.species(symbol), mechanism.species(symbol).id
                 if symbol in self.qss_list:
-                    print "SYMBOL IS: ", symbol
-                    # ki_qss.append(mechanism.qss_species(symbol).id)
                     ki_qss.append(mechanism.qss_species(symbol).id)
                     nu_qss.append(-coefficient)
                 else: 
@@ -5838,14 +5840,16 @@ class CPickler(CMill):
             slist = []
             # get a list of species involved in the reactants and products
             for symbol, coefficient in r.reactants:
-                slist.append(symbol)
+                if symbol in self.qss_list:
+                    slist.append(symbol)
             for symbol, coeffecient in r.products:
-                slist.append(symbol)
-            # if species s1 and species s2 are then in the same reaction,
+                if symbol in self.qss_list:
+                    slist.append(symbol)
+            # if species s1 and species s2 are in the same reaction,
             # denote they are linked in the Species-Species network
             for s1 in slist:
                 for s2 in slist:
-                    self.QSS_SSnet[mechanism.species(s1).id][mechanism.species(s2).id] = 1
+                    self.QSS_SSnet[mechanism.qss_species(s1).id][mechanism.qss_species(s2).id] = 1
 
     def _createSRnet(self, mechanism):
 
@@ -5856,16 +5860,18 @@ class CPickler(CMill):
             reaction_number = i
             # get a list of species involved in the reactants and products
             for symbol, coefficient in r.reactants:
-                reactant_list.append(symbol)
+                if symbol in self.qss_list:
+                    reactant_list.append(symbol)
             for	symbol,	coeffecient in r.products:
-                product_list.append(symbol)
-            # if species s is in reaction number i, 
+                if symbol in self.qss_list:
+                    product_list.append(symbol)
+            # if qss species s is in reaction number i, 
             # denote they are linked in the Species-Reaction network
-            # with positive if s is a reactant(forward) and negative if s is a product(backward)
+            # with negative if s is a reactant(consumed) and positive if s is a product(produced)
             for	s in reactant_list:
-                self.QSS_SRnet[mechanism.species(s).id][reaction_number] = 1
+                self.QSS_SRnet[mechanism.qss_species(s).id][reaction_number] = -1
             for s in product_list:
-                self.QSS_SRnet[mechanism.species(s).id][reaction_number] = -1
+                self.QSS_SRnet[mechanism.qss_species(s).id][reaction_number] = 1
         
     def _setQSSneeds(self, mechanism):
 
@@ -5875,21 +5881,23 @@ class CPickler(CMill):
         self.needs_running = OrderedDict()
         self.needs_count_running = OrderedDict()
         
-        for i in range(self.nQSS):
+        for i in range(self.nQSSspecies):
             needs_species = []
             count = 0
             for j in self.QSS_SC_Sj[self.QSS_SC_Si == i]:
                 if j != i:
-                    needs_species.append(self.qss_species[j])
+                    needs_species.append(self.qss_list[j])
                     count += 1
-            self.needs[self.qss_species[i]] = needs_species
-            self.needs_count[self.qss_species[i]] = count
+            self.needs[self.qss_list[i]] = needs_species
+            self.needs_count[self.qss_list[i]] = count
 
         self.needs_running = self.needs.copy()
         self.needs_count_running = self.needs_count.copy()
-            
-        # print(self.needs)
-        # print(self.needs_count)
+
+        print
+        print "NEEDS: "
+        print(self.needs)
+        print(self.needs_count)
 
     def _setQSSisneeded(self, mechanism):
 
@@ -5899,21 +5907,23 @@ class CPickler(CMill):
         self.is_needed_running = OrderedDict()
         self.is_needed_count_running = OrderedDict()
 
-        for i in range(self.nQSS):
+        for i in range(self.nQSSspecies):
             is_needed_species = []
             count = 0
             for j in self.QSS_SC_Si[self.QSS_SC_Sj == i]:
                 if j != i:
-                    is_needed_species.append(self.qss_species[j])
+                    is_needed_species.append(self.qss_list[j])
                     count += 1
-            self.is_needed[self.qss_species[i]] = is_needed_species
-            self.is_needed_count[self.qss_species[i]] = count
+            self.is_needed[self.qss_list[i]] = is_needed_species
+            self.is_needed_count[self.qss_list[i]] = count
 
         self.is_needed_running = self.is_needed.copy()
         self.is_needed_count_running = self.is_needed_count.copy()
 
-        # print(self.is_needed)
-        # print(self.is_needed_count)
+        print
+        print "IS NEEDED: "
+        print(self.is_needed)
+        print(self.is_needed_count)
 
     # get two-way dependencies accounted for: (s1 needs s2) and (s2 needs s1) = group
     def _getQSSgroups(self, mechanism):
@@ -6019,6 +6029,8 @@ class CPickler(CMill):
         if len(self.decouple_index) != len(self.needs_running):
             print("WARNING: Some components may not have been taken into account")
 
+        print
+        print "ORDER OF EXECUTION FOR QSS CONCENTRATION CALCULATIONS: "
         print(self.decouple_index)
 
     # Update group member needs with group names:
@@ -6345,18 +6357,19 @@ class CPickler(CMill):
         for s in mechanism.species():
             species.append(s.symbol)
 
-        # Check that QSS species are all species used in the given mechanism
-        for s in self.qss_species:
-            if s not in species:
-                text = 'species '+s+' is not in the mechanism'
-                sys.exit(text)
+        # NOT DOABLE ANYMORE. QSS ARE READ IN SEPARATELY FROM TRANSPORTED SPECIES
+        # # Check that QSS species are all species used in the given mechanism
+        # for s in self.qss_species:
+        #     if s not in species:
+        #         text = 'species '+s+' is not in the mechanism'
+        #         sys.exit(text)
 
         # sets up QSS subnetwork to be used for coupling too
-        self._getQSSsubnetworks(mechanism)
+        self._getQSSnetworks(mechanism)
 
         # Check that QSS species are consumed/produced at least once to ensure theoretically valid QSS option
         # (There is more to it than that, but this is a quick catch based on that aspect)
-        for i, symbol in enumerate(self.qss_species):
+        for i, symbol in enumerate(self.qss_list):
             consumed = 0
             produced = 0
             for j in self.QSS_SR_Rj[self.QSS_SR_Si == i]:
@@ -6375,70 +6388,19 @@ class CPickler(CMill):
                 text = 'Uh Oh! QSS species '+symbol+' does not have a balanced consumption/production relationship in mechanism => bad QSS choice'
                 sys.exit(text)
 
-    # Set up important QSS variables/containers
-    # This function I don't think will be necessary once QSS parsing is implemented. Initialization of QSS networks can be put in setSpecies function
-    def _setQSSspecies(self, mechanism, QSS):
-        nQSS = len(QSS)
-
-        species = []
-        for s in mechanism.species():
-            species.append(s.symbol)
-
-        # Get indices of QSS species from species list in mechanism 
-        isQSS = np.in1d(species, QSS)
-        QSS_index = np.array(np.argwhere(isQSS == True))
-
-        print("\n QSS before sorting: ", QSS, "\n\n" )
-        # Sort QSS as they would be found in the mechanism ordering
-        QSS_species_index = {}
-        QSS_species_sorted = []
-        for i in range(nQSS):
-            QSS_species_sorted.append(species[int(QSS_index[i])])
-            QSS_species_index[species[int(QSS_index[i])]] = i
-
-        # Set global QSS components
-        self.nQSS = nQSS
-        self.qss_species = QSS_species_sorted
-        # QSS_list_index refers to QSS position in QSS_species
-        self.QSS_list_index = QSS_species_index
-        # QSS_mech_index refers to QSS position in mechanism.species
-        self.QSS_mech_index = QSS_index
-        # QSS_SSnet and QSS_SRnet are initialized for the entire mechanism
-        # and are whittled down to just QSS terms with getQSSsubnetworks() 
-        self.QSS_SSnet = np.zeros([self.nSpecies, self.nSpecies], 'd')
-        self.QSS_SRnet = np.zeros([self.nSpecies, len(mechanism.reaction())], 'd')
-        self.QSS_SCnet = np.zeros([nQSS, nQSS], 'd')
-        print("\n QSS after sorting: ", self.qss_species,"\n\n")
-        # print("\n QSS list index: ", self.QSS_list_index)
-        # print("\n QSS mechanism index: ", self.QSS_mech_index)
-        # print("QSS_SSnet is \n ", self.QSS_SSnet )
 
     # Get networks showing which QSS species are involved with one another and which reactions each QSS species is involved in
-    def _getQSSsubnetworks(self, mechanism):
-        # Create full networks for mechanism
+    def _getQSSnetworks(self, mechanism):
+        # Create QSS networks for mechanism
         self._createSSnet(mechanism)
         self._createSRnet(mechanism)
-
-        # Eliminate non-QSS species to get QSS networks
-        j=0
-        for i in range(0,self.nSpecies):
-            if i not in self.QSS_mech_index:
-                self.QSS_SSnet = np.delete(self.QSS_SSnet,j,0)
-                # print("QSS SS net after first delete:")
-                # print(self.QSS_SSnet)
-                self.QSS_SSnet = np.delete(self.QSS_SSnet,j,1)
-                # print("QSS SS net after second delete:")
-                # print(self.QSS_SSnet)
-                self.QSS_SRnet = np.delete(self.QSS_SRnet,j,0)
-            else :
-                j += 1
 
         # Get non-zero indices to be used for coupling
         self.QSS_SS_Si, self.QSS_SS_Sj = np.nonzero(self.QSS_SSnet)
         self.QSS_SR_Si, self.QSS_SR_Rj = np.nonzero(self.QSS_SRnet)
 
-        # print("\n\n SS network for QSS: ")
-        # print(self.QSS_SSnet)
+        print("\n\n SS network for QSS: ")
+        print(self.QSS_SSnet)
         print("SR network for QSS: ")
         print(self.QSS_SRnet)
 
@@ -6447,32 +6409,33 @@ class CPickler(CMill):
         # print(self.QSS_SR_Si)
         # print(self.QSS_SR_Rj)
 
+        
     # Determine from QSS_SSnet which QSS species depend on each other specifically
     def _QSSCoupling(self, mechanism):
 
         self.QSS_SCnet = self.QSS_SSnet
 
-        for i in range(self.nQSS):
+        for i in range(self.nQSSspecies):
             for j in self.QSS_SS_Sj[self.QSS_SS_Si == i]:
                 if j != i:
-                    # print("looking for coupling with species ", j, "(", self.QSS_species[j], ")")
+                    # print("looking for coupling with species ", j, "(", self.qss_list[j], ")")
                     count = 0
                     for r in self.QSS_SR_Rj[self.QSS_SR_Si == j]:
                         reaction = mechanism.reaction(id=r)
 
                         #Check if QSS species i and QSS species j are both reactants in the reaction containing QSS species j
-                        if any(reactant == self.qss_species[j] for reactant,_ in  list(set(reaction.reactants))):
-                            if any(reactant == self.qss_species[i] for reactant,_ in list(set(reaction.reactants))):
-                                sys.exit('Quadratic coupling between '+self.qss_species[j]+' and '+self.qss_species[i]+' not allowed !!!')
+                        if any(reactant == self.qss_list[j] for reactant,_ in  list(set(reaction.reactants))):
+                            if any(reactant == self.qss_list[i] for reactant,_ in list(set(reaction.reactants))):
+                                sys.exit('Quadratic coupling between '+self.qss_list[j]+' and '+self.qss_list[i]+' not allowed !!!')
                             # if QSS specices j is a reactant and QSS species i is a product, then i depends on j
-                            elif any(product == self.qss_species[i] for product,_ in list(set(reaction.products))):
+                            elif any(product == self.qss_list[i] for product,_ in list(set(reaction.products))):
                                 count += 1
                         # if QSS species j is not a reactant, then it must be a product. Check if QSS species i is also a product
                         elif reaction.reversible:
-                            if any(product == self.qss_species[i] for product,_ in list(set(reaction.products))):
-                                sys.exit('Quadratic coupling between '+self.qss_species[j]+' and '+self.qss_species[i]+' not allowed !!!')
+                            if any(product == self.qss_list[i] for product,_ in list(set(reaction.products))):
+                                sys.exit('Quadratic coupling between '+self.qss_list[j]+' and '+self.qss_list[i]+' not allowed !!!')
                             # if QSS species i is a reactant in this reversible reaction, then i depends on j 
-                            elif any(reactant == self.qss_species[i] for reactant,_ in list(set(reaction.reactants))):
+                            elif any(reactant == self.qss_list[i] for reactant,_ in list(set(reaction.reactants))):
                                 count += 1
                                 
                     if count == 0:
@@ -6489,7 +6452,7 @@ class CPickler(CMill):
         self.QSS_rhs = OrderedDict()
         self.QSS_self = OrderedDict()
         
-        for i in range(self.nQSS):
+        for i in range(self.nQSSspecies):
             coupled = []
             rhs_hold = []
             for r in self.QSS_SR_Rj[self.QSS_SR_Si == i]:
@@ -6501,11 +6464,11 @@ class CPickler(CMill):
                 coupled = [species for species in list(set(self.QSS_SR_Si[self.QSS_SR_Rj == r])) if species != i]
 
                 if not coupled:
-                    print("reaction ", r, " only contains QSS species ", self.qss_species[i])
+                    print("reaction ", r, " only contains QSS species ", self.qss_list[i])
                     print
                     # if QSS species is a reactant
-                    if direction == 1:
-                        print("for species ", self.qss_species[i], " in reaction ", r, " is a reactant")
+                    if direction == -1:
+                        print("for species ", self.qss_list[i], " in reaction ", r, " is a reactant")
                         if reaction.reversible:
                             print("MOVE THIS SPECIES TO RHS")
                             print
@@ -6516,12 +6479,12 @@ class CPickler(CMill):
                             print
                             print
                     # if QSS species is a product
-                    elif direction == -1:
-                        print("for species ", self.qss_species[i], " in reaction ", r, " is a product")
+                    elif direction == 1:
+                        print("for species ", self.qss_list[i], " in reaction ", r, " is a product")
                         print("MOVE THIS SPECIES TO RHS")
                         rhs_hold.append('-qf['+str(r)+']')
 
-            self.QSS_rhs[self.qss_species[i]] = " ".join(rhs_hold)
+            self.QSS_rhs[self.qss_list[i]] = " ".join(rhs_hold)
 
         print(self.QSS_rhs)
         
@@ -6532,14 +6495,14 @@ class CPickler(CMill):
     # Order of operation as of right now: run setQSSspecies, QSSvalidation, then QSSCoupling
     def _test(self, mechanism):
         # Testing how this works in general
-        self._write(self.line('Does this write to the file?'))
-        print("\n\nDoes this print to the terminal when run?\n\n")
+        # self._write(self.line('Does this write to the file?'))
+        # print("\n\nDoes this print to the terminal when run?\n\n")
 
         # Testing setQSSspecies to initialize QSS information
-        QSS = ['O2', 'CH', 'CH2', 'C', 'H2O', 'H2O2', 'CO', 'HO2']
+        # QSS = ['O2', 'CH', 'CH2', 'C', 'H2O', 'H2O2', 'CO', 'HO2']
         # QSS = ['C','HCCO']
 
-        self._setQSSspecies(mechanism, QSS)
+        # self._setQSSspecies(mechanism, QSS)
         self._QSSvalidation(mechanism)
         # print("Global QSS info is: ", self.QSS_species)
         # print("QSS_SSnet is starting with: ", self.QSS_SSnet)
@@ -6934,6 +6897,49 @@ class CPickler(CMill):
             return conv + ' * exp('+exparg+')'
         else:
             return 'exp('+exparg+')'
+
+
+    # Set up important QSS variables/containers
+    # This function I don't think will be necessary once QSS parsing is implemented. Initialization of QSS networks can be put in setSpecies function
+    def _setQSSspecies(self, mechanism, QSS):
+        nQSS = len(QSS)
+
+        species = []
+        for s in mechanism.species():
+            species.append(s.symbol)
+
+        # Get indices of QSS species from species list in mechanism 
+        isQSS = np.in1d(species, QSS)
+        QSS_index = np.array(np.argwhere(isQSS == True))
+
+        print("\n QSS before sorting: ", QSS, "\n\n" )
+        # Sort QSS as they would be found in the mechanism ordering
+        QSS_species_index = {}
+        QSS_species_sorted = []
+        for i in range(nQSS):
+            QSS_species_sorted.append(species[int(QSS_index[i])])
+            QSS_species_index[species[int(QSS_index[i])]] = i
+
+        # Set global QSS components
+        self.nQSS = nQSS
+        self.qss_species = QSS_species_sorted
+        # QSS_list_index refers to QSS position in QSS_species
+        self.QSS_list_index = QSS_species_index
+        # QSS_mech_index refers to QSS position in mechanism.species
+        self.QSS_mech_index = QSS_index
+        # QSS_SSnet and QSS_SRnet are initialized for the entire mechanism
+        # and are whittled down to just QSS terms with getQSSsubnetworks() 
+
+        ## ONLY PART OF THIS THAT NEEDS TO BE KEPT: MOVED TO _setSpecies
+        self.QSS_SSnet = np.zeros([self.nSpecies, self.nSpecies], 'd')
+        self.QSS_SRnet = np.zeros([self.nSpecies, len(mechanism.reaction())], 'd')
+        self.QSS_SCnet = np.zeros([nQSS, nQSS], 'd')
+        ###########################################################################
+        
+        # print("\n QSS after sorting: ", self.qss_species,"\n\n")
+        # print("\n QSS list index: ", self.QSS_list_index)
+        # print("\n QSS mechanism index: ", self.QSS_mech_index)
+        # print("QSS_SSnet is \n ", self.QSS_SSnet )
 
 
 # version
