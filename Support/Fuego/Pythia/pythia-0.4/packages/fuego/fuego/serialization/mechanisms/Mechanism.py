@@ -17,7 +17,7 @@ import journal
 class Mechanism(object):
 
 
-    from MechanismExceptions import DuplicateElement, DuplicateSpecies, DuplicateThermalProperties
+    from MechanismExceptions import DuplicateElement, DuplicateSpecies, DuplicateQssSpecies, DuplicateThermalProperties
 
 
     # housekeeping
@@ -79,7 +79,7 @@ class Mechanism(object):
     # qss species
     
     def newQssSpecies(self, symbol, locator=None):
-        duplicated = self._qss_species.find(symbol)
+        duplicate = self._qss_species.find(symbol)
 
         qss_species = self._qss_species.qss_species(symbol, locator)
 

@@ -62,18 +62,18 @@ def speciesTokenClasses():
 
     from ElementSection import ElementSection
     from SpeciesSection import SpeciesSection
-    from QssSpeciesSection import QssSpeciesSection
+    #from QssSpeciesSection import QssSpeciesSection
     from ThermoSection import ThermoSection
     from TransSection import TransSection
     from ReactionSection import ReactionSection
 
     from SpeciesName import SpeciesName
+    #from QssSpeciesName import QssSpeciesName
 
 
     tokenClasses = [
         Whitespace, Comments,
-        EndSection, ElementSection, SpeciesSection, QssSpeciesSection, ThermoSection, TransSection, ReactionSection,
-        SpeciesName
+        EndSection, ElementSection, SpeciesSection, ThermoSection, TransSection, ReactionSection, SpeciesName
         ]
 
     return tokenClasses
@@ -85,18 +85,18 @@ def qss_speciesTokenClasses():
     from EndSection import EndSection
 
     from ElementSection import ElementSection
-    from SpeciesSection import SpeciesSection
+    #from SpeciesSection import SpeciesSection
     from QssSpeciesSection import QssSpeciesSection
     from ThermoSection import ThermoSection
     from TransSection import TransSection
     from ReactionSection import ReactionSection
 
+    #from SpeciesName import SpeciesName
     from QssSpeciesName import QssSpeciesName
 
     tokenClasses = [
         Whitespace, Comments,
-        EndSection, ElementSection, SpeciesSection, QssSpeciesSection, ThermoSection, TransSection, ReactionSection,
-        QssSpeciesName
+        EndSection, ElementSection, QssSpeciesSection, ThermoSection, TransSection, ReactionSection, QssSpeciesName
         ]
 
     return tokenClasses

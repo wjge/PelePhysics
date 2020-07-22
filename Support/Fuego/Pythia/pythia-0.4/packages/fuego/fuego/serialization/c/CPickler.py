@@ -42,54 +42,62 @@ class speciesDb:
 
 class CPickler(CMill):
 
-
     def __init__(self):
         CMill.__init__(self)
         self.species = []
+        self.QSS_species = []
         self.nSpecies = 0
+        self.nQSSspecies = 0
         self.reactionIndex = []
         self.lowT = 100.0
         self.highT = 10000.0
         # idk if these should be put elsewhere (or if this is even the best way to do this)
         self.QSS_mech_index = {}
-        self.QSS_species = []
-        self.nQSSspecies = 0
         return
 
-    # Update wiht QSS parsing is fully implemented in fuego
+
     def _setSpecies(self, mechanism):
         """ For internal use """
         import pyre
         periodic = pyre.handbook.periodicTable()
-
-        QSS = ['O2','CH','CH2','C','H2O','H2O2','CO','HO2']
-        
-        nSpecies = len(mechanism.species())
-        # nQSSSpecies = len(mechanism.qss_species())
-        nQSSspecies = len(QSS)
-        
-        # self.species = [ 0.0 for x in range(nSpecies) ]
-        # self.qss_species = [ 0.0 for x in range(nQSSspecies) ]
-        self.QSS_species = QSS
+ 
+        nSpecies    = len(mechanism.species())
+        nQSSspecies = len(mechanism.qss_species())
+        self.nSpecies = nSpecies
+        self.nQSSspecies = nQSSspecies
 
         # Split into two loops eventually for mech.species and mech.qss_species
         # Currently just minorly manipulated to split species from qss_species b/c right now mech.species also contains the QSS species
-        for species in mechanism.species():
-            weight = 0.0 
-            for elem, coef in species.composition:
+        QSS = []
+        for qss_sp in mechanism.qss_species():
+            weight = 0.0
+            for elem, coef in qss_sp.composition:
                 aw = mechanism.element(elem).weight
                 if not aw:
                     aw = periodic.symbol(elem.capitalize()).atomicWeight
                 weight += coef * aw
 
-            tempsp = speciesDb(species.id, species.symbol, weight)
-            if species.symbol not in QSS:
-                #self.species[species.id] = tempsp
-                self.species.append(tempsp)
+            tempspqss = speciesDb(qss_sp.id, qss_sp.symbol, weight)
+            self.QSS_species.append(tempspqss)
+            QSS.append(qss_sp.symbol)
 
-        self.nSpecies = nSpecies
-        print("Number of species is: ", self.nSpecies)
-        self.nQSSspecies = nQSSspecies
+        nonQSS = []
+        for species in mechanism.species():
+            if species.symbol not in QSS:
+                weight = 0.0 
+                for elem, coef in species.composition:
+                    aw = mechanism.element(elem).weight
+                    if not aw:
+                        aw = periodic.symbol(elem.capitalize()).atomicWeight
+                    weight += coef * aw
+
+                tempsp = speciesDb(species.id, species.symbol, weight)
+                self.species.append(tempsp)
+                nonQSS.append(species.symbol)
+
+        print "Transported species list =", list(nonQSS)
+        print "QSS species list =", list(QSS)
+
         return
 
 
@@ -143,6 +151,8 @@ class CPickler(CMill):
         else:
             self._setSpecies(mechanism)
             self.reactionIndex = mechanism._sort_reactions()
+        print "we are now in CPickler !"
+        stop
 
         self._test2(mechanism)
             
