@@ -139,7 +139,9 @@ class CPickler(CMill):
         # chemkin wrappers
         self._ckindx(mechanism)
         self._cksyme_str(mechanism)
+        self._cksyme(mechanism)
         self._cksyms_str(mechanism)
+        self._cksyms(mechanism)
         self._ckrp(mechanism)
         self._ckpx(mechanism)
         self._ckpy(mechanism)
@@ -278,7 +280,9 @@ class CPickler(CMill):
             'AMREX_GPU_HOST_DEVICE void CKFINALIZE'+sym+'();',
             'void CKINDX'+sym+'(int * mm, int * kk, int * ii, int * nfit );',
             'void CKSYME_STR(amrex::Vector<std::string>& ename);',
+            'void CKSYME(int * kname, int * lenkname);',
             'void CKSYMS_STR(amrex::Vector<std::string>& kname);',
+            'void CKSYMS(int * kname, int * lenkname);',
             'void CKRP'+sym+'(double *  ru, double *  ruc, double *  pa);',
             'void CKPX'+sym+'(double *  rho, double *  T, double *  x, double *  P);',
             'AMREX_GPU_HOST_DEVICE void CKPY'+sym+'(double *  rho, double *  T, double *  y, double *  P);',
@@ -758,6 +762,42 @@ class CPickler(CMill):
         return
 
 
+    def _cksyme(self, mechanism):
+        nElement = len(mechanism.element())
+        self._write()
+        self._write()
+        self._write(
+            self.line(' Returns the char strings of element names'))
+        self._write('void CKSYME'+sym+'(int * kname, int * plenkname )')
+        self._write('{')
+        self._indent()
+
+        self._write('int i; '+self.line('Loop Counter'))
+        self._write('int lenkname = *plenkname;')
+        self._write(self.line('clear kname'))
+        self._write('for (i=0; i<lenkname*%d; i++) {' % nElement)
+        self._indent()
+        self._write('kname[i] = \' \';')
+        self._outdent()
+        self._write('}')
+        self._write()
+        for element in mechanism.element():
+            self._write(self.line(' %s ' % element.symbol))
+            ii = 0
+            for char in element.symbol:
+                self._write('kname[ %d*lenkname + %d ] = \'%s\';' %
+                           (element.id, ii, char.capitalize()))
+                ii = ii+1
+            self._write('kname[ %d*lenkname + %d ] = \' \';' %
+                           (element.id, ii))
+            self._write()
+            
+        # done
+        self._outdent()
+        self._write('}')
+        return
+
+
     def _cksyms_str(self, mechanism):
         nSpecies = len(mechanism.species())  
         self._write() 
@@ -773,6 +813,42 @@ class CPickler(CMill):
 
         self._outdent() 
         self._write('}') 
+        return
+
+
+    def _cksyms(self, mechanism):
+        nSpecies = len(mechanism.species())
+        self._write()
+        self._write()
+        self._write(
+            self.line(' Returns the char strings of species names'))
+        self._write('void CKSYMS'+sym+'(int * kname, int * plenkname )')
+        self._write('{')
+        self._indent()
+        
+        self._write('int i; '+self.line('Loop Counter'))
+        self._write('int lenkname = *plenkname;')
+        self._write(self.line('clear kname'))
+        self._write('for (i=0; i<lenkname*%d; i++) {' % nSpecies)
+        self._indent()
+        self._write('kname[i] = \' \';')
+        self._outdent()
+        self._write('}')
+        self._write()
+        for species in mechanism.species():
+            self._write(self.line(' %s ' % species.symbol))
+            ii = 0
+            for char in species.symbol:
+                self._write('kname[ %d*lenkname + %d ] = \'%s\';' %
+                           (species.id, ii, char.capitalize()))
+                ii = ii+1
+            self._write('kname[ %d*lenkname + %d ] = \' \';' %
+                           (species.id, ii))
+            self._write()
+
+        # done
+        self._outdent()
+        self._write('}')
         return
 
 
