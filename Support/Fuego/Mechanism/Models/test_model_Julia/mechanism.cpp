@@ -3215,6 +3215,18 @@ AMREX_GPU_HOST_DEVICE void gibbs(double * species, double *  tc)
 }
 
 
+/*compute the g/(RT) at the given temperature */
+/*tc contains precomputed powers of T, tc[0] = log(T) */
+AMREX_GPU_HOST_DEVICE void gibbs_qss(double * species, double *  tc)
+{
+
+    /*temperature */
+    double T = tc[1];
+    double invT = 1 / T;
+    return;
+}
+
+
 /*compute the a/(RT) at the given temperature */
 /*tc contains precomputed powers of T, tc[0] = log(T) */
 AMREX_GPU_HOST_DEVICE void helmholtz(double * species, double *  tc)

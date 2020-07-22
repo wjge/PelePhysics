@@ -14,6 +14,7 @@ void egtransetSIG(double* SIG);
 void atomicWeight(double *  awt);
 void molecularWeight(double *  wt);
 AMREX_GPU_HOST_DEVICE void gibbs(double *  species, double *  tc);
+AMREX_GPU_HOST_DEVICE void gibbs_qss(double *  species, double *  tc):
 AMREX_GPU_HOST_DEVICE void helmholtz(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void speciesInternalEnergy(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void speciesEnthalpy(double *  species, double *  tc);

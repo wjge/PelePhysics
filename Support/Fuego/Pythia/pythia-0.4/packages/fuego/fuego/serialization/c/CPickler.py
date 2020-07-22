@@ -325,6 +325,7 @@ class CPickler(CMill):
             'void atomicWeight(double *  awt);',
             'void molecularWeight(double *  wt);',
             'AMREX_GPU_HOST_DEVICE void gibbs(double *  species, double *  tc);',
+            'AMREX_GPU_HOST_DEVICE void gibbs_qss(double *  species, double *  tc):',
             'AMREX_GPU_HOST_DEVICE void helmholtz(double *  species, double *  tc);',
             'AMREX_GPU_HOST_DEVICE void speciesInternalEnergy(double *  species, double *  tc);',
             'AMREX_GPU_HOST_DEVICE void speciesEnthalpy(double *  species, double *  tc);',
@@ -1878,9 +1879,11 @@ class CPickler(CMill):
 
 
     def _thermo_GPU(self, mechanism):
-        speciesInfo = self._analyzeThermodynamics(mechanism)
-
-        self._gibbs_GPU(speciesInfo)
+        speciesInfo = self._analyzeThermodynamics(mechanism, 0)
+        QSSspeciesInfo = self._analyzeThermodynamics(mechanism, 1)
+        
+        self._gibbs_GPU(speciesInfo, 0)
+        self._gibbs_GPU(QSSspeciesInfo, 1)
         self._helmholtz_GPU(speciesInfo)
         ##self._dcvpRdT_GPU(speciesInfo)
         self._cv_GPU(speciesInfo)
@@ -1918,7 +1921,7 @@ class CPickler(CMill):
 
 
     def _dthermodT(self, mechanism):
-        speciesInfo = self._analyzeThermodynamics(mechanism)
+        speciesInfo = self._analyzeThermodynamics(mechanism, 0)
         self._dcvpdT(speciesInfo)
         return
 
@@ -4408,7 +4411,7 @@ class CPickler(CMill):
     def _ck_eytt(self, mechanism):
 
         nSpecies = len(mechanism.species())
-        lowT,highT,dummy = self._analyzeThermodynamics(mechanism)
+        lowT,highT,dummy = self._analyzeThermodynamics(mechanism, 0)
         
         self._write()
         self._write()
@@ -4471,7 +4474,7 @@ class CPickler(CMill):
     def _ck_hytt(self, mechanism):
 
         nSpecies = len(mechanism.species())
-        lowT,highT,dummy = self._analyzeThermodynamics(mechanism)
+        lowT,highT,dummy = self._analyzeThermodynamics(mechanism, 0)
         
         self._write()
         self._write()
@@ -9457,16 +9460,6 @@ class CPickler(CMill):
         self._generateThermoRoutine("gibbs", self._gibbsNASA, speciesInfo, 1)
 
         return
-
-    def _gibbs_qss(self, speciesInfo):
-
-        self._write()
-        self._write()
-        self._write(self.line('compute the g/(RT) at the given temperature'))
-        self._write(self.line('tc contains precomputed powers of T, tc[0] = log(T)'))
-        self._generateThermoRoutine("gibbs_qss", self._gibbsNASA, speciesInfo, 1)
-
-        return
     
     def _gibbs_GPU_H(self):
 
@@ -9476,13 +9469,18 @@ class CPickler(CMill):
 
         return
 
-    def _gibbs_GPU(self, speciesInfo):
-
+    def _gibbs_GPU(self, speciesInfo, QSS_Flag):
+        
+        if QSS_Flag:
+            name = "gibbs_qss"
+        else:
+            name = "gibbs"
+            
         self._write()
         self._write()
         self._write(self.line('compute the g/(RT) at the given temperature'))
         self._write(self.line('tc contains precomputed powers of T, tc[0] = log(T)'))
-        self._generateThermoRoutine_GPU("gibbs", self._gibbsNASA, speciesInfo, 1)
+        self._generateThermoRoutine_GPU(name, self._gibbsNASA, speciesInfo, 1)
 
         return
 
@@ -10833,12 +10831,17 @@ class CPickler(CMill):
                 + parameters[3] * t * t * t + parameters[4] * t * t * t * t)
 
 
-    def _analyzeThermodynamics(self, mechanism):
+    def _analyzeThermodynamics(self, mechanism, QSS_Flag):
         lowT = 0.0
         highT = 1000000.0
 
         midpoints = {}
 
+        lowT_qss = 0.0
+        highT_qss = 1000000.0
+
+        midpoints_qss = {}
+        
         for species in mechanism.species():
 
             models = species.thermo
@@ -10871,9 +10874,46 @@ class CPickler(CMill):
         
         self.lowT = lowT
         self.highT = highT
-        return lowT, highT, midpoints
-    
 
+        for species in mechanism.qss_species():
+
+            models = species.thermo
+            if len(models) > 2:
+                print 'species: ', species
+                import pyre
+                pyre.debug.Firewall.hit("unsupported configuration in species.thermo")
+                return
+            
+            m1 = models[0]
+            m2 = models[1]
+
+            if m1.lowT < m2.lowT:
+                lowRange = m1
+                highRange = m2
+            else:
+                lowRange = m2
+                highRange = m1
+
+            low = lowRange.lowT
+            mid = lowRange.highT
+            high = highRange.highT
+
+            if low > lowT_qss:
+                lowT_qss = low
+            if high < highT_qss:
+                highT_qss = high
+
+            midpoints_qss.setdefault(mid, []).append((species, lowRange, highRange))
+        
+        self.lowT_qss = lowT_qss
+        self.highT_qss = highT_qss
+
+        if QSS_Flag:
+            return lowT_qss, highT_qss, midpoints_qss
+        else:
+            return lowT, highT, midpoints
+    
+    
     def _analyzeTransport(self, mechanism):
 
         transdata = {}
