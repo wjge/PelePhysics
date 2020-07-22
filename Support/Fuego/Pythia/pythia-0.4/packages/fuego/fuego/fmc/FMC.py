@@ -58,7 +58,7 @@ class FMC(Application):
         print "Converting into '%s' format" % output,
         lines        = fuego.serialization.save(mechanism, output)
         print "... done (%g sec)" % timer.stop()
-        stop
+        # stop
 
         print "saving in '%s' '%s' (headers) and '%s'" % (mech_header, save_header, save),
         timer.reset()
