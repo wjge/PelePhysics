@@ -28,21 +28,11 @@ AMREX_GPU_HOST_DEVICE void comp_qfqr(double *  q_f, double *  q_r, double *  sc,
 void comp_k_f(double *  tc, double invT, double *  k_f);
 void comp_Kc(double *  tc, double invT, double *  Kc);
 #endif
-AMREX_GPU_HOST_DEVICE void progressRate(double *  qdot, double *  speciesConc, double T);
-AMREX_GPU_HOST_DEVICE void progressRateFR(double *  q_f, double *  q_r, double *  speciesConc, double T);
 AMREX_GPU_HOST_DEVICE void CKINIT();
 AMREX_GPU_HOST_DEVICE void CKFINALIZE();
-#ifndef AMREX_USE_CUDA
-void GET_REACTION_MAP(int *  rmap);
-void SetAllDefaults();
-#endif
 void CKINDX(int * mm, int * kk, int * ii, int * nfit );
-void CKXNUM(char * line, int * nexp, int * lout, int * nval, double *  rval, int * kerr, int lenline);
-void CKSNUM(char * line, int * nexp, int * lout, char * kray, int * nn, int * knum, int * nval, double *  rval, int * kerr, int lenline, int lenkray);
 void CKSYME_STR(amrex::Vector<std::string>& ename);
-void CKSYME(int * kname, int * lenkname);
 void CKSYMS_STR(amrex::Vector<std::string>& kname);
-void CKSYMS(int * kname, int * lenkname);
 void CKRP(double *  ru, double *  ruc, double *  pa);
 void CKPX(double *  rho, double *  T, double *  x, double *  P);
 AMREX_GPU_HOST_DEVICE void CKPY(double *  rho, double *  T, double *  y, double *  P);
@@ -66,13 +56,6 @@ void CKCTY(double *  c, double *  y);
 void CKCPOR(double *  T, double *  cpor);
 void CKHORT(double *  T, double *  hort);
 void CKSOR(double *  T, double *  sor);
-void CKCVML(double *  T, double *  cvml);
-void CKCPML(double *  T, double *  cvml);
-void CKUML(double *  T, double *  uml);
-void CKHML(double *  T, double *  uml);
-void CKGML(double *  T, double *  gml);
-void CKAML(double *  T, double *  aml);
-void CKSML(double *  T, double *  sml);
 AMREX_GPU_HOST_DEVICE void CKCVMS(double *  T, double *  cvms);
 AMREX_GPU_HOST_DEVICE void CKCPMS(double *  T, double *  cvms);
 AMREX_GPU_HOST_DEVICE void CKUMS(double *  T, double *  ums);
@@ -99,23 +82,7 @@ void CKWYP(double *  P, double *  T, double *  y, double *  wdot);
 void CKWXP(double *  P, double *  T, double *  x, double *  wdot);
 AMREX_GPU_HOST_DEVICE void CKWYR(double *  rho, double *  T, double *  y, double *  wdot);
 void CKWXR(double *  rho, double *  T, double *  x, double *  wdot);
-void CKQC(double *  T, double *  C, double *  qdot);
-void CKKFKR(double *  P, double *  T, double *  x, double *  q_f, double *  q_r);
-void CKQYP(double *  P, double *  T, double *  y, double *  qdot);
-void CKQXP(double *  P, double *  T, double *  x, double *  qdot);
-void CKQYR(double *  rho, double *  T, double *  y, double *  qdot);
-void CKQXR(double *  rho, double *  T, double *  x, double *  qdot);
-void CKNU(int * kdim, int * nuki);
-#ifndef AMREX_USE_CUDA
-void CKINU(int * i, int * nspec, int * ki, int * nu);
-#endif
 void CKNCF(int * ncf);
-void CKABE(double *  a, double *  b, double *  e );
-void CKEQC(double *  T, double *  C , double *  eqcon );
-void CKEQYP(double *  P, double *  T, double *  y, double *  eqcon);
-void CKEQXP(double *  P, double *  T, double *  x, double *  eqcon);
-void CKEQYR(double *  rho, double *  T, double *  y, double *  eqcon);
-void CKEQXR(double *  rho, double *  T, double *  x, double *  eqcon);
 AMREX_GPU_HOST_DEVICE void DWDOT(double *  J, double *  sc, double *  T, int * consP);
 AMREX_GPU_HOST_DEVICE void DWDOT_SIMPLIFIED(double *  J, double *  sc, double *  Tp, int * HP);
 AMREX_GPU_HOST_DEVICE void SPARSITY_INFO(int * nJdata, int * consP, int NCELLS);
@@ -131,23 +98,6 @@ AMREX_GPU_HOST_DEVICE void aJacobian_precond(double *  J, double *  sc, double T
 AMREX_GPU_HOST_DEVICE void dcvpRdT(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void GET_T_GIVEN_EY(double *  e, double *  y, double *  t, int *ierr);
 AMREX_GPU_HOST_DEVICE void GET_T_GIVEN_HY(double *  h, double *  y, double *  t, int *ierr);
-void GET_CRITPARAMS(double *  Tci, double *  ai, double *  bi, double *  acentric_i);
-/*vector version */
-void VCKYTX(int *  np, double *  y, double *  x);
-void VCKHMS(int *  np, double *  T, double *  ums);
-void VCKWYR(int *  np, double *  rho, double *  T,
-            double *  y,
-            double *  wdot);
-#ifndef AMREX_USE_CUDA
-void vproductionRate(int npt, double *  wdot, double *  c, double *  T);
-void VCKPY(int *  np, double *  rho, double *  T, double *  y, double *  P);
-void vcomp_k_f(int npt, double *  k_f_s, double *  tc, double *  invT);
-void vcomp_gibbs(int npt, double *  g_RT, double *  tc);
-void vcomp_Kc(int npt, double *  Kc_s, double *  g_RT, double *  invT);
-void vcomp_wdot(int npt, double *  wdot, double *  mixture, double *  sc,
-                double *  k_f_s, double *  Kc_s,
-                double *  tc, double *  invT, double *  T);
-#endif
 /*Transport function declarations */
 void egtransetLENIMC(int* LENIMC);
 void egtransetLENRMC(int* LENRMC);
@@ -166,7 +116,7 @@ void egtransetCOFETA(double* COFETA);
 void egtransetCOFLAM(double* COFLAM);
 void egtransetCOFD(double* COFD);
 void egtransetKTDIF(int* KTDIF);
-/*gauss-jordan solver external routine */
+/* gauss-jordan solver external routine*/
 AMREX_GPU_HOST_DEVICE void sgjsolve(double* A, double* x, double* b);
 AMREX_GPU_HOST_DEVICE void sgjsolve_simplified(double* A, double* x, double* b);
 }
@@ -185,15 +135,5 @@ namespace thermo
     extern double *TB[10];
     extern std::vector<std::vector<double>> kiv; 
     extern std::vector<std::vector<double>> nuv; 
-
-    extern double fwd_A_DEF[10], fwd_beta_DEF[10], fwd_Ea_DEF[10];
-    extern double low_A_DEF[10], low_beta_DEF[10], low_Ea_DEF[10];
-    extern double rev_A_DEF[10], rev_beta_DEF[10], rev_Ea_DEF[10];
-    extern double troe_a_DEF[10],troe_Ts_DEF[10], troe_Tss_DEF[10], troe_Tsss_DEF[10];
-    extern double sri_a_DEF[10], sri_b_DEF[10], sri_c_DEF[10], sri_d_DEF[10], sri_e_DEF[10];
-    extern double activation_units_DEF[10], prefactor_units_DEF[10], phase_units_DEF[10];
-    extern int is_PD_DEF[10], troe_len_DEF[10], sri_len_DEF[10], nTB_DEF[10], *TBid_DEF[10];
-    extern double *TB_DEF[10];
-    extern std::vector<int> rxn_map;
 }
 #endif

@@ -45,7 +45,8 @@ class CPickler(CMill):
     def __init__(self):
         CMill.__init__(self)
         self.species = []
-        self.QSS_species = []
+        self.qss_species = []
+        self.qss_list = []
         self.nSpecies = 0
         self.nQSSspecies = 0
         self.reactionIndex = []
@@ -63,12 +64,17 @@ class CPickler(CMill):
  
         nSpecies    = len(mechanism.species())
         nQSSspecies = len(mechanism.qss_species())
+
+        print nSpecies
+        print nQSSspecies
+        print
+
         self.nSpecies = nSpecies
         self.nQSSspecies = nQSSspecies
-
+        
         # Split into two loops eventually for mech.species and mech.qss_species
         # Currently just minorly manipulated to split species from qss_species b/c right now mech.species also contains the QSS species
-        QSS = []
+        
         for qss_sp in mechanism.qss_species():
             weight = 0.0
             for elem, coef in qss_sp.composition:
@@ -78,12 +84,12 @@ class CPickler(CMill):
                 weight += coef * aw
 
             tempspqss = speciesDb(qss_sp.id, qss_sp.symbol, weight)
-            self.QSS_species.append(tempspqss)
-            QSS.append(qss_sp.symbol)
+            self.qss_species.append(tempspqss)
+            self.qss_list.append(qss_sp.symbol)
 
         nonQSS = []
         for species in mechanism.species():
-            if species.symbol not in QSS:
+            if species.symbol not in self.qss_list:
                 weight = 0.0 
                 for elem, coef in species.composition:
                     aw = mechanism.element(elem).weight
@@ -96,7 +102,7 @@ class CPickler(CMill):
                 nonQSS.append(species.symbol)
 
         print "Transported species list =", list(nonQSS)
-        print "QSS species list =", list(QSS)
+        print "QSS species list =", self.qss_list
 
         return
 
@@ -113,7 +119,7 @@ class CPickler(CMill):
         self._setSpecies(mechanism)
         self.reactionIndex = mechanism._sort_reactions()
 
-        #self._test2(mechanism)
+        self._test2(mechanism)
             
         #chemistry_file.H
         self._includes(True)
@@ -544,19 +550,23 @@ class CPickler(CMill):
 
             ki_qss = []
             nu_qss = []
+
+            print self.qss_list
+            print
             
             for symbol, coefficient in reaction.reactants:
-                print symbol, mechanism.species(symbol), mechanism.species(symbol).id
-                if symbol in self.QSS_species:
+                # print symbol, mechanism.species(symbol), mechanism.species(symbol).id
+                if symbol in self.qss_list:
+                    print "SYMBOL IS: ", symbol
                     # ki_qss.append(mechanism.qss_species(symbol).id)
-                    ki_qss.append(self.QSS_species.index(symbol))
+                    ki_qss.append(mechanism.qss_species(symbol).id)
                     nu_qss.append(-coefficient)
                 else: 
                     ki.append(mechanism.species(symbol).id)
                     nu.append(-coefficient)
             for symbol, coefficient in reaction.products:
-                if symbol in self.QSS_species:
-                    ki_qss.append(self.QSS_species.index(symbol))
+                if symbol in self.qss_list:
+                    ki_qss.append(mechanism.qss_species(symbol).id)
                     nu_qss.append(coefficient)
                 else:
                     ki.append(mechanism.species(symbol).id)
@@ -2702,7 +2712,7 @@ class CPickler(CMill):
             agents = []
             # remove QSS species from agents
             for symbol, coefficient in all_agents:
-                if symbol not in self.QSS_species:
+                if symbol not in self.qss_list:
                     agents.append((symbol, coefficient))
             agents = sorted(agents, key=lambda x: mechanism.species(x[0]).id)
             # note that a species might appear as both reactant and product
@@ -3787,6 +3797,8 @@ class CPickler(CMill):
                 import pyre
                 pyre.debug.Firewall.hit("unsupported configuration in species.thermo")
                 return
+            if len(models) == 0:
+                return lowT_qss, highT_qss, midpoints_qss
             
             m1 = models[0]
             m2 = models[1]
@@ -3861,8 +3873,8 @@ class CPickler(CMill):
             else:
                 factor = "%f * " % coefficient
 
-            if symbol in self.QSS_species:
-                terms.append("%sg_RT_qss[%d]" % (factor, self.QSS_species.index(symbol)))
+            if symbol in self.qss_list:
+                terms.append("%sg_RT_qss[%d]" % (factor, mechanism.qss_species(symbol).id))
             else:
                 terms.append("%sg_RT[%d]" % (factor, mechanism.species(symbol).id))
 
@@ -3877,8 +3889,8 @@ class CPickler(CMill):
             else:
                 factor = "%f * " % coefficient
 
-            if symbol in self.QSS_species:
-                terms.append("%sg_RT_qss[%d]" % (factor, self.QSS_species.index(symbol)))
+            if symbol in self.qss_list:
+                terms.append("%sg_RT_qss[%d]" % (factor, mechanism.qss_species(symbol).id))
             else:
                 terms.append("%sg_RT[%d]" % (factor, mechanism.species(symbol).id))
 
@@ -3931,7 +3943,7 @@ class CPickler(CMill):
 
     def _sortedKcExpArg(self, mechanism, reaction):
 
-        nSpecies = len(mechanism.species())+len(self.QSS_species)
+        nSpecies = len(mechanism.species())+len(self.qss_species)
 
         terms = []
         # terms list filled with transported species first, referenced by index, and then QSS species at afterwards, referenced by their list order + nSpecies
@@ -3943,8 +3955,8 @@ class CPickler(CMill):
             else:
                 factor = " + %f*" % coefficient
 
-            if symbol in self.QSS_species:
-                i = self.QSS_species.index(symbol)
+            if symbol in self.qss_list:
+                i = mechanism.qss_species(symbol).id
                 terms[i+self.nSpecies] += "%sg_RT_qss[%d]"%(factor,i)
             else:
                 i = mechanism.species(symbol).id
@@ -3956,8 +3968,8 @@ class CPickler(CMill):
             else:
                 factor = " - %f*" % coefficient
 
-            if symbol in self.QSS_species:
-                i = self.QSS_species.index(symbol)
+            if symbol in self.qss_list:
+                i = mechanism.qss_species(symbol).id
                 terms[i+self.nSpecies] += "%sg_RT_qss[%d]"%(factor,i)
             else:
                 i = mechanism.species(symbol).id
@@ -5585,7 +5597,7 @@ class CPickler(CMill):
         self._write('/* Species */')
         nb_spec = 0
         for species in mechanism.species():
-            if species.symbol not in self.QSS_species:
+            if species.symbol not in self.qss_species:
                 s = species.symbol.strip()
                 # Ionic species
                 if s[-1] == '-': s = s[:-1] + 'n'
@@ -5868,10 +5880,10 @@ class CPickler(CMill):
             count = 0
             for j in self.QSS_SC_Sj[self.QSS_SC_Si == i]:
                 if j != i:
-                    needs_species.append(self.QSS_species[j])
+                    needs_species.append(self.qss_species[j])
                     count += 1
-            self.needs[self.QSS_species[i]] = needs_species
-            self.needs_count[self.QSS_species[i]] = count
+            self.needs[self.qss_species[i]] = needs_species
+            self.needs_count[self.qss_species[i]] = count
 
         self.needs_running = self.needs.copy()
         self.needs_count_running = self.needs_count.copy()
@@ -5892,10 +5904,10 @@ class CPickler(CMill):
             count = 0
             for j in self.QSS_SC_Si[self.QSS_SC_Sj == i]:
                 if j != i:
-                    is_needed_species.append(self.QSS_species[j])
+                    is_needed_species.append(self.qss_species[j])
                     count += 1
-            self.is_needed[self.QSS_species[i]] = is_needed_species
-            self.is_needed_count[self.QSS_species[i]] = count
+            self.is_needed[self.qss_species[i]] = is_needed_species
+            self.is_needed_count[self.qss_species[i]] = count
 
         self.is_needed_running = self.is_needed.copy()
         self.is_needed_count_running = self.is_needed_count.copy()
@@ -6334,7 +6346,7 @@ class CPickler(CMill):
             species.append(s.symbol)
 
         # Check that QSS species are all species used in the given mechanism
-        for s in self.QSS_species:
+        for s in self.qss_species:
             if s not in species:
                 text = 'species '+s+' is not in the mechanism'
                 sys.exit(text)
@@ -6344,7 +6356,7 @@ class CPickler(CMill):
 
         # Check that QSS species are consumed/produced at least once to ensure theoretically valid QSS option
         # (There is more to it than that, but this is a quick catch based on that aspect)
-        for i, symbol in enumerate(self.QSS_species):
+        for i, symbol in enumerate(self.qss_species):
             consumed = 0
             produced = 0
             for j in self.QSS_SR_Rj[self.QSS_SR_Si == i]:
@@ -6386,7 +6398,7 @@ class CPickler(CMill):
 
         # Set global QSS components
         self.nQSS = nQSS
-        self.QSS_species = QSS_species_sorted
+        self.qss_species = QSS_species_sorted
         # QSS_list_index refers to QSS position in QSS_species
         self.QSS_list_index = QSS_species_index
         # QSS_mech_index refers to QSS position in mechanism.species
@@ -6396,7 +6408,7 @@ class CPickler(CMill):
         self.QSS_SSnet = np.zeros([self.nSpecies, self.nSpecies], 'd')
         self.QSS_SRnet = np.zeros([self.nSpecies, len(mechanism.reaction())], 'd')
         self.QSS_SCnet = np.zeros([nQSS, nQSS], 'd')
-        print("\n QSS after sorting: ", self.QSS_species,"\n\n")
+        print("\n QSS after sorting: ", self.qss_species,"\n\n")
         # print("\n QSS list index: ", self.QSS_list_index)
         # print("\n QSS mechanism index: ", self.QSS_mech_index)
         # print("QSS_SSnet is \n ", self.QSS_SSnet )
@@ -6449,18 +6461,18 @@ class CPickler(CMill):
                         reaction = mechanism.reaction(id=r)
 
                         #Check if QSS species i and QSS species j are both reactants in the reaction containing QSS species j
-                        if any(reactant == self.QSS_species[j] for reactant,_ in  list(set(reaction.reactants))):
-                            if any(reactant == self.QSS_species[i] for reactant,_ in list(set(reaction.reactants))):
-                                sys.exit('Quadratic coupling between '+self.QSS_species[j]+' and '+self.QSS_species[i]+' not allowed !!!')
+                        if any(reactant == self.qss_species[j] for reactant,_ in  list(set(reaction.reactants))):
+                            if any(reactant == self.qss_species[i] for reactant,_ in list(set(reaction.reactants))):
+                                sys.exit('Quadratic coupling between '+self.qss_species[j]+' and '+self.qss_species[i]+' not allowed !!!')
                             # if QSS specices j is a reactant and QSS species i is a product, then i depends on j
-                            elif any(product == self.QSS_species[i] for product,_ in list(set(reaction.products))):
+                            elif any(product == self.qss_species[i] for product,_ in list(set(reaction.products))):
                                 count += 1
                         # if QSS species j is not a reactant, then it must be a product. Check if QSS species i is also a product
                         elif reaction.reversible:
-                            if any(product == self.QSS_species[i] for product,_ in list(set(reaction.products))):
-                                sys.exit('Quadratic coupling between '+self.QSS_species[j]+' and '+self.QSS_species[i]+' not allowed !!!')
+                            if any(product == self.qss_species[i] for product,_ in list(set(reaction.products))):
+                                sys.exit('Quadratic coupling between '+self.qss_species[j]+' and '+self.qss_species[i]+' not allowed !!!')
                             # if QSS species i is a reactant in this reversible reaction, then i depends on j 
-                            elif any(reactant == self.QSS_species[i] for reactant,_ in list(set(reaction.reactants))):
+                            elif any(reactant == self.qss_species[i] for reactant,_ in list(set(reaction.reactants))):
                                 count += 1
                                 
                     if count == 0:
@@ -6489,11 +6501,11 @@ class CPickler(CMill):
                 coupled = [species for species in list(set(self.QSS_SR_Si[self.QSS_SR_Rj == r])) if species != i]
 
                 if not coupled:
-                    print("reaction ", r, " only contains QSS species ", self.QSS_species[i])
+                    print("reaction ", r, " only contains QSS species ", self.qss_species[i])
                     print
                     # if QSS species is a reactant
                     if direction == 1:
-                        print("for species ", self.QSS_species[i], " in reaction ", r, " is a reactant")
+                        print("for species ", self.qss_species[i], " in reaction ", r, " is a reactant")
                         if reaction.reversible:
                             print("MOVE THIS SPECIES TO RHS")
                             print
@@ -6505,11 +6517,11 @@ class CPickler(CMill):
                             print
                     # if QSS species is a product
                     elif direction == -1:
-                        print("for species ", self.QSS_species[i], " in reaction ", r, " is a product")
+                        print("for species ", self.qss_species[i], " in reaction ", r, " is a product")
                         print("MOVE THIS SPECIES TO RHS")
                         rhs_hold.append('-qf['+str(r)+']')
 
-            self.QSS_rhs[self.QSS_species[i]] = " ".join(rhs_hold)
+            self.QSS_rhs[self.qss_species[i]] = " ".join(rhs_hold)
 
         print(self.QSS_rhs)
         
@@ -6562,7 +6574,8 @@ class CPickler(CMill):
     def _test2(self, mechanism):
         for species in self.species:
             print (species.symbol, " ",species.id, " ", species.weight)
-        print self.QSS_species
+        for qss in self.qss_species:
+            print(qss.symbol, " ", qss.id, " ", qss.weight)
 
     # Not actually sorted right now, just regular PhaseSpace with QSS distinction
     def _QSSsortedPhaseSpace(self, mechanism, reagents):
@@ -6570,11 +6583,11 @@ class CPickler(CMill):
         phi = []
 
         for symbol, coefficient in reagents:
-            if symbol in self.QSS_species:
+            if symbol in self.qss_list:
                 if (float(coefficient) == 1.0):
-                    conc = "qss_sc[%d]" % self.QSS_species.index(symbol)
+                    conc = "qss_sc[%d]" % mechanism.qss_species(symbol).id
                 else:
-                    conc = "pow(qss_sc[%d], %f)" % (self.QSS_species.index(symbol), float(coefficient))
+                    conc = "pow(qss_sc[%d], %f)" % (mechanism.qss_species(symbol).id, float(coefficient))
                 phi += [conc]
             else:
                 if (float(coefficient) == 1.0):

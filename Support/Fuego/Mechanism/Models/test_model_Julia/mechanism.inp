@@ -4,7 +4,10 @@ O  H  C
 END                                                                             
 SPECIES                                                                         
 H2      H       O       OH      CO2     HCO                      
-END                                                                             
+END
+QSS
+O2      H2O     HO2     H2O2    C       CH      CH2     CO    
+END
 TRANS ALL
 H2                 1    38.000     2.920     0.000     0.790   280.000          
 H                  0   145.000     2.050     0.000     0.000     0.000          

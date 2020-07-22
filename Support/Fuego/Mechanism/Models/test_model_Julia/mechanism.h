@@ -24,4 +24,9 @@
 #define NUM_FIT 4
 #endif
 
+/* version */
+/* $Id$ */
+
+/* Generated automatically by CPickler on Wed Jul 22 12:23:14 2020 */
+
 /* End of file  */
