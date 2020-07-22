@@ -13,9 +13,9 @@
 #define H2_ID 0
 #define H_ID 1
 #define O_ID 2
-#define OH_ID 4
-#define CO2_ID 12
-#define HCO_ID 13
+#define OH_ID 3
+#define CO2_ID 4
+#define HCO_ID 5
 
 #define NUM_ELEMENTS 3
 #define NUM_SPECIES 6

@@ -52,17 +52,28 @@ class CPickler(CMill):
         self.highT = 10000.0
         # idk if these should be put elsewhere (or if this is even the best way to do this)
         self.QSS_mech_index = {}
+        self.QSS_species = []
+        self.nQSSspecies = 0
         return
 
-
+    # Update wiht QSS parsing is fully implemented in fuego
     def _setSpecies(self, mechanism):
         """ For internal use """
         import pyre
         periodic = pyre.handbook.periodicTable()
+
+        QSS = ['O2','CH','CH2','C','H2O','H2O2','CO','HO2']
         
         nSpecies = len(mechanism.species())
-        self.species = [ 0.0 for x in range(nSpecies) ]
+        # nQSSSpecies = len(mechanism.qss_species())
+        nQSSspecies = len(QSS)
         
+        # self.species = [ 0.0 for x in range(nSpecies) ]
+        # self.qss_species = [ 0.0 for x in range(nQSSspecies) ]
+        self.QSS_species = QSS
+
+        # Split into two loops eventually for mech.species and mech.qss_species
+        # Currently just minorly manipulated to split species from qss_species b/c right now mech.species also contains the QSS species
         for species in mechanism.species():
             weight = 0.0 
             for elem, coef in species.composition:
@@ -72,9 +83,13 @@ class CPickler(CMill):
                 weight += coef * aw
 
             tempsp = speciesDb(species.id, species.symbol, weight)
-            self.species[species.id] = tempsp
+            if species.symbol not in QSS:
+                #self.species[species.id] = tempsp
+                self.species.append(tempsp)
 
         self.nSpecies = nSpecies
+        print("Number of species is: ", self.nSpecies)
+        self.nQSSspecies = nQSSspecies
         return
 
 
@@ -129,6 +144,8 @@ class CPickler(CMill):
             self._setSpecies(mechanism)
             self.reactionIndex = mechanism._sort_reactions()
 
+        self._test2(mechanism)
+            
         #chemistry_file.H
         self._includes(True)
         self._header_chop(mechanism)
@@ -236,23 +253,23 @@ class CPickler(CMill):
         
         # Fuego Functions
         # GPU version
-        self._productionRate_GPU(mechanism)
+        # self._productionRate_GPU(mechanism)
         # ORI CPU version
         ###  QSS IMPLEMENTATION TESTING
-        self._test(mechanism)
+        # self._test(mechanism)
         ###
         self._productionRate(mechanism)
         # ORI CPU vectorized version
-        self._vproductionRate(mechanism)
+        # self._vproductionRate(mechanism)
         self._DproductionRatePrecond(mechanism)
         #self._DproductionRateSPSPrecond(mechanism)
         self._DproductionRate(mechanism)
         self._sparsity(mechanism)
         # GPU version
-        self._ajac_GPU(mechanism)
+        # self._ajac_GPU(mechanism)
         # ORI CPU version
-        self._ajac(mechanism)
-        self._ajacPrecond(mechanism)
+        # self._ajac(mechanism)
+        # self._ajacPrecond(mechanism)
         self._dthermodT(mechanism)
         self._progressRate(mechanism)
         self._progressRateFR(mechanism)
@@ -716,18 +733,35 @@ class CPickler(CMill):
 
             ki = []
             nu = []
+
+            ki_qss = []
+            nu_qss = []
+            
             for symbol, coefficient in reaction.reactants:
-                ki.append(mechanism.species(symbol).id)
-                nu.append(-coefficient)
+                if symbol in self.QSS_species:
+                    # ki_qss.append(mechanism.qss_species(symbol).id)
+                    ki_qss.append(self.QSS_species.index(symbol))
+                    nu_qss.append(-coefficient)
+                else: 
+                    ki.append(mechanism.species(symbol).id)
+                    nu.append(-coefficient)
             for symbol, coefficient in reaction.products:
-                ki.append(mechanism.species(symbol).id)
-                nu.append(coefficient)
+                if symbol in self.QSS_species:
+                    ki_qss.append(self.QSS_species.index(symbol))
+                    nu_qss.append(coefficient)
+                else:
+                    ki.append(mechanism.species(symbol).id)
+                    nu.append(coefficient)
 
             self._write("// (%d):  %s" % (reaction.orig_id - 1, reaction.equation()))
             kistr = "{" + ','.join(str(x) for x in ki) + "}"
             nustr = "{" + ','.join(str(x) for x in nu) + "}"
+            kiqss_str = "{" + ','.join(str(x) for x in ki_qss) + "}"
+            nuqss_str = "{" + ','.join(str(x) for x in nu_qss) + "}"
             self._write("kiv[%d] = %s;" % (id,kistr))
             self._write("nuv[%d] = %s;" % (id,nustr))
+            self._write("kiv_qss[%d] = %s;" % (id,kiqss_str))
+	    self._write("nuv_qss[%d] = %s;" % (id,nuqss_str))
 
             A, beta, E = reaction.arrhenius
             self._write("// (%d):  %s" % (reaction.orig_id - 1, reaction.equation()))
@@ -3451,7 +3485,7 @@ class CPickler(CMill):
 
         self._write()
         self._write()
-        self._write(self.line('Returns the stoichiometric coefficients'))
+        self._write(self.line('Returns the non-QSS stoichiometric coefficients'))
         self._write(self.line('of the reaction mechanism. (Eq 50)'))
         self._write('void CKNU'+sym+'(int * kdim,  int * nuki)')
         self._write('{')
@@ -3473,14 +3507,16 @@ class CPickler(CMill):
             self._write(self.line('reaction %d: %s' % (reaction.id, reaction.equation())))
 
             for symbol, coefficient in reaction.reactants:
-                self._write(
-                    "nuki[ %d * kd + %d ] += -%f ;"
-                    % (mechanism.species(symbol).id, reaction.id-1, coefficient))
+                if symbol not in self.QSS_species:
+                    self._write(
+                        "nuki[ %d * kd + %d ] += -%f ;"
+                        % (mechanism.species(symbol).id, reaction.id-1, coefficient))
 
             for symbol, coefficient in reaction.products:
-                self._write(
-                    "nuki[ %d * kd + %d ] += +%f ;"
-                    % (mechanism.species(symbol).id, reaction.id-1, coefficient))
+                if symbol not in self.QSS_species:
+                    self._write(
+                        "nuki[ %d * kd + %d ] += +%f ;"
+                        % (mechanism.species(symbol).id, reaction.id-1, coefficient))
        
         # done
         self._outdent()
@@ -3488,6 +3524,51 @@ class CPickler(CMill):
 
         return
 
+    def _cknu_qss(self, mechanism):
+
+        nSpecies  = len(mechanism.qss_species())
+        nReaction = len(mechanism.reaction())
+
+        self._write()
+        self._write()
+        self._write(self.line('Returns the QSS stoichiometric coefficients'))
+        self._write(self.line('of the reaction mechanism. (Eq 50)'))
+        self._write('void CKNU_QSS'+sym+'(int * kdim_qss,  int * nuki_qss)')
+        self._write('{')
+        self._indent()
+
+ 
+        self._write('int id; ' + self.line('loop counter'))
+        self._write('int kd = (*kdim_qss); ')
+        self._write(self.line('Zero nuki'))
+        self._write('for (id = 0; id < %d * kd; ++ id) {' % (nSpecies) )
+        self._indent()
+        self._write(' nuki_qss[id] = 0; ')
+        self._outdent()
+        self._write('}')
+        
+        for reaction in mechanism.reaction():
+
+            self._write()
+            self._write(self.line('reaction %d: %s' % (reaction.id, reaction.equation())))
+
+            for symbol, coefficient in reaction.reactants:
+                if symbol in self.QSS_species:                    
+                    self._write(
+                        "nuki_qss[ %d * kd + %d ] += -%f ;"
+                        % (mechanism.qss_species(symbol).id, reaction.id-1, coefficient))
+
+            for symbol, coefficient in reaction.products:
+                if symbol in self.QSS_species:
+                    self._write(
+                        "nuki_qss[ %d * kd + %d ] += +%f ;"
+                        % (mechanism.qss_species(symbol).id, reaction.id-1, coefficient))
+       
+        # done
+        self._outdent()
+        self._write('}')
+
+        return
 
     def _ckinu(self, mechanism):
 
@@ -5290,7 +5371,12 @@ class CPickler(CMill):
             self._write()
             self._write("qdot = q_f[%d]-q_r[%d];" % (i,i))
             reaction = mechanism.reaction(id=i)
-            agents = list(set(reaction.reactants + reaction.products))
+            all_agents = list(set(reaction.reactants + reaction.products))
+            agents = []
+            # remove QSS species from agents
+            for symbol, coefficient in all_agents:
+                if symbol not in self.QSS_species:
+                    agents.append((symbol, coefficient))
             agents = sorted(agents, key=lambda x: mechanism.species(x[0]).id)
             # note that a species might appear as both reactant and product
             # a species might alos appear twice or more on on each side
@@ -5346,8 +5432,9 @@ class CPickler(CMill):
         self._indent()
 
         self._write(self.line('compute the Gibbs free energy'))
-        self._write('double g_RT[%d];' % (nSpecies))
+        self._write('double g_RT[%d], g_RT_qss[%d];' % (nSpecies,self.nQSSspecies))
         self._write('gibbs(g_RT, tc);')
+        self._write('gibbs_qss(g_RT_qss, tc);')
 
         self._write()
 
@@ -9371,6 +9458,16 @@ class CPickler(CMill):
 
         return
 
+    def _gibbs_qss(self, speciesInfo):
+
+        self._write()
+        self._write()
+        self._write(self.line('compute the g/(RT) at the given temperature'))
+        self._write(self.line('tc contains precomputed powers of T, tc[0] = log(T)'))
+        self._generateThermoRoutine("gibbs_qss", self._gibbsNASA, speciesInfo, 1)
+
+        return
+    
     def _gibbs_GPU_H(self):
 
         self._write(self.line('compute the g/(RT) at the given temperature'))
@@ -9494,6 +9591,9 @@ class CPickler(CMill):
     def _generateThermoRoutine_GPU(self, name, expressionGenerator, speciesInfo, needsInvT=0):
 
         lowT, highT, midpoints = speciesInfo
+
+        print("SPECIES INFO FROM generateThermoRoutine_GPU: ")
+        # print(speciesInfo)
         
         self._write('AMREX_GPU_HOST_DEVICE void %s(double * species, double *  tc)' % name)
         self._write('{')
@@ -10812,8 +10912,12 @@ class CPickler(CMill):
                 factor = ""
             else:
                 factor = "%f * " % coefficient
-                    
-            terms.append("%sg_RT[%d]" % (factor, mechanism.species(symbol).id))
+
+            if symbol in self.QSS_species:
+                terms.append("%sg_RT_qss[%d]" % (factor, self.QSS_species.index(symbol)))
+            else:
+                terms.append("%sg_RT[%d]" % (factor, mechanism.species(symbol).id))
+
             dim -= coefficient
         dG += '(' + ' + '.join(terms) + ')'
 
@@ -10824,7 +10928,12 @@ class CPickler(CMill):
                 factor = ""
             else:
                 factor = "%f * " % coefficient
-            terms.append("%sg_RT[%d]" % (factor, mechanism.species(symbol).id))
+
+            if symbol in self.QSS_species:
+                terms.append("%sg_RT_qss[%d]" % (factor, self.QSS_species.index(symbol)))
+            else:
+                terms.append("%sg_RT[%d]" % (factor, mechanism.species(symbol).id))
+
             dim += coefficient
         dG += ' - (' + ' + '.join(terms) + ')'
 
@@ -10872,9 +10981,10 @@ class CPickler(CMill):
 
     def _sortedKcExpArg(self, mechanism, reaction):
 
-        nSpecies = len(mechanism.species())
+        nSpecies = len(mechanism.species())+len(self.QSS_species)
 
         terms = []
+        # terms list filled with transported species first, referenced by index, and then QSS species at afterwards, referenced by their list order + nSpecies
         for i in range(nSpecies):
             terms.append('')
         for symbol, coefficient in reaction.reactants:
@@ -10882,16 +10992,26 @@ class CPickler(CMill):
                 factor = " + "
             else:
                 factor = " + %f*" % coefficient
-            i = mechanism.species(symbol).id
-            terms[i] += "%sg_RT[%d]"%(factor,i)
+
+            if symbol in self.QSS_species:
+                i = self.QSS_species.index(symbol)
+                terms[i+self.nSpecies] += "%sg_RT_qss[%d]"%(factor,i)
+            else:
+                i = mechanism.species(symbol).id
+                terms[i] += "%sg_RT[%d]"%(factor,i)
 
         for symbol, coefficient in reaction.products:
             if coefficient == 1.0:
                 factor = " - "    # flip the signs
             else:
                 factor = " - %f*" % coefficient
-            i = mechanism.species(symbol).id
-            terms[i] += "%sg_RT[%d]"%(factor,i)
+
+            if symbol in self.QSS_species:
+                i = self.QSS_species.index(symbol)
+                terms[i+self.nSpecies] += "%sg_RT_qss[%d]"%(factor,i)
+            else:
+                i = mechanism.species(symbol).id
+                terms[i] += "%sg_RT[%d]"%(factor,i)
 
         dG = ""
         for i in range(nSpecies):
@@ -11761,6 +11881,7 @@ class CPickler(CMill):
                 sys.exit(text)
 
     # Set up important QSS variables/containers
+    # This function I don't think will be necessary once QSS parsing is implemented. Initialization of QSS networks can be put in setSpecies function
     def _setQSSspecies(self, mechanism, QSS):
         nQSS = len(QSS)
 
@@ -11955,11 +12076,17 @@ class CPickler(CMill):
 
         self._sortQSSsolution_elements(mechanism)
 
+    def _test2(self, mechanism):
+        for species in self.species:
+            print (species.symbol, " ",species.id, " ", species.weight)
+        print self.QSS_species
+
+    # Not actually sorted right now, just regular PhaseSpace with QSS distinction
     def _QSSsortedPhaseSpace(self, mechanism, reagents):
 
         phi = []
 
-        for symbol, coefficient in sorted(reagents,key=lambda x:mechanism.species(x[0]).id):
+        for symbol, coefficient in reagents:
             if symbol in self.QSS_species:
                 if (float(coefficient) == 1.0):
                     conc = "qss_sc[%d]" % self.QSS_species.index(symbol)
