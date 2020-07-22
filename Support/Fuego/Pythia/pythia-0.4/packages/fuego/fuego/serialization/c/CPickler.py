@@ -199,10 +199,10 @@ class CPickler(CMill):
         
         # Fuego Functions
         # ORI CPU version
+        self._productionRate(mechanism)
         # should be chopped
         self._test(mechanism)
         self._QSScomponentFunctions(mechanism)
-        self._productionRate(mechanism)
         # ORI CPU vectorized version
         self._DproductionRatePrecond(mechanism)
         self._DproductionRate(mechanism)
@@ -257,12 +257,10 @@ class CPickler(CMill):
             '{',
             'AMREX_GPU_HOST_DEVICE void get_imw(double imw_new[]);',
             'AMREX_GPU_HOST_DEVICE void get_mw(double mw_new[]);',
-            'void egtransetEPS(double *  EPS);',
-            'void egtransetSIG(double* SIG);',
             'void atomicWeight(double *  awt);',
             'void molecularWeight(double *  wt);',
             'AMREX_GPU_HOST_DEVICE void gibbs(double *  species, double *  tc);',
-            'AMREX_GPU_HOST_DEVICE void gibbs_qss(double *  species, double *  tc):',
+            'AMREX_GPU_HOST_DEVICE void gibbs_qss(double *  species, double *  tc);',
             'AMREX_GPU_HOST_DEVICE void helmholtz(double *  species, double *  tc);',
             'AMREX_GPU_HOST_DEVICE void speciesInternalEnergy(double *  species, double *  tc);',
             'AMREX_GPU_HOST_DEVICE void speciesEnthalpy(double *  species, double *  tc);',
@@ -409,6 +407,8 @@ class CPickler(CMill):
 
         self._write('extern std::vector<std::vector<double>> kiv; ')
         self._write('extern std::vector<std::vector<double>> nuv; ')
+        self._write('extern std::vector<std::vector<double>> kiv_qss; ')
+        self._write('extern std::vector<std::vector<double>> nuv_qss; ')
 
         self._outdent()
 
@@ -465,6 +465,8 @@ class CPickler(CMill):
 
         self._write('std::vector<std::vector<double>> kiv(%d); ' % (nReactions))
         self._write('std::vector<std::vector<double>> nuv(%d); ' % (nReactions))
+        self._write('std::vector<std::vector<double>> kiv_qss(%d); ' % (nReactions))
+        self._write('std::vector<std::vector<double>> nuv_qss(%d); ' % (nReactions))
 
         self._outdent()
 
@@ -6869,8 +6871,6 @@ class CPickler(CMill):
         self._write('return;')
         self._outdent()
         self._write('}')
-
-        self._write("#endif")
 
         return
 
