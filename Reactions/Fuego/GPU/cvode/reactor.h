@@ -72,12 +72,26 @@ static int cF_RHS(realtype t, N_Vector y_in, N_Vector ydot, void *user_data);
 
 /**********************************/
 /* Functions Called by the main program */
-int reactor_info(const int* cvode_iE, const int* Ncells); 
+int reactor_info(int cvode_iE, int Ncells);
 
-int react(realtype *rY_in, realtype *rY_src_in, 
-          realtype *rX_in, realtype *rX_src_in, 
-          realtype *dt_react, realtype *time,
-          const int* cvode_iE, const int* Ncells, cudaStream_t stream);
+int react(realtype *rY_in, realtype *rY_src_in,
+          realtype *rX_in, realtype *rX_src_in,
+          realtype &dt_react, realtype &time,
+          int cvode_iE, int Ncells,
+          cudaStream_t stream);
+
+int react(const amrex::Box& box,
+          amrex::Array4<amrex::Real> const& rY_in,
+          amrex::Array4<amrex::Real> const& rY_src_in, 
+          amrex::Array4<amrex::Real> const& T_in,
+          amrex::Array4<amrex::Real> const& rEner_in,  
+          amrex::Array4<amrex::Real> const& rEner_src_in,
+          amrex::Array4<amrex::Real> const& FC_in,
+          amrex::Array4<int> const& mask,
+          amrex::Real &dt_react,
+          amrex::Real &time,
+          const int &cvode_iE,
+          cudaStream_t stream);
 
 static int Precond(realtype tn, N_Vector u, N_Vector fu, booleantype jok,
                    booleantype *jcurPtr, realtype gamma, void *user_data);
@@ -97,9 +111,13 @@ static int check_flag(void *flagvalue, const char *funcname, int opt);
 
 static void PrintFinalStats(void *cvode_mem);
 
-void SetTypValsODE(std::vector<double> ExtTypVals);
+void SetTypValsODE(const std::vector<double>& ExtTypVals);
 
 void SetTolFactODE(double relative_tol,double absolute_tol);
+
+void* sunalloc(size_t mem_size);
+
+void sunfree(void* ptr);
 
 /**********************************/
 /* Device crap               */
