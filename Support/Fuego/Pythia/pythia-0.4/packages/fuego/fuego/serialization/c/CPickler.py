@@ -271,7 +271,7 @@ class CPickler(CMill):
             'AMREX_GPU_HOST_DEVICE void cv_R(double *  species, double *  tc);',
             'void equilibriumConstants(double *  kc, double *  g_RT, double T);',
             'AMREX_GPU_HOST_DEVICE void productionRate(double *  wdot, double *  sc, double T);',
-            'AMREX_GPU_HOST_DEVICE void comp_qfqr(double *  q_f, double *  q_r, double *  sc, double *  tc, double invT);',
+            'AMREX_GPU_HOST_DEVICE void comp_qfqr(double *  q_f, double *  q_r, double *  sc, double *  qss_sc, double *  tc, double invT);',
             '#ifndef AMREX_USE_CUDA',
             'void comp_k_f(double *  tc, double invT, double *  k_f);',
             'void comp_Kc(double *  tc, double invT, double *  Kc);',
@@ -2776,7 +2776,9 @@ class CPickler(CMill):
 
         self._write()
         self._write('double qdot, q_f[%d], q_r[%d];' % (nReactions,nReactions))
-        self._write('comp_qfqr(q_f, q_r, sc, tc, invT);');
+        self._write('double sc_qss[%d];' % (self.nQSSspecies))
+        self._write('/* Fill sc_qss here*/')
+        self._write('comp_qfqr(q_f, q_r, sc, sc_qss, tc, invT);');
 
         self._write()
         self._write('for (int i = 0; i < %d; ++i) {' % nSpecies)
