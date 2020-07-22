@@ -1287,6 +1287,72 @@ void CKNCF(int * ncf)
 
 }
 
+void comp_qss_qfqr_coeff(double *  qf_co, double *  qr_co, double *  sc, double * qss_sc, double *  tc, double invT)
+{
+
+    /*reaction 1: O + HO2 => OH + O2 */
+    qf_co[0] = sc[2]*qss_sc[2];
+    qr_co[0] = 0.0;
+
+    /*reaction 2: H + HO2 => O + H2O */
+    qf_co[1] = sc[1]*qss_sc[2];
+    qr_co[1] = 0.0;
+
+    /*reaction 3: H + H2O2 <=> OH + H2O */
+    qf_co[2] = sc[1]*qss_sc[3];
+    qr_co[2] = sc[3]*qss_sc[1];
+
+    /*reaction 4: O + CH => H + CO */
+    qf_co[3] = sc[2]*qss_sc[5];
+    qr_co[3] = 0.0;
+
+    /*reaction 5: H + CH <=> C + H2 */
+    qf_co[4] = sc[1]*qss_sc[5];
+    qr_co[4] = qss_sc[4]*sc[0];
+
+    /*reaction 6: O + CH2 <=> H + HCO */
+    qf_co[5] = sc[2]*qss_sc[6];
+    qr_co[5] = sc[1]*sc[5];
+
+    /*reaction 7: H + O2 <=> O + OH */
+    qf_co[6] = sc[1]*qss_sc[0];
+    qr_co[6] = sc[2]*sc[3];
+
+    /*reaction 8: H + HO2 <=> 2.000000 OH */
+    qf_co[7] = sc[1]*qss_sc[2];
+    qr_co[7] = pow(sc[3], 2.000000);
+
+    /*reaction 9: OH + CO <=> H + CO2 */
+    qf_co[8] = sc[3]*qss_sc[7];
+    qr_co[8] = sc[1]*sc[4];
+
+    /*reaction 10: OH + CH <=> H + HCO */
+    qf_co[9] = sc[3]*qss_sc[5];
+    qr_co[9] = sc[1]*sc[5];
+
+    double T = tc[1];
+
+    /*compute the mixture concentration */
+    double mixture = 0.0;
+    for (int i = 0; i < 6; ++i) {
+        mixture += sc[i];
+    }
+
+    double Corr[10];
+    for (int i = 0; i < 10; ++i) {
+        Corr[i] = 1.0;
+    }
+
+    for (int i=0; i<10; i++)
+    {
+        qf_co[i] *= Corr[i] * k_f_save[i];
+        qr_co[i] *= Corr[i] * k_f_save[i] / Kc_save[i];
+    }
+
+    return;
+}
+#endif
+
 #ifndef AMREX_USE_CUDA
 static double T_save = -1;
 #ifdef _OPENMP

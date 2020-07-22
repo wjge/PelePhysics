@@ -201,6 +201,7 @@ class CPickler(CMill):
         # ORI CPU version
         # should be chopped
         self._test(mechanism)
+        self._QSScomponentFunctions(mechanism)
         self._productionRate(mechanism)
         # ORI CPU vectorized version
         self._DproductionRatePrecond(mechanism)
@@ -6446,15 +6447,16 @@ class CPickler(CMill):
         print
 
     # Components needed to set up QSS algebraic expressions from AX = B, where A contains coeffiencts from qf's and qr's, X contains QSS species concentrations, and B contains:
-    # RHS vector (non-QSS and QSS qf's and qr's), coefficient of species (self), coefficient of group mates
+    # RHS vector (non-QSS and QSS qf's and qr's), coefficient of species (diagonal elements of A), coefficient of group mates (coupled off-diagonal elements of A)
     def _sortQSSsolution_elements(self, mechanism):
 
         self.QSS_rhs = OrderedDict()
-        self.QSS_self = OrderedDict()
+        self.QSS_coeff = OrderedDict()
         
         for i in range(self.nQSSspecies):
             coupled = []
             rhs_hold = []
+            coeff_hold = []
             for r in self.QSS_SR_Rj[self.QSS_SR_Si == i]:
 
                 reaction = mechanism.reaction(id=r)
@@ -6463,6 +6465,9 @@ class CPickler(CMill):
                 # Check if reaction contains other QSS species
                 coupled = [species for species in list(set(self.QSS_SR_Si[self.QSS_SR_Rj == r])) if species != i]
 
+                print "COUPLED IS: "
+                print coupled
+                
                 if not coupled:
                     print("reaction ", r, " only contains QSS species ", self.qss_list[i])
                     print
@@ -6478,12 +6483,38 @@ class CPickler(CMill):
                             print("not reversible => qr = 0")
                             print
                             print
+                        coeff_hold.append('-qf['+str(r)+']')
                     # if QSS species is a product
                     elif direction == 1:
+                        if reaction.reversible:
+                            coeff_hold.append('-qf['+str(r)+']')
                         print("for species ", self.qss_list[i], " in reaction ", r, " is a product")
                         print("MOVE THIS SPECIES TO RHS")
                         rhs_hold.append('-qf['+str(r)+']')
-
+                else:
+                    # print("reaction ", r, " only contains QSS species ", self.qss_list[i])
+                    print
+                    # if QSS species is a reactant
+                    if direction == -1:
+                        print("for species ", self.qss_list[i], " in reaction ", r, " is a reactant")
+                        if reaction.reversible:
+                            print("MOVE THIS SPECIES TO RHS")
+                            print
+                            print
+                            rhs_hold.append('-qb['+str(r)+']')
+                        else:
+                            print("not reversible => qr = 0")
+                            print
+                            print
+                        coeff_hold.append('-qf['+str(r)+']')
+                    # if QSS species is a product
+                    elif direction == 1:
+                        if reaction.reversible:
+                            coeff_hold.append('-qf['+str(r)+']')
+                        print("for species ", self.qss_list[i], " in reaction ", r, " is a product")
+                        print("MOVE THIS SPECIES TO RHS")
+                        rhs_hold.append('-qf['+str(r)+']')
+                                                
             self.QSS_rhs[self.qss_list[i]] = " ".join(rhs_hold)
 
         print(self.QSS_rhs)
@@ -6560,7 +6591,30 @@ class CPickler(CMill):
                 phi += [conc]
         return "*".join(phi)
 
-    
+
+    def _QSScomponentFunctions(self, mechanism):
+
+        nSpecies = len(mechanism.species())
+        nReactions = len(mechanism.reaction())
+
+        itroe      = self.reactionIndex[0:2]
+        isri       = self.reactionIndex[1:3]
+        ilindemann = self.reactionIndex[2:4]
+        i3body     = self.reactionIndex[3:5] 
+        isimple    = self.reactionIndex[4:6]
+        ispecial   = self.reactionIndex[5:7]
+
+        if len(self.reactionIndex) != 7:
+            print '\n\nCheck this!!!\n'
+            sys.exit(1)
+        
+        ntroe      = itroe[1]      - itroe[0]
+        nsri       = isri[1]       - isri[0]
+        nlindemann = ilindemann[1] - ilindemann[0]
+        n3body     = i3body[1]     - i3body[0]
+        nsimple    = isimple[1]    - isimple[0]
+        nspecial   = ispecial[1]   - ispecial[0]
+        
         # qss_coefficients
         self._write()
         self._write('void comp_qss_qfqr_coeff(double *  qf_co, double *  qr_co, double *  sc, double * qss_sc, double *  tc, double invT)')
@@ -6769,8 +6823,8 @@ class CPickler(CMill):
         self._write("for (int i=0; i<%d; i++)" % nclassd)
         self._write("{")
         self._indent()
-        self._write("qf[i] *= Corr[i] * k_f_save[i];")
-        self._write("qr[i] *= Corr[i] * k_f_save[i] / Kc_save[i];")
+        self._write("qf_co[i] *= Corr[i] * k_f_save[i];")
+        self._write("qr_co[i] *= Corr[i] * k_f_save[i] / Kc_save[i];")
         self._outdent()
         self._write("}")
         
