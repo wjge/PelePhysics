@@ -215,12 +215,13 @@ contains
     integer :: j, k
     integer :: npts
 
-    npts = (hi(1)+1)-(lo(1)-1)+1
-    do k = lo(3)-1, hi(3)+1
-       do j = lo(2)-1, hi(2)+1
-         call VCKYTX( npts, Y(lo(1)-1:hi(1)+1, j, k, :), X( lo(1)-1:hi(1)+1, j, k, :) )
-       enddo
-    enddo
+    !npts = (hi(1)+1)-(lo(1)-1)+1
+    !do k = lo(3)-1, hi(3)+1
+    !   do j = lo(2)-1, hi(2)+1
+    !     call VCKYTX( npts, Y(lo(1)-1:hi(1)+1, j, k, :), X( lo(1)-1:hi(1)+1, j, k, :) )
+    !   enddo
+    !enddo
+    call bl_error('EOS: eos_ytx_vec is not supported in this EOS.')
 
   end subroutine eos_ytx_vec
 
@@ -273,12 +274,13 @@ contains
     integer :: j, k
     integer :: npts
 
-    npts = (high(1)+1)-(low(1)-1)+1
-    do k = low(3)-1, high(3)+1
-       do j = low(2)-1, high(2)+1
-          call VCKHMS( npts, T(low(1)-1:high(1)+1, j, k), hi( low(1)-1:high(1)+1, j, k, :) )
-       enddo
-    enddo
+    !npts = (high(1)+1)-(low(1)-1)+1
+    !do k = low(3)-1, high(3)+1
+    !   do j = low(2)-1, high(2)+1
+    !      call VCKHMS( npts, T(low(1)-1:high(1)+1, j, k), hi( low(1)-1:high(1)+1, j, k, :) )
+    !   enddo
+    !enddo
+    call bl_error('EOS: eos_hi_vec is not supported in this EOS.')
 
   end subroutine eos_hi_vec
 
