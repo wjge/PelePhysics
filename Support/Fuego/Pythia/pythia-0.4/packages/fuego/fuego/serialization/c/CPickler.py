@@ -3930,9 +3930,37 @@ class CPickler(CMill):
         
         if QSS_Flag:
             for symbol in self.qss_species_list:
+                species = mechanism.species(symbol)
+                models  = species.thermo
+                if len(models) > 2:
+                    print 'species: ', species
+                    import pyre
+                    pyre.debug.Firewall.hit("unsupported configuration in species.thermo")
+                    return
+                
+                m1 = models[0]
+                m2 = models[1]
+
+                if m1.lowT < m2.lowT:
+                    lowRange = m1
+                    highRange = m2
+                else:
+                    lowRange = m2
+                    highRange = m1
+
+                low = lowRange.lowT
+                mid = lowRange.highT
+                high = highRange.highT
+
+                if low > lowT:
+                    lowT = low
+                if high < highT:
+                    highT = high
+
+                midpoints.setdefault(mid, []).append((species, lowRange, highRange))
+
         else:
             for symbol in self.nonqss_species_list:
-
                 species = mechanism.species(symbol)
                 models  = species.thermo
                 if len(models) > 2:
@@ -4128,7 +4156,7 @@ class CPickler(CMill):
 
 
     def _thermo_GPU(self, mechanism):
-        speciesInfo = self._analyzeThermodynamics(mechanism, 0)
+        speciesInfo    = self._analyzeThermodynamics(mechanism, 0)
         QSSspeciesInfo = self._analyzeThermodynamics(mechanism, 1)
         
         self._gibbs_GPU(speciesInfo, 0)
@@ -4149,7 +4177,7 @@ class CPickler(CMill):
         self._write()
         self._write(self.line('compute d(Cp/R)/dT and d(Cv/R)/dT at the given temperature'))
         self._write(self.line('tc contains precomputed powers of T, tc[0] = log(T)'))
-        self._generateThermoRoutine_GPU("dcvpRdT", self._dcpdTNASA, speciesInfo)
+        self._generateThermoRoutine_GPU("dcvpRdT", self._dcpdTNASA, speciesInfo, 0)
 
         return
 
@@ -4165,7 +4193,7 @@ class CPickler(CMill):
         self._write()
         self._write(self.line('compute the g/(RT) at the given temperature'))
         self._write(self.line('tc contains precomputed powers of T, tc[0] = log(T)'))
-        self._generateThermoRoutine_GPU(name, self._gibbsNASA, speciesInfo, 1)
+        self._generateThermoRoutine_GPU(name, self._gibbsNASA, speciesInfo, QSS_Flag, 1)
 
         return
 
@@ -4176,7 +4204,7 @@ class CPickler(CMill):
         self._write()
         self._write(self.line('compute the a/(RT) at the given temperature'))
         self._write(self.line('tc contains precomputed powers of T, tc[0] = log(T)'))
-        self._generateThermoRoutine_GPU("helmholtz", self._helmholtzNASA, speciesInfo, 1)
+        self._generateThermoRoutine_GPU("helmholtz", self._helmholtzNASA, speciesInfo, 0, 1)
 
         return
 
@@ -4188,7 +4216,7 @@ class CPickler(CMill):
         self._write()
         self._write(self.line('compute Cv/R at the given temperature'))
         self._write(self.line('tc contains precomputed powers of T, tc[0] = log(T)'))
-        self._generateThermoRoutine_GPU("cv_R", self._cvNASA, speciesInfo)
+        self._generateThermoRoutine_GPU("cv_R", self._cvNASA, speciesInfo, 0)
 
         return
     
@@ -4198,7 +4226,7 @@ class CPickler(CMill):
         self._write()
         self._write(self.line('compute Cp/R at the given temperature'))
         self._write(self.line('tc contains precomputed powers of T, tc[0] = log(T)'))
-        self._generateThermoRoutine_GPU("cp_R", self._cpNASA, speciesInfo)
+        self._generateThermoRoutine_GPU("cp_R", self._cpNASA, speciesInfo, 0)
 
         return
 
@@ -4209,7 +4237,7 @@ class CPickler(CMill):
         self._write()
         self._write(self.line('compute the e/(RT) at the given temperature'))
         self._write(self.line('tc contains precomputed powers of T, tc[0] = log(T)'))
-        self._generateThermoRoutine_GPU("speciesInternalEnergy", self._internalEnergy, speciesInfo, 1)
+        self._generateThermoRoutine_GPU("speciesInternalEnergy", self._internalEnergy, speciesInfo, 0, 1)
 
         return
 
@@ -4220,7 +4248,7 @@ class CPickler(CMill):
         self._write()
         self._write(self.line('compute the h/(RT) at the given temperature (Eq 20)'))
         self._write(self.line('tc contains precomputed powers of T, tc[0] = log(T)'))
-        self._generateThermoRoutine_GPU("speciesEnthalpy", self._enthalpyNASA, speciesInfo, 1)
+        self._generateThermoRoutine_GPU("speciesEnthalpy", self._enthalpyNASA, speciesInfo, 0, 1)
 
         return
 
@@ -4231,12 +4259,12 @@ class CPickler(CMill):
         self._write()
         self._write(self.line('compute the S/R at the given temperature (Eq 21)'))
         self._write(self.line('tc contains precomputed powers of T, tc[0] = log(T)'))
-        self._generateThermoRoutine_GPU("speciesEntropy", self._entropyNASA, speciesInfo)
+        self._generateThermoRoutine_GPU("speciesEntropy", self._entropyNASA, speciesInfo, 0)
 
         return
 
 
-    def _generateThermoRoutine_GPU(self, name, expressionGenerator, speciesInfo, needsInvT=0):
+    def _generateThermoRoutine_GPU(self, name, expressionGenerator, speciesInfo, QSS_flag, needsInvT=0):
 
         lowT, highT, midpoints = speciesInfo
 
@@ -4274,8 +4302,12 @@ class CPickler(CMill):
             self._indent()
 
             for species, lowRange, highRange in speciesList:
-                self._write(self.line('species %d: %s' % (self.ordered_idx_map[species.symbol], species.symbol)))
-                self._write('species[%d] =' % (self.ordered_idx_map[species.symbol]))
+                if QSS_flag:
+                    self._write(self.line('species %d: %s' % (self.ordered_idx_map[species.symbol] - self.nSpecies, species.symbol)))
+                    self._write('species[%d] =' % (self.ordered_idx_map[species.symbol] - self.nSpecies))
+                else:
+                    self._write(self.line('species %d: %s' % (self.ordered_idx_map[species.symbol], species.symbol)))
+                    self._write('species[%d] =' % (self.ordered_idx_map[species.symbol]))
                 self._indent()
                 expressionGenerator(lowRange.parameters)
                 self._outdent()
@@ -4285,8 +4317,12 @@ class CPickler(CMill):
             self._indent()
 
             for species, lowRange, highRange in speciesList:
-                self._write(self.line('species %d: %s' % (self.ordered_idx_map[species.symbol], species.symbol)))
-                self._write('species[%d] =' % (self.ordered_idx_map[species.symbol]))
+                if QSS_flag:
+                    self._write(self.line('species %d: %s' % (self.ordered_idx_map[species.symbol] - self.nSpecies, species.symbol)))
+                    self._write('species[%d] =' % (self.ordered_idx_map[species.symbol] - self.nSpecies))
+                else:
+                    self._write(self.line('species %d: %s' % (self.ordered_idx_map[species.symbol], species.symbol)))
+                    self._write('species[%d] =' % (self.ordered_idx_map[species.symbol]))
                 self._indent()
                 expressionGenerator(highRange.parameters)
                 self._outdent()
