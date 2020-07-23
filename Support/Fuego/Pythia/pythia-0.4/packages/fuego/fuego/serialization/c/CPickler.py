@@ -245,7 +245,7 @@ class CPickler(CMill):
         self._T_given_ey(mechanism)
         self._T_given_hy(mechanism)
         #AF: add transport data
-        self._transport(mechanism)
+        # self._transport(mechanism)
         #AF: dummy gjs routines
         self._emptygjs(mechanism)
 
@@ -3892,45 +3892,18 @@ class CPickler(CMill):
             if high < highT:
                 highT = high
 
-            midpoints.setdefault(mid, []).append((species, lowRange, highRange))
-        
-        self.lowT = lowT
-        self.highT = highT
-
-        for species in mechanism.qss_species():
-
-            models = species.thermo
-            if len(models) > 2:
-                print 'species: ', species
-                import pyre
-                pyre.debug.Firewall.hit("unsupported configuration in species.thermo")
-                return
-            if len(models) == 0:
-                return lowT_qss, highT_qss, midpoints_qss
-            
-            m1 = models[0]
-            m2 = models[1]
-
-            if m1.lowT < m2.lowT:
-                lowRange = m1
-                highRange = m2
+            if species.symbol not in self.qss_list:
+                midpoints.setdefault(mid, []).append((species, lowRange, highRange))
             else:
-                lowRange = m2
-                highRange = m1
+                midpoints_qss.setdefault(mid, []).append((species, lowRange, highRange))
 
-            low = lowRange.lowT
-            mid = lowRange.highT
-            high = highRange.highT
+        if species.symbol not in self.qss_list:
+            self.lowT = lowT
+            self.highT = highT
+        else:
+            self.lowT_qss = lowT
+            self.highT_qss = highT
 
-            if low > lowT_qss:
-                lowT_qss = low
-            if high < highT_qss:
-                highT_qss = high
-
-            midpoints_qss.setdefault(mid, []).append((species, lowRange, highRange))
-        
-        self.lowT_qss = lowT_qss
-        self.highT_qss = highT_qss
 
         if QSS_Flag:
             return lowT_qss, highT_qss, midpoints_qss
@@ -4652,7 +4625,9 @@ class CPickler(CMill):
         m_crot = np.zeros(self.nSpecies)
         m_cvib = np.zeros(self.nSpecies)
         isatm = np.zeros(self.nSpecies)
-        for spec in speciesTransport:
+        transported = (spec for spec in speciesTransport if spec.symbol not in self.qss_list)
+        print "TRANSPORTED SPECIES IN VISCOSITY FUNCTION ARE: ", list(transported)
+        for spec in transported:
             if int(speciesTransport[spec][0]) == 0:
                 m_crot[spec.id] = 0.0
                 m_cvib[spec.id] = 0.0
@@ -4669,7 +4644,7 @@ class CPickler(CMill):
         cofeta = {}
         #conductivities coefs (4 per spec)
         coflam = {}
-        for spec in speciesTransport:
+        for spec in transported:
             spvisc = []
             spcond = []
             tlog = []
@@ -4743,7 +4718,7 @@ class CPickler(CMill):
         self._write('void egtransetCOFETA(double* COFETA) {')
         self._indent()
 
-        for spec in self.species:
+        for spec in self.tran_species:
             for i in range(4):
                 self._write('%s[%d] = %.8E;' % ('COFETA', spec.id*4+i, cofeta[spec.id][3-i]))
 

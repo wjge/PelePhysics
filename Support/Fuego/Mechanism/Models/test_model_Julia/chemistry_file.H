@@ -9,12 +9,10 @@ extern "C"
 {
 AMREX_GPU_HOST_DEVICE void get_imw(double imw_new[]);
 AMREX_GPU_HOST_DEVICE void get_mw(double mw_new[]);
-void egtransetEPS(double *  EPS);
-void egtransetSIG(double* SIG);
 void atomicWeight(double *  awt);
 void molecularWeight(double *  wt);
 AMREX_GPU_HOST_DEVICE void gibbs(double *  species, double *  tc);
-AMREX_GPU_HOST_DEVICE void gibbs_qss(double *  species, double *  tc):
+AMREX_GPU_HOST_DEVICE void gibbs_qss(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void helmholtz(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void speciesInternalEnergy(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void speciesEnthalpy(double *  species, double *  tc);
@@ -23,7 +21,7 @@ AMREX_GPU_HOST_DEVICE void cp_R(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void cv_R(double *  species, double *  tc);
 void equilibriumConstants(double *  kc, double *  g_RT, double T);
 AMREX_GPU_HOST_DEVICE void productionRate(double *  wdot, double *  sc, double T);
-AMREX_GPU_HOST_DEVICE void comp_qfqr(double *  q_f, double *  q_r, double *  sc, double *  tc, double invT);
+AMREX_GPU_HOST_DEVICE void comp_qfqr(double *  q_f, double *  q_r, double *  sc, double *  qss_sc, double *  tc, double invT);
 #ifndef AMREX_USE_CUDA
 void comp_k_f(double *  tc, double invT, double *  k_f);
 void comp_Kc(double *  tc, double invT, double *  Kc);
@@ -32,7 +30,9 @@ AMREX_GPU_HOST_DEVICE void CKINIT();
 AMREX_GPU_HOST_DEVICE void CKFINALIZE();
 void CKINDX(int * mm, int * kk, int * ii, int * nfit );
 void CKSYME_STR(amrex::Vector<std::string>& ename);
+void CKSYME(int * kname, int * lenkname);
 void CKSYMS_STR(amrex::Vector<std::string>& kname);
+void CKSYMS(int * kname, int * lenkname);
 void CKRP(double *  ru, double *  ruc, double *  pa);
 void CKPX(double *  rho, double *  T, double *  x, double *  P);
 AMREX_GPU_HOST_DEVICE void CKPY(double *  rho, double *  T, double *  y, double *  P);
@@ -135,5 +135,7 @@ namespace thermo
     extern double *TB[10];
     extern std::vector<std::vector<double>> kiv; 
     extern std::vector<std::vector<double>> nuv; 
+    extern std::vector<std::vector<double>> kiv_qss; 
+    extern std::vector<std::vector<double>> nuv_qss; 
 }
 #endif
