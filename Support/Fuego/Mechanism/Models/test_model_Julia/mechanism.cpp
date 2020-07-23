@@ -1287,7 +1287,7 @@ void CKNCF(int * ncf)
 
 }
 
-void comp_qss_qfqr_coeff(double *  qf_co, double *  qr_co, double *  sc, double * qss_sc, double *  tc, double invT)
+void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double * qss_sc, double *  tc, double invT)
 {
 
     /*reaction 1: O + HO2 => OH + O2 */

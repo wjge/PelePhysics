@@ -6452,23 +6452,44 @@ class CPickler(CMill):
 
         self.QSS_rhs = OrderedDict()
         self.QSS_coeff = OrderedDict()
+        self.QSS_groupSp = OrderedDict()
+        self.QSS_supergroupSp = OrderedDict()
+
+        print self.qss_list
+        print self.nQSSspecies
         
         for i in range(self.nQSSspecies):
             coupled = []
+            reactants = []
+            products = []
             rhs_hold = []
             coeff_hold = []
+            groupCoeff_hold = []
+            supergroupCoeff_hold = defaultdict(list)
+
+            print
+            print
+            print "i is: ", i
+            print "self.qss_list[i] is: ", self.qss_list[i]
+            print
+            
             for r in self.QSS_SR_Rj[self.QSS_SR_Si == i]:
 
                 reaction = mechanism.reaction(id=r)
                 direction = self.QSS_SRnet[i][r]
-                
-                # Check if reaction contains other QSS species
-                coupled = [species for species in list(set(self.QSS_SR_Si[self.QSS_SR_Rj == r])) if species != i]
+                group_flag = False
+                supergroup_flag = False
 
+                print "self.qss_list[i] is: ", self.qss_list[i]
+                # Check if reaction contains other QSS species
+                coupled = [species for species in list(set(self.QSS_SR_Si[self.QSS_SR_Rj == r]))]
+                
                 print "COUPLED IS: "
                 print coupled
+
+                print "self.qss_list[i] is: ", self.qss_list[i]
                 
-                if not coupled:
+                if len(coupled) < 2:
                     print("reaction ", r, " only contains QSS species ", self.qss_list[i])
                     print
                     # if QSS species is a reactant
@@ -6483,41 +6504,140 @@ class CPickler(CMill):
                             print("not reversible => qr = 0")
                             print
                             print
-                        coeff_hold.append('-qf['+str(r)+']')
+                        coeff_hold.append('-qf_co['+str(r)+']')
                     # if QSS species is a product
                     elif direction == 1:
                         if reaction.reversible:
-                            coeff_hold.append('-qf['+str(r)+']')
+                            coeff_hold.append('-qb_co['+str(r)+']')
                         print("for species ", self.qss_list[i], " in reaction ", r, " is a product")
                         print("MOVE THIS SPECIES TO RHS")
                         rhs_hold.append('-qf['+str(r)+']')
                 else:
                     # print("reaction ", r, " only contains QSS species ", self.qss_list[i])
                     print
-                    # if QSS species is a reactant
-                    if direction == -1:
-                        print("for species ", self.qss_list[i], " in reaction ", r, " is a reactant")
-                        if reaction.reversible:
-                            print("MOVE THIS SPECIES TO RHS")
-                            print
-                            print
-                            rhs_hold.append('-qb['+str(r)+']')
-                        else:
-                            print("not reversible => qr = 0")
-                            print
-                            print
-                        coeff_hold.append('-qf['+str(r)+']')
-                    # if QSS species is a product
-                    elif direction == 1:
-                        if reaction.reversible:
-                            coeff_hold.append('-qf['+str(r)+']')
-                        print("for species ", self.qss_list[i], " in reaction ", r, " is a product")
-                        print("MOVE THIS SPECIES TO RHS")
-                        rhs_hold.append('-qf['+str(r)+']')
-                                                
-            self.QSS_rhs[self.qss_list[i]] = " ".join(rhs_hold)
+                    coupled_qss = [self.qss_list[j] for j in coupled]
+                    print "THE QSS SPECIES INVOLVED IN THIS REACTION ARE: "
+                    print coupled_qss
+                    print
+                    print "self.qss_list[i] is: ", self.qss_list[i]
 
-        print(self.QSS_rhs)
+                    for species in coupled_qss:
+                        if species != self.qss_list[i]:
+                            other_qss = species
+                    
+                    print
+                    print 
+
+                    
+                    for group in self.group:
+
+                        if set(self.group[group]) == set(coupled_qss):
+                            print "!!!!!!!!!!!!GROUP MATCH!!!!!!!!!!!!!!!!"
+                            group_flag = True
+                            print
+                            
+                    for supergroup in self.super_group:
+
+                        contains_groups = [member for member in self.super_group[supergroup] if member in self.group.keys()]
+                        contains_species = [member for member in self.super_group[supergroup] if member not in self.group.keys()]
+
+                        for group in contains_groups:
+                            contains_species.extend(self.group[group])
+
+                        if set(coupled_qss).issubset(set(contains_species)):
+                            print "!!!!!!!!!!!SUPERGROUP MATCH!!!!!!!!!!!!!!"
+                            supergroup_flag = True
+                            
+                        
+                        
+                    if group_flag:
+                        print "YES, species "+str(coupled_qss)+" is in a group"
+                        # if QSS species is a reactant
+                        if direction == -1:
+                            print("for species ", self.qss_list[i], " in reaction ", r, " is a reactant")
+                            if reaction.reversible:
+                                print("MOVE THIS SPECIES TO RHS")
+                                print
+                                print
+                                groupCoeff_hold.append('+qb_co['+str(r)+']')
+                            else:
+                                print("not reversible => qr = 0")
+                                print
+                                print
+                            coeff_hold.append('-qf_co['+str(r)+']')
+                        # if QSS species is a product
+                        elif direction == 1:
+                            if reaction.reversible:
+                                coeff_hold.append('-qb_co['+str(r)+']')
+                            print("for species ", self.qss_list[i], " in reaction ", r, " is a product")
+                            print("MOVE THIS SPECIES TO RHS")
+                            groupCoeff_hold.append('+qf_co['+str(r)+']')
+                            
+                    elif supergroup_flag:
+                        print "YES, species "+str(coupled_qss)+" is in a super group"
+                        # if QSS species is a reactant
+                        if direction == -1:
+                            print("for species ", self.qss_list[i], " in reaction ", r, " is a reactant")
+                            if reaction.reversible:
+                                print("MOVE THIS SPECIES TO RHS")
+                                print
+                                print
+                                supergroupCoeff_hold[other_qss].append('+qb_co['+str(r)+']')
+                            else:
+                                print("not reversible => qr = 0")
+                                print
+                                print
+                            coeff_hold.append('-qf_co['+str(r)+']')
+                        # if QSS species is a product
+                        elif direction == 1:
+                            if reaction.reversible:
+                                coeff_hold.append('-qb_co['+str(r)+']')
+                            print("for species ", self.qss_list[i], " in reaction ", r, " is a product")
+                            print("MOVE THIS SPECIES TO RHS")
+                            supergroupCoeff_hold[other_qss].append('+qf_co['+str(r)+']')
+                    else:
+                        print "YES, species "+other_qss+" is uni-directionally coupled with "+str(self.qss_list[i])
+                        # if QSS species is a reactant
+                        if direction == -1:
+                            print("for species ", self.qss_list[i], " in reaction ", r, " is a reactant")
+                            coeff_hold.append('-qf_co['+str(r)+']')
+                        # if QSS species is a product
+                        elif direction == 1:
+                            print("for species ", self.qss_list[i], " in reaction ", r, " is a product")
+                            print("MOVE THIS SPECIES TO RHS")
+                            rhs_hold.append('-dummy['+str(r)+']')
+         
+                for other_qss in supergroupCoeff_hold:
+                    " ".join(supergroupCoeff_hold[other_qss])
+
+                print
+                print "#####################################################################################################"
+                print "After dealing with QSS species "+self.qss_list[i]+" in  reaction "+str(r)+" we have the following: "
+                print "rhs_hold is ", rhs_hold
+                print "coeff_hold is ", coeff_hold
+                print "groupCoeff_hold is ", groupCoeff_hold
+                print "######################################################################################################"
+                print
+
+                    
+            self.QSS_rhs[self.qss_list[i]] = "".join(rhs_hold)
+            self.QSS_coeff[self.qss_list[i]] = "".join(coeff_hold)
+            self.QSS_groupSp[self.qss_list[i]] = "".join(groupCoeff_hold)
+            self.QSS_supergroupSp[self.qss_list[i]] = supergroupCoeff_hold
+
+            print
+            print "HERE IS EEEEVERYTHING: "
+            print
+            print "RHS: ", self.QSS_rhs
+            print
+            print "SELF: ", self.QSS_coeff
+            print
+            print "GROUP COEFFICIENTS: ", self.QSS_groupSp
+            print
+            print "SUPERGROUP COEFFICIENTS: ", self.QSS_supergroupSp
+            print
+            print
+            
         
                         
                 
@@ -6617,7 +6737,7 @@ class CPickler(CMill):
         
         # qss_coefficients
         self._write()
-        self._write('void comp_qss_qfqr_coeff(double *  qf_co, double *  qr_co, double *  sc, double * qss_sc, double *  tc, double invT)')
+        self._write('void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double * qss_sc, double *  tc, double invT)')
         self._write('{')
         self._indent()
 
