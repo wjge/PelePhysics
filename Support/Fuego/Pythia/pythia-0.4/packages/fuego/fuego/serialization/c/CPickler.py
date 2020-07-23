@@ -67,6 +67,9 @@ class CPickler(CMill):
         self.all_species      = []
         self.all_species_list = []
         self.nAllspecies      = 0
+        # Ordered dict for matching species to indices
+        self.ordered_idx_map = OrderedDict()
+        self.mech_idx_map    = OrderedDict()
 
         # REACTIONS #
         #############
@@ -110,7 +113,10 @@ class CPickler(CMill):
                 self.nonqss_species.append(tempsp)
                 self.all_species_list.append(species.symbol)
                 self.nonqss_species_list.append(species.symbol)
+                self.ordered_idx_map[species.symbol] = sorted_idx 
+                self.mech_idx_map[species.symbol]    = species.id
                 sorted_idx = sorted_idx + 1
+
 
         # second pass through QSS species - put them at the end of the all spec list
         for species in mechanism.species():
@@ -126,6 +132,8 @@ class CPickler(CMill):
                 self.qss_species.append(tempsp)
                 self.all_species_list.append(species.symbol)
                 self.qss_species_list.append(species.symbol)
+                self.ordered_idx_map[species.symbol] = sorted_idx 
+                self.mech_idx_map[species.symbol]    = species.id
                 sorted_idx = sorted_idx + 1
 
         # print some info
@@ -133,6 +141,8 @@ class CPickler(CMill):
         print "Reorganized species list =", self.all_species_list
         print "Transported species list =", self.nonqss_species_list
         print "QSS species list =", self.qss_species_list
+        print "ordered_idx_map ?", self.ordered_idx_map
+        print "mech_idx_map ?", self.mech_idx_map
 
         # Initialize QSS species-species, species-reaction, and species coupling networks        
         self.QSS_SSnet = np.zeros([self.nQSSspecies, self.nQSSspecies], 'd')
@@ -462,7 +472,6 @@ class CPickler(CMill):
 
     def _statics_QSS(self,mechanism):
         nReactions = len(mechanism.reaction())
-        nSpecies = len(mechanism.species())
 
         ispecial   = self.reactionIndex[5:7]
 
@@ -512,12 +521,12 @@ class CPickler(CMill):
 
 
         self._write(self.line(' Inverse molecular weights'))
-        self._write('static AMREX_GPU_DEVICE_MANAGED double imw[%d] = {' %nSpecies )
+        self._write('static AMREX_GPU_DEVICE_MANAGED double imw[%d] = {' %self.nSpecies )
         self._indent()
-        for i in range(0,self.nSpecies):
-            species = self.species[i]
+        for sp in range(self.nSpecies):
+            species  = self.nonqss_species[sp]
             text = '1.0 / %f' % (species.weight)
-            if (i<self.nSpecies-1):
+            if (sp<self.nSpecies-1):
                text += ',  '
             else:
                text += '};  '
@@ -525,13 +534,13 @@ class CPickler(CMill):
         self._outdent()
         self._write()
 
-        self._write(self.line(' Inverse molecular weights'))
-        self._write('static AMREX_GPU_DEVICE_MANAGED double molecular_weights[%d] = {' %nSpecies )
+        self._write(self.line(' Molecular weights'))
+        self._write('static AMREX_GPU_DEVICE_MANAGED double molecular_weights[%d] = {' %self.nSpecies )
         self._indent()
-        for i in range(0,self.nSpecies):
-            species = self.species[i]
+        for sp in range(self.nSpecies):
+            species  = self.nonqss_species[sp]
             text = '%f' % (species.weight)
-            if (i<self.nSpecies-1):
+            if (sp<self.nSpecies-1):
                text += ',  '
             else:
                text += '};  '
@@ -543,7 +552,7 @@ class CPickler(CMill):
         self._write('void get_imw(double imw_new[]){')
         ##self._write('#pragma unroll')
         self._indent()
-        self._write('for(int i = 0; i<%d; ++i) imw_new[i] = imw[i];' %nSpecies )
+        self._write('for(int i = 0; i<%d; ++i) imw_new[i] = imw[i];' %self.nSpecies )
         self._outdent()
         self._write('}')
         self._write()
@@ -553,7 +562,7 @@ class CPickler(CMill):
         self._write('void get_mw(double mw_new[]){')
         ##self._write('#pragma unroll')
         self._indent()
-        self._write('for(int i = 0; i<%d; ++i) mw_new[i] = molecular_weights[i];' %nSpecies )
+        self._write('for(int i = 0; i<%d; ++i) mw_new[i] = molecular_weights[i];' %self.nSpecies )
         self._outdent()
         self._write('}')
         self._write()
@@ -566,7 +575,6 @@ class CPickler(CMill):
     def _ckinit_QSS(self, mechanism):
 
         nElement = len(mechanism.element())
-        nSpecies = len(mechanism.species())
         nReactions = len(mechanism.reaction())
         
         self._write('#ifndef AMREX_USE_CUDA')
@@ -594,19 +602,18 @@ class CPickler(CMill):
 
             
             for symbol, coefficient in reaction.reactants:
-                # print symbol, mechanism.species(symbol), mechanism.species(symbol).id
-                if symbol in self.qss_list:
-                    ki_qss.append(mechanism.qss_species(symbol).id)
+                if symbol in self.qss_species_list:
+                    ki_qss.append(self.ordered_idx_map[symbol]-self.nSpecies)
                     nu_qss.append(-coefficient)
                 else: 
-                    ki.append(mechanism.species(symbol).id)
+                    ki.append(self.ordered_idx_map[symbol])
                     nu.append(-coefficient)
             for symbol, coefficient in reaction.products:
-                if symbol in self.qss_list:
-                    ki_qss.append(mechanism.qss_species(symbol).id)
+                if symbol in self.qss_species_list:
+                    ki_qss.append(self.ordered_idx_map[symbol]-self.nSpecies)
                     nu_qss.append(coefficient)
                 else:
-                    ki.append(mechanism.species(symbol).id)
+                    ki.append(self.ordered_idx_map[symbol])
                     nu.append(coefficient)
 
             self._write("// (%d):  %s" % (reaction.orig_id - 1, reaction.equation()))
@@ -707,8 +714,12 @@ class CPickler(CMill):
                     self._write("TBid[%d] = (int *) malloc(%d * sizeof(int));" % (id, len(efficiencies)))
                     for i, eff in enumerate(efficiencies):
                         symbol, efficiency = eff
-                        self._write("TBid[%d][%d] = %.17g; TB[%d][%d] = %.17g; // %s"
-                                    % (id, i, mechanism.species(symbol).id, id, i, efficiency, symbol ))
+                        if symbol in self.qss_species_list:
+                            self._write("TBid[%d][%d] = %.17g; TB[%d][%d] = %.17g; // %s"
+                                    % (id, i, self.ordered_idx_map[symbol], id, i, 0.0, symbol ))
+                        else:
+                            self._write("TBid[%d][%d] = %.17g; TB[%d][%d] = %.17g; // %s"
+                                    % (id, i, self.ordered_idx_map[symbol], id, i, efficiency, symbol ))
                 else:
                     self._write("nTB[%d] = 0;" % (id))
             else:
@@ -761,7 +772,7 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
         self._write('*mm = %d;' % len(mechanism.element()))
-        self._write('*kk = %d;' % len(mechanism.species()))
+        self._write('*kk = %d;' % self.nSpecies)
         self._write('*ii = %d;' % len(mechanism.reaction()))
         self._write('*nfit = -1; ' + self.line(
             'Why do you need this anyway ? '))
@@ -827,7 +838,6 @@ class CPickler(CMill):
 
 
     def _cksyms_str(self, mechanism):
-        nSpecies = len(mechanism.species())  
         self._write() 
         self._write()
         self._write(
@@ -835,9 +845,9 @@ class CPickler(CMill):
         self._write('void CKSYMS_STR'+sym+'(amrex::Vector<std::string>& kname)')
         self._write('{')
         self._indent()
-        self._write('kname.resize(%d);' % nSpecies)
-        for species in mechanism.species():
-            self._write('kname[%d] = "%s";' %(species.id, species.symbol))
+        self._write('kname.resize(%d);' % self.nSpecies)
+        for species in self.nonqss_species_list:
+            self._write('kname[%d] = "%s";' %(self.ordered_idx_map[species], species))
 
         self._outdent() 
         self._write('}') 
@@ -845,7 +855,6 @@ class CPickler(CMill):
 
 
     def _cksyms(self, mechanism):
-        nSpecies = len(mechanism.species())
         self._write()
         self._write()
         self._write(
@@ -857,21 +866,21 @@ class CPickler(CMill):
         self._write('int i; '+self.line('Loop Counter'))
         self._write('int lenkname = *plenkname;')
         self._write(self.line('clear kname'))
-        self._write('for (i=0; i<lenkname*%d; i++) {' % nSpecies)
+        self._write('for (i=0; i<lenkname*%d; i++) {' % self.nSpecies)
         self._indent()
         self._write('kname[i] = \' \';')
         self._outdent()
         self._write('}')
         self._write()
-        for species in mechanism.species():
-            self._write(self.line(' %s ' % species.symbol))
+        for species in self.nonqss_species_list:
+            self._write(self.line(' %s ' % species))
             ii = 0
-            for char in species.symbol:
+            for char in species:
                 self._write('kname[ %d*lenkname + %d ] = \'%s\';' %
-                           (species.id, ii, char.capitalize()))
+                           (self.ordered_idx_map[species], ii, char.capitalize()))
                 ii = ii+1
             self._write('kname[ %d*lenkname + %d ] = \' \';' %
-                           (species.id, ii))
+                           (self.ordered_idx_map[species], ii))
             self._write()
 
         # done
@@ -911,9 +920,10 @@ class CPickler(CMill):
                     self.line(' To hold mean molecular wt'))
         
         # molecular weights of all species
-        for species in self.species:
-            self._write('XW += x[%d]*%f; ' % (
-                species.id, species.weight) + self.line('%s' % species.symbol))
+        for species in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[species]
+            self._write('XW += x[%d]*molecular_weights[%d]; ' % (
+                spec_idx, spec_idx) + self.line('%s' % species))
 
         self._write(
             '*P = *rho * %g * (*T) / XW; ' % (R*kelvin*mole/erg)
@@ -937,9 +947,10 @@ class CPickler(CMill):
         self._write('double YOW = 0;'+self.line(' for computing mean MW'))
         
         # molecular weights of all species
-        for species in self.species:
+        for species in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[species]
             self._write('YOW += y[%d]*imw[%d]; ' % (
-                species.id, species.id) + self.line('%s' % species.symbol))
+                spec_idx, spec_idx) + self.line('%s' % species))
 
         self.line('YOW holds the reciprocal of the mean molecular wt')
         self._write(
@@ -969,13 +980,13 @@ class CPickler(CMill):
         self._write('double sumC = 0;')
         
         # molecular weights of all species
-        for species in self.species:
+        for sp in range(self.nSpecies):
+            species  = self.nonqss_species[sp]
             self._write('W += c[%d]*%f; ' % (
                 species.id, species.weight) + self.line('%s' % species.symbol))
 
         self._write()
-        nSpecies = len(mechanism.species())
-        self._write('for (id = 0; id < %d; ++id) {' % nSpecies)
+        self._write('for (id = 0; id < %d; ++id) {' % self.nSpecies)
         self._indent()
         self._write('sumC += c[id];')
         self._outdent()
@@ -990,6 +1001,7 @@ class CPickler(CMill):
         self._write('return;')
         self._outdent()
         self._write('}')
+
         return 
 
 
@@ -1005,7 +1017,8 @@ class CPickler(CMill):
                     self.line(' To hold mean molecular wt'))
         
         # molecular weights of all species
-        for species in self.species:
+        for sp in range(self.nSpecies):
+            species  = self.nonqss_species[sp]
             self._write('XW += x[%d]*%f; ' % (
                 species.id, species.weight) + self.line('%s' % species.symbol))
 
@@ -1021,8 +1034,7 @@ class CPickler(CMill):
 
 
     def _ckrhoy(self, mechanism):
-        species = self.species
-        nSpec = len(species)
+
         self._write()
         self._write()
         self._write(self.line('Compute rho = P*W(y)/RT'))
@@ -1030,15 +1042,15 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
         self._write('double YOW = 0;')
-        self._write('double tmp[%d];' % (nSpec))
+        self._write('double tmp[%d];' % (self.nSpecies))
         self._write('')
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('tmp[i] = y[i]*imw[i];')
         self._outdent()
         self._write('}')
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('YOW += tmp[i];')
@@ -1049,6 +1061,7 @@ class CPickler(CMill):
         self._write('return;')
         self._outdent()
         self._write('}')
+
         return 
 
 
@@ -1067,7 +1080,8 @@ class CPickler(CMill):
         self._write('double sumC = 0;')
         
         # molecular weights of all species
-        for species in self.species:
+        for sp in range(self.nSpecies):
+            species  = self.nonqss_species[sp]
             self._write('W += c[%d]*%f; ' % (
                 species.id, species.weight) + self.line('%s' % species.symbol))
 
@@ -1087,6 +1101,7 @@ class CPickler(CMill):
         self._write('return;')
         self._outdent()
         self._write('}')
+
         return 
 
 
@@ -1101,6 +1116,7 @@ class CPickler(CMill):
         self._write('get_mw(wt);')
         self._outdent()
         self._write('}')
+
         return
 
       
@@ -1116,6 +1132,7 @@ class CPickler(CMill):
         self._outdent()
         self._write('}')
         self._write()
+
         return
 
 
@@ -1126,18 +1143,16 @@ class CPickler(CMill):
         self._write('AMREX_GPU_HOST_DEVICE void CKMMWY'+sym+'(double *  y,  double *  wtm)')
         self._write('{')
         self._indent()
-        species = self.species
-        nSpec = len(species)
         self._write('double YOW = 0;')
-        self._write('double tmp[%d];' % (nSpec))
+        self._write('double tmp[%d];' % (self.nSpecies))
         self._write('')
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('tmp[i] = y[i]*imw[i];')
         self._outdent()
         self._write('}')
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('YOW += tmp[i];')
@@ -1162,14 +1177,16 @@ class CPickler(CMill):
         self._indent()
         self._write('double XW = 0;'+self.line(' see Eq 4 in CK Manual'))
         # molecular weights of all species
-        for species in self.species:
-            self._write('XW += x[%d]*%f; ' % (
-                species.id, species.weight) + self.line('%s' % species.symbol))
+        for sp in range(self.nSpecies):
+            species  = self.nonqss_species[sp]
+            self._write('XW += x[%d]*molecular_weights[%d]; ' % (
+                species.id, species.id) + self.line('%s' % species.symbol))
         self._write('*wtm = XW;')
         self._write()
         self._write('return;')
         self._outdent()
         self._write('}')
+
         return 
 
  
@@ -1186,9 +1203,10 @@ class CPickler(CMill):
         self._write('double W = 0;')
         self._write('double sumC = 0;')
         # molecular weights of all species
-        for species in self.species:
-            self._write('W += c[%d]*%f; ' % (
-                species.id, species.weight) + self.line('%s' % species.symbol))
+        for sp in range(self.nSpecies):
+            species  = self.nonqss_species[sp]
+            self._write('W += c[%d]*molecular_weights[%d]; ' % (
+                species.id, species.id) + self.line('%s' % species.symbol))
         self._write()
         self._write('for (id = 0; id < %d; ++id) {' % self.nSpecies)
         self._indent()
@@ -1201,6 +1219,7 @@ class CPickler(CMill):
         self._write('return;')
         self._outdent()
         self._write('}')
+
         return 
 
 
@@ -1213,18 +1232,16 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
 
-        species = self.species
-        nSpec = len(species)
         self._write('double YOW = 0;')
-        self._write('double tmp[%d];' % (nSpec))
+        self._write('double tmp[%d];' % (self.nSpecies))
         self._write('')
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('tmp[i] = y[i]*imw[i];')
         self._outdent()
         self._write('}')
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('YOW += tmp[i];')
@@ -1233,7 +1250,7 @@ class CPickler(CMill):
         self._write('')
         self._write('double YOWINV = 1.0/YOW;')
         self._write('')
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('x[i] = y[i]*imw[i]*YOWINV;')
@@ -1254,19 +1271,17 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
 
-        species = self.species
-        nSpec = len(species)
         self._write('double YOW = 0;')
         self._write('double PWORT;')
         self._write('')
         self._write(self.line('Compute inverse of mean molecular wt first'))
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('c[i] = y[i]*imw[i];')
         self._outdent()
         self._write('}')
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('YOW += c[i];')
@@ -1279,7 +1294,7 @@ class CPickler(CMill):
         # now compute conversion
         self._write(self.line('Now compute conversion'))
         self._write('')
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('c[i] = PWORT * y[i] * imw[i];')
@@ -1288,6 +1303,7 @@ class CPickler(CMill):
         self._write('return;')
         self._outdent()
         self._write('}')
+
         return 
 
 
@@ -1299,9 +1315,7 @@ class CPickler(CMill):
         self._write('AMREX_GPU_HOST_DEVICE void CKYTCR'+sym+'(double *  rho, double *  T, double *  y,  double *  c)')
         self._write('{')
         self._indent()
-        species = self.species
-        nSpec = len(species)
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('c[i] = (*rho)  * y[i] * imw[i];')
@@ -1309,6 +1323,7 @@ class CPickler(CMill):
         self._write('}')
         self._outdent()
         self._write('}')
+
         return 
 
 
@@ -1325,14 +1340,18 @@ class CPickler(CMill):
         
         # compute mean molecular weight first (eq 3)
         self._write(self.line('Compute mean molecular wt first'))
-        for species in self.species:
+        for sp in range(self.nSpecies):
+            species  = self.nonqss_species[sp]
             self._write('XW += x[%d]*%f; ' % (
                 species.id, species.weight) + self.line('%s' % species.symbol))
+
+        self._write()
  
         # now compute conversion
         self._write(self.line('Now compute conversion'))
         self._write('double XWinv = 1.0/XW;')
-        for species in self.species:
+        for sp in range(self.nSpecies):
+            species  = self.nonqss_species[sp]
             self._write('y[%d] = x[%d]*%f*XWinv; ' % (
                 species.id, species.id, species.weight) )
 
@@ -1340,6 +1359,7 @@ class CPickler(CMill):
         self._write('return;')
         self._outdent()
         self._write('}')
+
         return 
 
  
@@ -1368,6 +1388,7 @@ class CPickler(CMill):
         self._write('return;')
         self._outdent()
         self._write('}')
+
         return 
  
 
@@ -1386,7 +1407,8 @@ class CPickler(CMill):
         
         # compute mean molecular weight first (eq 3)
         self._write(self.line('Compute mean molecular wt first'))
-        for species in self.species:
+        for sp in range(self.nSpecies):
+            species  = self.nonqss_species[sp]
             self._write('XW += x[%d]*%f; ' % (
                 species.id, species.weight) + self.line('%s' % species.symbol))
 
@@ -1404,6 +1426,7 @@ class CPickler(CMill):
         self._write('return;')
         self._outdent()
         self._write('}')
+
         return 
 
  
@@ -1457,14 +1480,18 @@ class CPickler(CMill):
         
         # compute denominator in eq 12
         self._write(self.line('compute denominator in eq 12 first'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('CW += c[%d]*%f; ' % (
                 species.id, species.weight) + self.line('%s' % species.symbol))
 
         # now compute conversion
         self._write(self.line('Now compute conversion'))
         self._write('double CWinv = 1.0/CW;')
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('y[%d] = c[%d]*%f*CWinv; ' % (
                 species.id, species.id, species.weight) )
 
@@ -1472,6 +1499,7 @@ class CPickler(CMill):
         self._write('return;')
         self._outdent()
         self._write('}')
+
         return 
 
 
@@ -1498,6 +1526,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
 
     
@@ -1523,6 +1552,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
 
  
@@ -1548,8 +1578,8 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
-        return
 
+        return
     # POLYFITS #
 
 
@@ -1575,13 +1605,14 @@ class CPickler(CMill):
 
         # convert cv/R to cv with mass units
         self._write(self.line('multiply by R/molecularweight'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             ROW = (R*kelvin*mole/erg) / species.weight
             self._write('cvms[%d] *= %20.15e; ' % (
                 species.id, ROW) + self.line('%s' % species.symbol))
 
         self._outdent()
-
         self._write('}')
 
         return
@@ -1610,13 +1641,16 @@ class CPickler(CMill):
 
         # convert cp/R to cp with mass units
         self._write(self.line('multiply by R/molecularweight'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             ROW = (R*kelvin*mole/erg) / species.weight
             self._write('cpms[%d] *= %20.15e; ' % (
                 species.id, ROW) + self.line('%s' % species.symbol))
 
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -1642,9 +1676,7 @@ class CPickler(CMill):
         # call routine
         self._write('speciesInternalEnergy(ums, tc);')
         
-        species = self.species
-        nSpec = len(species)
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('ums[i] *= RT*imw[i];')
@@ -1679,9 +1711,7 @@ class CPickler(CMill):
         # call routine
         self._write('speciesEnthalpy(hms, tc);')
         
-        species = self.species
-        nSpec = len(species)
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('hms[i] *= RT*imw[i];')
@@ -1689,6 +1719,7 @@ class CPickler(CMill):
         self._write('}')
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -1714,9 +1745,7 @@ class CPickler(CMill):
         # call routine
         self._write('gibbs(gms, tc);')
         
-        species = self.species
-        nSpec = len(species)
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('gms[i] *= RT*imw[i];')
@@ -1724,6 +1753,7 @@ class CPickler(CMill):
         self._write('}')
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -1749,9 +1779,7 @@ class CPickler(CMill):
         # call routine
         self._write('helmholtz(ams, tc);')
         
-        species = self.species
-        nSpec = len(species)
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('ams[i] *= RT*imw[i];')
@@ -1760,6 +1788,7 @@ class CPickler(CMill):
 
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -1785,13 +1814,16 @@ class CPickler(CMill):
 
         # convert s/R to s with mass units
         self._write(self.line('multiply by R/molecularweight'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             ROW = (R*kelvin*mole/erg) / species.weight
             self._write('sms[%d] *= %20.15e; ' % (
                 species.id, ROW) + self.line('%s' % species.symbol))
 
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -1833,6 +1865,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
 
  
@@ -1859,17 +1892,14 @@ class CPickler(CMill):
         # call routine
         self._write('cp_R(cpor, tc);')
         
-
-        species = self.species
-        nSpec = len(species)
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('tresult[i] = cpor[i]*y[i]*imw[i];')
         self._outdent()
         self._write('')
         self._write('}')
-        self._write('for (int i = 0; i < %d; i++)' % (nSpec))
+        self._write('for (int i = 0; i < %d; i++)' % (self.nSpecies))
         self._write('{')
         self._indent()
         self._write('result += tresult[i];')
@@ -1881,6 +1911,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -1921,7 +1952,6 @@ class CPickler(CMill):
         self._write('*cvbl = result * %g;' % (R*kelvin*mole/erg) )
         
         self._outdent()
-
         self._write('}')
 
         return
@@ -1952,7 +1982,9 @@ class CPickler(CMill):
         
         # do dot product
         self._write(self.line('multiply by y/molecularweight'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('result += cvor[%d]*y[%d]*imw[%d]; ' % (
                 species.id, species.id, species.id) + self.line('%s' % species.symbol))
 
@@ -2004,7 +2036,6 @@ class CPickler(CMill):
         self._write('*hbml = result * RT;')
         
         self._outdent()
-
         self._write('}')
 
         return
@@ -2055,6 +2086,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -2099,6 +2131,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
  
 
@@ -2131,11 +2164,12 @@ class CPickler(CMill):
 
         # convert e/RT to e with mass units
         self._write(self.line('perform dot product + scaling by wt'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('result += y[%d]*ums[%d]*imw[%d]; ' % (
                 species.id, species.id, species.id)
                         + self.line('%s' % species.symbol))
-
         
         self._write()
         # finally, multiply by RT
@@ -2143,6 +2177,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -2189,6 +2224,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -2221,13 +2257,17 @@ class CPickler(CMill):
         
         # compute inverse of mean molecular weight first (eq 3)
         self._write(self.line('Compute inverse of mean molecular wt first'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('YOW += y[%d]*imw[%d]; ' % (
                 species.id, species.id) + self.line('%s' % species.symbol))
  
         # now to ytx
         self._write(self.line('Now compute y to x conversion'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('x[%d] = y[%d]/(%f*YOW); ' % (
                 species.id, species.id, species.weight) )
             
@@ -2236,7 +2276,9 @@ class CPickler(CMill):
         
         # Equation 42 and 43
         self._write(self.line('Perform computation in Eq 42 and 43'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('result += x[%d]*(sor[%d]-log((x[%d]+%g))-logPratio);' %
                         (species.id, species.id, species.id, smallnum) )
 
@@ -2245,6 +2287,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -2294,6 +2337,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -2331,13 +2375,17 @@ class CPickler(CMill):
         
         # compute inverse of mean molecular weight first (eq 3)
         self._write(self.line('Compute inverse of mean molecular wt first'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('YOW += y[%d]*imw[%d]; ' % (
                 species.id, species.id) + self.line('%s' % species.symbol))
  
         # now to ytx
         self._write(self.line('Now compute y to x conversion'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('x[%d] = y[%d]/(%f*YOW); ' % (
                 species.id, species.id, species.weight) )
             
@@ -2346,7 +2394,9 @@ class CPickler(CMill):
         
         # Equation 42 and 43
         self._write(self.line('Perform computation in Eq 44'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('result += x[%d]*(gort[%d]+log((x[%d]+%g))+logPratio);' %
                         (species.id, species.id, species.id, smallnum) )
 
@@ -2355,6 +2405,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
     
 
@@ -2404,6 +2455,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
     
 
@@ -2441,13 +2493,17 @@ class CPickler(CMill):
         
         # compute inverse of mean molecular weight first (eq 3)
         self._write(self.line('Compute inverse of mean molecular wt first'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('YOW += y[%d]*imw[%d]; ' % (
                 species.id, species.id) + self.line('%s' % species.symbol))
  
         # now to ytx
         self._write(self.line('Now compute y to x conversion'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('x[%d] = y[%d]/(%f*YOW); ' % (
                 species.id, species.id, species.weight) )
             
@@ -2456,7 +2512,9 @@ class CPickler(CMill):
         
         # Equation 42 and 43
         self._write(self.line('Perform computation in Eq 44'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('result += x[%d]*(aort[%d]+log((x[%d]+%g))+logPratio);' %
                         (species.id, species.id, species.id, smallnum) )
 
@@ -2504,6 +2562,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -2524,7 +2583,9 @@ class CPickler(CMill):
         
         # compute inverse of mean molecular weight first (eq 3)
         self._write(self.line('Compute inverse of mean molecular wt first'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('YOW += y[%d]*imw[%d]; ' % (
                 species.id, species.id) + self.line('%s' % species.symbol))
  
@@ -2536,7 +2597,9 @@ class CPickler(CMill):
 
         # now compute conversion
         self._write(self.line('Now compute conversion (and go to SI)'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('c[%d] = PWORT * y[%d]*imw[%d]; ' % (
                 species.id, species.id, species.id) )
 
@@ -2556,6 +2619,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -2600,6 +2664,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -2618,7 +2683,9 @@ class CPickler(CMill):
 
         # now compute conversion
         self._write(self.line('See Eq 8 with an extra 1e6 so c goes to SI'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('c[%d] = 1e6 * (*rho) * y[%d]*imw[%d]; ' % (
                 species.id, species.id, species.id) )
             
@@ -2638,6 +2705,7 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -2659,7 +2727,9 @@ class CPickler(CMill):
         
         # compute mean molecular weight first (eq 3)
         self._write(self.line('Compute mean molecular wt first'))
-        for species in self.species:
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
             self._write('XW += x[%d]*%f; ' % (
                 species.id, species.weight) + self.line('%s' % species.symbol))
 
@@ -2690,18 +2760,18 @@ class CPickler(CMill):
         
         self._outdent()
         self._write('}')
+
         return
 
 
     def _ckncf(self, mechanism):
 
-        nSpecies  = len(mechanism.species())
         nElement  = len(mechanism.element())
 
         self._write()
         self._write()
         self._write(self.line('Returns the elemental composition '))
-        self._write(self.line('of the speciesi (mdim is num of elements)'))
+        self._write(self.line('of the species (mdim is num of elements)'))
         self._write('void CKNCF'+sym+'(int * ncf)')
         self._write('{')
         self._indent()
@@ -2717,18 +2787,21 @@ class CPickler(CMill):
         self._write('}')
         
         self._write()
-        for species in mechanism.species():
-           self._write(self.line('%s' % species.symbol))
-           for elem, coef in species.composition:
-               self._write('ncf[ %d * kd + %d ] = %d; ' % (
-                   species.id, mechanism.element(elem).id, coef) +
-                       self.line('%s' % elem) )
+
+        for sp in self.nonqss_species_list:
+            spec_idx = self.ordered_idx_map[sp]
+            species  = self.nonqss_species[spec_idx]
+            self._write(self.line('%s' % species.symbol))
+            for elem, coef in mechanism.species(sp).composition:
+                self._write('ncf[ %d * kd + %d ] = %d; ' % (
+                    species.id, mechanism.element(elem).id, coef) + self.line('%s' % elem) )
                            
-           self._write()
+        self._write()
                             
         # done
         self._outdent()
         self._write('}')
+
         return
 
     ################################
@@ -2742,7 +2815,6 @@ class CPickler(CMill):
 
     def _productionRate(self, mechanism):
 
-        nSpecies = len(mechanism.species())
         nReactions = len(mechanism.reaction())
 
         itroe      = self.reactionIndex[0:2]
@@ -2809,7 +2881,7 @@ class CPickler(CMill):
         self._write('comp_qfqr(q_f, q_r, sc, sc_qss, tc, invT);');
 
         self._write()
-        self._write('for (int i = 0; i < %d; ++i) {' % nSpecies)
+        self._write('for (int i = 0; i < %d; ++i) {' % self.nSpecies)
         self._indent()
         self._write('wdot[i] = 0.0;')
         self._outdent()
@@ -2823,7 +2895,7 @@ class CPickler(CMill):
             agents = []
             # remove QSS species from agents
             for symbol, coefficient in all_agents:
-                if symbol not in self.qss_list:
+                if symbol not in self.qss_species_list:
                     agents.append((symbol, coefficient))
             agents = sorted(agents, key=lambda x: mechanism.species(x[0]).id)
             # note that a species might appear as both reactant and product
@@ -2834,16 +2906,15 @@ class CPickler(CMill):
                 for b in reaction.reactants:
                     if b == a:
                         if coefficient == 1:
-                            self._write("wdot[%d] -= qdot;" % (mechanism.species(symbol).id))
+                            self._write("wdot[%d] -= qdot;" % (self.ordered_idx_map[symbol]))
                         else:
-                            self._write("wdot[%d] -= %f * qdot;" % (mechanism.species(symbol).id, coefficient))
+                            self._write("wdot[%d] -= %f * qdot;" % (self.ordered_idx_map[symbol], coefficient))
                 for b in reaction.products: 
                     if b == a:
                         if coefficient == 1:
-                            self._write("wdot[%d] += qdot;" % (mechanism.species(symbol).id))
+                            self._write("wdot[%d] += qdot;" % (self.ordered_idx_map[symbol]))
                         else:
-                            self._write("wdot[%d] += %f * qdot;" % (mechanism.species(symbol).id, coefficient))
-
+                            self._write("wdot[%d] += %f * qdot;" % (self.ordered_idx_map[symbol], coefficient))
 
         self._write()
         self._write('return;')
@@ -2880,7 +2951,7 @@ class CPickler(CMill):
         self._indent()
 
         self._write(self.line('compute the Gibbs free energy'))
-        self._write('double g_RT[%d], g_RT_qss[%d];' % (nSpecies,self.nQSSspecies))
+        self._write('double g_RT[%d], g_RT_qss[%d];' % (self.nSpecies,self.nQSSspecies))
         self._write('gibbs(g_RT, tc);')
         self._write('gibbs_qss(g_RT_qss, tc);')
 
@@ -2951,7 +3022,7 @@ class CPickler(CMill):
         self._write()
         self._write(self.line('compute the mixture concentration'))
         self._write('double mixture = 0.0;')
-        self._write('for (int i = 0; i < %d; ++i) {' % nSpecies)
+        self._write('for (int i = 0; i < %d; ++i) {' % self.nSpecies)
         self._indent()
         self._write('mixture += sc[i];')
         self._outdent()
@@ -3184,18 +3255,15 @@ class CPickler(CMill):
 
     def _DproductionRatePrecond(self, mechanism):
 
-        species_list = [x.symbol for x in mechanism.species()]
-        nSpecies = len(species_list)
-
         self._write()
         self._write(self.line('compute an approx to the reaction Jacobian (for preconditioning)'))
         self._write('AMREX_GPU_HOST_DEVICE void DWDOT_SIMPLIFIED(double *  J, double *  sc, double *  Tp, int * HP)')
         self._write('{')
         self._indent()
 
-        self._write('double c[%d];' % (nSpecies))
+        self._write('double c[%d];' % (self.nSpecies))
         self._write()
-        self._write('for (int k=0; k<%d; k++) {' % nSpecies)
+        self._write('for (int k=0; k<%d; k++) {' % self.nSpecies)
         self._indent()
         self._write('c[k] = 1.e6 * sc[k];')
         self._outdent()
@@ -3207,10 +3275,10 @@ class CPickler(CMill):
         self._write()
         self._write('/* dwdot[k]/dT */')
         self._write('/* dTdot/d[X] */')
-        self._write('for (int k=0; k<%d; k++) {' % nSpecies)
+        self._write('for (int k=0; k<%d; k++) {' % self.nSpecies)
         self._indent()
-        self._write('J[%d+k] *= 1.e-6;' % (nSpecies*(nSpecies+1)))
-        self._write('J[k*%d+%d] *= 1.e6;' % (nSpecies+1, nSpecies))
+        self._write('J[%d+k] *= 1.e-6;' % (self.nSpecies*(self.nSpecies+1)))
+        self._write('J[k*%d+%d] *= 1.e6;' % (self.nSpecies+1, self.nSpecies))
         self._outdent()
         self._write('}')
 
@@ -3218,13 +3286,11 @@ class CPickler(CMill):
         self._write('return;')
         self._outdent()
         self._write('}')
+
         return
 
 
     def _DproductionRate(self, mechanism):
-
-        species_list = [x.symbol for x in mechanism.species()]
-        nSpecies = len(species_list)
 
         self._write()
         self._write(self.line('compute the reaction Jacobian'))
@@ -3232,9 +3298,9 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
 
-        self._write('double c[%d];' % (nSpecies))
+        self._write('double c[%d];' % (self.nSpecies))
         self._write()
-        self._write('for (int k=0; k<%d; k++) {' % nSpecies)
+        self._write('for (int k=0; k<%d; k++) {' % self.nSpecies)
         self._indent()
         self._write('c[k] = 1.e6 * sc[k];')
         self._outdent()
@@ -3246,10 +3312,10 @@ class CPickler(CMill):
         self._write()
         self._write('/* dwdot[k]/dT */')
         self._write('/* dTdot/d[X] */')
-        self._write('for (int k=0; k<%d; k++) {' % nSpecies)
+        self._write('for (int k=0; k<%d; k++) {' % self.nSpecies)
         self._indent()
-        self._write('J[%d+k] *= 1.e-6;' % (nSpecies*(nSpecies+1)))
-        self._write('J[k*%d+%d] *= 1.e6;' % (nSpecies+1, nSpecies))
+        self._write('J[%d+k] *= 1.e-6;' % (self.nSpecies*(self.nSpecies+1)))
+        self._write('J[k*%d+%d] *= 1.e6;' % (self.nSpecies+1, self.nSpecies))
         self._outdent()
         self._write('}')
 
@@ -3257,6 +3323,7 @@ class CPickler(CMill):
         self._write('return;')
         self._outdent()
         self._write('}')
+
         return
 
     ################################
@@ -3265,9 +3332,6 @@ class CPickler(CMill):
 
     def _sparsity(self, mechanism):
 
-        species_list = [x.symbol for x in mechanism.species()]
-        nSpecies = len(species_list)
-
         ####
         self._write()
         self._write(self.line('compute the sparsity pattern of the chemistry Jacobian'))
@@ -3275,12 +3339,12 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
 
-        self._write('double c[%d];' % (nSpecies))
-        self._write('double J[%d];' % (nSpecies+1)**2)
+        self._write('double c[%d];' % (self.nSpecies))
+        self._write('double J[%d];' % (self.nSpecies+1)**2)
         self._write()
-        self._write('for (int k=0; k<%d; k++) {' % nSpecies)
+        self._write('for (int k=0; k<%d; k++) {' % self.nSpecies)
         self._indent()
-        self._write('c[k] = 1.0/ %f ;' % (nSpecies))
+        self._write('c[k] = 1.0/ %f ;' % (self.nSpecies))
         self._outdent()
         self._write('}')
 
@@ -3289,11 +3353,11 @@ class CPickler(CMill):
 
         self._write()
         self._write('int nJdata_tmp = 0;')
-        self._write('for (int k=0; k<%d; k++) {' % (nSpecies+1))
+        self._write('for (int k=0; k<%d; k++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('for (int l=0; l<%d; l++) {' % (nSpecies+1))
+        self._write('for (int l=0; l<%d; l++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('if(J[ %d * k + l] != 0.0){' % (nSpecies+1))
+        self._write('if(J[ %d * k + l] != 0.0){' % (self.nSpecies+1))
         self._indent()
         self._write('nJdata_tmp = nJdata_tmp + 1;')
         self._outdent()
@@ -3321,12 +3385,12 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
 
-        self._write('double c[%d];' % (nSpecies))
-        self._write('double J[%d];' % (nSpecies+1)**2)
+        self._write('double c[%d];' % (self.nSpecies))
+        self._write('double J[%d];' % (self.nSpecies+1)**2)
         self._write()
-        self._write('for (int k=0; k<%d; k++) {' % nSpecies)
+        self._write('for (int k=0; k<%d; k++) {' % self.nSpecies)
         self._indent()
-        self._write('c[k] = 1.0/ %f ;' % (nSpecies))
+        self._write('c[k] = 1.0/ %f ;' % (self.nSpecies))
         self._outdent()
         self._write('}')
 
@@ -3335,9 +3399,9 @@ class CPickler(CMill):
 
         self._write()
         self._write('int nJdata_tmp = 0;')
-        self._write('for (int k=0; k<%d; k++) {' % (nSpecies+1))
+        self._write('for (int k=0; k<%d; k++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('for (int l=0; l<%d; l++) {' % (nSpecies+1))
+        self._write('for (int l=0; l<%d; l++) {' % (self.nSpecies+1))
         self._indent()
         self._write('if(k == l){')
         self._indent()
@@ -3345,7 +3409,7 @@ class CPickler(CMill):
         self._outdent()
         self._write('} else {')
         self._indent()
-        self._write('if(J[ %d * k + l] != 0.0){' % (nSpecies+1))
+        self._write('if(J[ %d * k + l] != 0.0){' % (self.nSpecies+1))
         self._indent()
         self._write('nJdata_tmp = nJdata_tmp + 1;')
         self._outdent()
@@ -3375,12 +3439,12 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
 
-        self._write('double c[%d];' % (nSpecies))
-        self._write('double J[%d];' % (nSpecies+1)**2)
+        self._write('double c[%d];' % (self.nSpecies))
+        self._write('double J[%d];' % (self.nSpecies+1)**2)
         self._write()
-        self._write('for (int k=0; k<%d; k++) {' % nSpecies)
+        self._write('for (int k=0; k<%d; k++) {' % self.nSpecies)
         self._indent()
-        self._write('c[k] = 1.0/ %f ;' % (nSpecies))
+        self._write('c[k] = 1.0/ %f ;' % (self.nSpecies))
         self._outdent()
         self._write('}')
 
@@ -3389,9 +3453,9 @@ class CPickler(CMill):
 
         self._write()
         self._write('int nJdata_tmp = 0;')
-        self._write('for (int k=0; k<%d; k++) {' % (nSpecies+1))
+        self._write('for (int k=0; k<%d; k++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('for (int l=0; l<%d; l++) {' % (nSpecies+1))
+        self._write('for (int l=0; l<%d; l++) {' % (self.nSpecies+1))
         self._indent()
         self._write('if(k == l){')
         self._indent()
@@ -3399,7 +3463,7 @@ class CPickler(CMill):
         self._outdent()
         self._write('} else {')
         self._indent()
-        self._write('if(J[ %d * k + l] != 0.0){' % (nSpecies+1))
+        self._write('if(J[ %d * k + l] != 0.0){' % (self.nSpecies+1))
         self._indent()
         self._write('nJdata_tmp = nJdata_tmp + 1;')
         self._outdent()
@@ -3429,14 +3493,14 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
 
-        self._write('double c[%d];' % (nSpecies))
-        self._write('double J[%d];' % (nSpecies+1)**2)
+        self._write('double c[%d];' % (self.nSpecies))
+        self._write('double J[%d];' % (self.nSpecies+1)**2)
         self._write('int offset_row;')
         self._write('int offset_col;')
         self._write()
-        self._write('for (int k=0; k<%d; k++) {' % nSpecies)
+        self._write('for (int k=0; k<%d; k++) {' % self.nSpecies)
         self._indent()
-        self._write('c[k] = 1.0/ %f ;' % (nSpecies))
+        self._write('c[k] = 1.0/ %f ;' % (self.nSpecies))
         self._outdent()
         self._write('}')
 
@@ -3448,13 +3512,13 @@ class CPickler(CMill):
         self._write('int nJdata_tmp = 0;')
         self._write('for (int nc=0; nc<NCELLS; nc++) {')
         self._indent()
-        self._write('offset_row = nc * %d;' % (nSpecies+1))
-        self._write('offset_col = nc * %d;' % (nSpecies+1))
-        self._write('for (int k=0; k<%d; k++) {' % (nSpecies+1))
+        self._write('offset_row = nc * %d;' % (self.nSpecies+1))
+        self._write('offset_col = nc * %d;' % (self.nSpecies+1))
+        self._write('for (int k=0; k<%d; k++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('for (int l=0; l<%d; l++) {' % (nSpecies+1))
+        self._write('for (int l=0; l<%d; l++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('if(J[%d*k + l] != 0.0) {' % (nSpecies+1))
+        self._write('if(J[%d*k + l] != 0.0) {' % (self.nSpecies+1))
         self._indent()
         self._write('rowVals[nJdata_tmp] = l + offset_row; ')
         self._write('nJdata_tmp = nJdata_tmp + 1; ')
@@ -3481,13 +3545,13 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
 
-        self._write('double c[%d];' % (nSpecies))
-        self._write('double J[%d];' % (nSpecies+1)**2)
+        self._write('double c[%d];' % (self.nSpecies))
+        self._write('double J[%d];' % (self.nSpecies+1)**2)
         self._write('int offset;')
         self._write()
-        self._write('for (int k=0; k<%d; k++) {' % nSpecies)
+        self._write('for (int k=0; k<%d; k++) {' % self.nSpecies)
         self._indent()
-        self._write('c[k] = 1.0/ %f ;' % (nSpecies))
+        self._write('c[k] = 1.0/ %f ;' % (self.nSpecies))
         self._outdent()
         self._write('}')
 
@@ -3501,12 +3565,12 @@ class CPickler(CMill):
         self._write('int nJdata_tmp = 1;')
         self._write('for (int nc=0; nc<NCELLS; nc++) {')
         self._indent()
-        self._write('offset = nc * %d;' % (nSpecies+1))
-        self._write('for (int l=0; l<%d; l++) {' % (nSpecies+1))
+        self._write('offset = nc * %d;' % (self.nSpecies+1))
+        self._write('for (int l=0; l<%d; l++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('for (int k=0; k<%d; k++) {' % (nSpecies+1))
+        self._write('for (int k=0; k<%d; k++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('if(J[%d*k + l] != 0.0) {' % (nSpecies+1))
+        self._write('if(J[%d*k + l] != 0.0) {' % (self.nSpecies+1))
         self._indent()
         self._write('colVals[nJdata_tmp-1] = k+1 + offset; ')
         self._write('nJdata_tmp = nJdata_tmp + 1; ')
@@ -3527,12 +3591,12 @@ class CPickler(CMill):
         self._write('int nJdata_tmp = 0;')
         self._write('for (int nc=0; nc<NCELLS; nc++) {')
         self._indent()
-        self._write('offset = nc * %d;' % (nSpecies+1))
-        self._write('for (int l=0; l<%d; l++) {' % (nSpecies+1))
+        self._write('offset = nc * %d;' % (self.nSpecies+1))
+        self._write('for (int l=0; l<%d; l++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('for (int k=0; k<%d; k++) {' % (nSpecies+1))
+        self._write('for (int k=0; k<%d; k++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('if(J[%d*k + l] != 0.0) {' % (nSpecies+1))
+        self._write('if(J[%d*k + l] != 0.0) {' % (self.nSpecies+1))
         self._indent()
         self._write('colVals[nJdata_tmp] = k + offset; ')
         self._write('nJdata_tmp = nJdata_tmp + 1; ')
@@ -3562,14 +3626,14 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
 
-        self._write('double c[%d];' % (nSpecies))
-        self._write('double J[%d];' % (nSpecies+1)**2)
+        self._write('double c[%d];' % (self.nSpecies))
+        self._write('double J[%d];' % (self.nSpecies+1)**2)
         self._write('int offset;')
 
         self._write()
-        self._write('for (int k=0; k<%d; k++) {' % nSpecies)
+        self._write('for (int k=0; k<%d; k++) {' % self.nSpecies)
         self._indent()
-        self._write('c[k] = 1.0/ %f ;' % (nSpecies))
+        self._write('c[k] = 1.0/ %f ;' % (self.nSpecies))
         self._outdent()
         self._write('}')
 
@@ -3583,10 +3647,10 @@ class CPickler(CMill):
         self._write('int nJdata_tmp = 1;')
         self._write('for (int nc=0; nc<NCELLS; nc++) {')
         self._indent()
-        self._write('offset = nc * %d;' % (nSpecies+1));
-        self._write('for (int l=0; l<%d; l++) {' % (nSpecies+1))
+        self._write('offset = nc * %d;' % (self.nSpecies+1));
+        self._write('for (int l=0; l<%d; l++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('for (int k=0; k<%d; k++) {' % (nSpecies+1))
+        self._write('for (int k=0; k<%d; k++) {' % (self.nSpecies+1))
         self._indent()
         self._write('if (k == l) {')
         self._indent()
@@ -3595,7 +3659,7 @@ class CPickler(CMill):
         self._outdent()
         self._write('} else {')
         self._indent()
-        self._write('if(J[%d*k + l] != 0.0) {' % (nSpecies+1))
+        self._write('if(J[%d*k + l] != 0.0) {' % (self.nSpecies+1))
         self._indent()
         self._write('colVals[nJdata_tmp-1] = k+1 + offset; ')
         self._write('nJdata_tmp = nJdata_tmp + 1; ')
@@ -3617,10 +3681,10 @@ class CPickler(CMill):
         self._write('int nJdata_tmp = 0;')
         self._write('for (int nc=0; nc<NCELLS; nc++) {')
         self._indent()
-        self._write('offset = nc * %d;' % (nSpecies+1));
-        self._write('for (int l=0; l<%d; l++) {' % (nSpecies+1))
+        self._write('offset = nc * %d;' % (self.nSpecies+1));
+        self._write('for (int l=0; l<%d; l++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('for (int k=0; k<%d; k++) {' % (nSpecies+1))
+        self._write('for (int k=0; k<%d; k++) {' % (self.nSpecies+1))
         self._indent()
         self._write('if (k == l) {')
         self._indent()
@@ -3629,7 +3693,7 @@ class CPickler(CMill):
         self._outdent()
         self._write('} else {')
         self._indent()
-        self._write('if(J[%d*k + l] != 0.0) {' % (nSpecies+1))
+        self._write('if(J[%d*k + l] != 0.0) {' % (self.nSpecies+1))
         self._indent()
         self._write('colVals[nJdata_tmp] = k + offset; ')
         self._write('nJdata_tmp = nJdata_tmp + 1; ')
@@ -3661,12 +3725,12 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
 
-        self._write('double c[%d];' % (nSpecies))
-        self._write('double J[%d];' % (nSpecies+1)**2)
+        self._write('double c[%d];' % (self.nSpecies))
+        self._write('double J[%d];' % (self.nSpecies+1)**2)
         self._write()
-        self._write('for (int k=0; k<%d; k++) {' % nSpecies)
+        self._write('for (int k=0; k<%d; k++) {' % self.nSpecies)
         self._indent()
-        self._write('c[k] = 1.0/ %f ;' % (nSpecies))
+        self._write('c[k] = 1.0/ %f ;' % (self.nSpecies))
         self._outdent()
         self._write('}')
 
@@ -3676,22 +3740,22 @@ class CPickler(CMill):
         self._write()
         self._write('colPtrs[0] = 0;')
         self._write('int nJdata_tmp = 0;')
-        self._write('for (int k=0; k<%d; k++) {' % (nSpecies+1))
+        self._write('for (int k=0; k<%d; k++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('for (int l=0; l<%d; l++) {' % (nSpecies+1))
+        self._write('for (int l=0; l<%d; l++) {' % (self.nSpecies+1))
         self._indent()
         self._write('if (k == l) {')
         self._indent()
         self._write('rowVals[nJdata_tmp] = l; ')
-        self._write('indx[nJdata_tmp] = %d*k + l;' % (nSpecies+1))
+        self._write('indx[nJdata_tmp] = %d*k + l;' % (self.nSpecies+1))
         self._write('nJdata_tmp = nJdata_tmp + 1; ')
         self._outdent()
         self._write('} else {')
         self._indent()
-        self._write('if(J[%d*k + l] != 0.0) {' % (nSpecies+1))
+        self._write('if(J[%d*k + l] != 0.0) {' % (self.nSpecies+1))
         self._indent()
         self._write('rowVals[nJdata_tmp] = l; ')
-        self._write('indx[nJdata_tmp] = %d*k + l;' % (nSpecies+1))
+        self._write('indx[nJdata_tmp] = %d*k + l;' % (self.nSpecies+1))
         self._write('nJdata_tmp = nJdata_tmp + 1; ')
         self._outdent()
         self._write('}')
@@ -3717,12 +3781,12 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
 
-        self._write('double c[%d];' % (nSpecies))
-        self._write('double J[%d];' % (nSpecies+1)**2)
+        self._write('double c[%d];' % (self.nSpecies))
+        self._write('double J[%d];' % (self.nSpecies+1)**2)
         self._write()
-        self._write('for (int k=0; k<%d; k++) {' % nSpecies)
+        self._write('for (int k=0; k<%d; k++) {' % self.nSpecies)
         self._indent()
-        self._write('c[k] = 1.0/ %f ;' % (nSpecies))
+        self._write('c[k] = 1.0/ %f ;' % (self.nSpecies))
         self._outdent()
         self._write('}')
 
@@ -3734,9 +3798,9 @@ class CPickler(CMill):
         self._indent()
         self._write('rowPtr[0] = 1;')
         self._write('int nJdata_tmp = 1;')
-        self._write('for (int l=0; l<%d; l++) {' % (nSpecies+1))
+        self._write('for (int l=0; l<%d; l++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('for (int k=0; k<%d; k++) {' % (nSpecies+1))
+        self._write('for (int k=0; k<%d; k++) {' % (self.nSpecies+1))
         self._indent()
         self._write('if (k == l) {')
         self._indent()
@@ -3745,7 +3809,7 @@ class CPickler(CMill):
         self._outdent()
         self._write('} else {')
         self._indent()
-        self._write('if(J[%d*k + l] != 0.0) {' % (nSpecies+1))
+        self._write('if(J[%d*k + l] != 0.0) {' % (self.nSpecies+1))
         self._indent()
         self._write('colVals[nJdata_tmp-1] = k+1; ')
         self._write('nJdata_tmp = nJdata_tmp + 1; ')
@@ -3763,9 +3827,9 @@ class CPickler(CMill):
         self._indent()
         self._write('rowPtr[0] = 0;')
         self._write('int nJdata_tmp = 0;')
-        self._write('for (int l=0; l<%d; l++) {' % (nSpecies+1))
+        self._write('for (int l=0; l<%d; l++) {' % (self.nSpecies+1))
         self._indent()
-        self._write('for (int k=0; k<%d; k++) {' % (nSpecies+1))
+        self._write('for (int k=0; k<%d; k++) {' % (self.nSpecies+1))
         self._indent()
         self._write('if (k == l) {')
         self._indent()
@@ -3774,7 +3838,7 @@ class CPickler(CMill):
         self._outdent()
         self._write('} else {')
         self._indent()
-        self._write('if(J[%d*k + l] != 0.0) {' % (nSpecies+1))
+        self._write('if(J[%d*k + l] != 0.0) {' % (self.nSpecies+1))
         self._indent()
         self._write('colVals[nJdata_tmp] = k; ')
         self._write('nJdata_tmp = nJdata_tmp + 1; ')
@@ -3795,13 +3859,11 @@ class CPickler(CMill):
         self._outdent()
         self._write('}')
         self._write()
+
         return
 
 
     def _ajac_dummy(self, mechanism):
-
-        nSpecies = len(mechanism.species())
-        nReactions = len(mechanism.reaction())
 
         self._write()
         self._write('#ifndef AMREX_USE_CUDA')
@@ -3810,7 +3872,7 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
 
-        self._write('for (int i=0; i<%d; i++) {' % (nSpecies+1)**2)
+        self._write('for (int i=0; i<%d; i++) {' % (self.nSpecies+1)**2)
         self._indent()
         self._write('J[i] = 0.0;')
         self._outdent()
@@ -3826,16 +3888,13 @@ class CPickler(CMill):
 
     def _ajacPrecond_dummy(self, mechanism):
 
-        nSpecies = len(mechanism.species())
-        nReactions = len(mechanism.reaction())
-
         self._write()
         self._write(self.line('compute an approx to the reaction Jacobian'))
         self._write('AMREX_GPU_HOST_DEVICE void aJacobian_precond(double *  J, double *  sc, double T, int HP)')
         self._write('{')
         self._indent()
 
-        self._write('for (int i=0; i<%d; i++) {' % (nSpecies+1)**2)
+        self._write('for (int i=0; i<%d; i++) {' % (self.nSpecies+1)**2)
         self._indent()
         self._write('J[i] = 0.0;')
         self._outdent()
@@ -3843,6 +3902,7 @@ class CPickler(CMill):
 
         self._outdent()
         self._write('}')
+
         return
         
 
@@ -3984,7 +4044,7 @@ class CPickler(CMill):
             else:
                 factor = "%f * " % coefficient
 
-            if symbol in self.qss_list:
+            if symbol in self.qss_species_list:
                 terms.append("%sg_RT_qss[%d]" % (factor, mechanism.qss_species(symbol).id))
             else:
                 terms.append("%sg_RT[%d]" % (factor, mechanism.species(symbol).id))
@@ -4000,7 +4060,7 @@ class CPickler(CMill):
             else:
                 factor = "%f * " % coefficient
 
-            if symbol in self.qss_list:
+            if symbol in self.qss_species_list:
                 terms.append("%sg_RT_qss[%d]" % (factor, mechanism.qss_species(symbol).id))
             else:
                 terms.append("%sg_RT[%d]" % (factor, mechanism.species(symbol).id))
@@ -4054,23 +4114,24 @@ class CPickler(CMill):
 
     def _sortedKcExpArg(self, mechanism, reaction):
 
-        nSpecies = len(mechanism.species())+len(self.qss_species)
-
-        terms = []
-        # terms list filled with transported species first, referenced by index, and then QSS species at afterwards, referenced by their list order + nSpecies
-        for i in range(nSpecies):
+        terms     = []
+        for i in range(self.nSpecies):
             terms.append('')
+        terms_qss = []
+        for i in range(self.nQSSspecies):
+            terms_qss.append('')
+
         for symbol, coefficient in reaction.reactants:
             if coefficient == 1.0:
                 factor = " + "
             else:
                 factor = " + %f*" % coefficient
 
-            if symbol in self.qss_list:
-                i = mechanism.qss_species(symbol).id
-                terms[i+self.nSpecies] += "%sg_RT_qss[%d]"%(factor,i)
+            if symbol in self.qss_species_list:
+                i = self.ordered_idx_map[symbol] - self.nSpecies
+                terms_qss[i] += "%sg_RT_qss[%d]"%(factor,i)
             else:
-                i = mechanism.species(symbol).id
+                i = self.ordered_idx_map[symbol]
                 terms[i] += "%sg_RT[%d]"%(factor,i)
 
         for symbol, coefficient in reaction.products:
@@ -4079,17 +4140,21 @@ class CPickler(CMill):
             else:
                 factor = " - %f*" % coefficient
 
-            if symbol in self.qss_list:
-                i = mechanism.qss_species(symbol).id
-                terms[i+self.nSpecies] += "%sg_RT_qss[%d]"%(factor,i)
+            if symbol in self.qss_species_list:
+                i = self.ordered_idx_map[symbol] - self.nSpecies
+                terms_qss[i] += "%sg_RT_qss[%d]"%(factor,i)
             else:
-                i = mechanism.species(symbol).id
+                i = self.ordered_idx_map[symbol]
                 terms[i] += "%sg_RT[%d]"%(factor,i)
 
         dG = ""
-        for i in range(nSpecies):
+        for i in range(self.nSpecies):
             if terms[i]:
                 dG += terms[i]
+        for i in range(self.nQSSspecies):
+            if terms_qss[i]:
+                dG += terms_qss[i]
+
         if dG[0:3] == " + ":
             return dG[3:]
         else:
@@ -4517,7 +4582,7 @@ class CPickler(CMill):
         speciesTransport = self._analyzeTransport(mechanism)
         NLITE=0
         idxLightSpecs = []
-        for spec in self.species:
+        for spec in self.nonqss_species:
             if spec.weight < 5.0:
                 NLITE+=1
                 idxLightSpecs.append(spec.id)
@@ -4530,7 +4595,7 @@ class CPickler(CMill):
         self._zrot(mechanism, speciesTransport, False)
         self._nlin(mechanism, speciesTransport, False)
 
-        self._viscosity(speciesTransport, False, NTFit=50)
+        self._viscosity(mechanism, speciesTransport, False, NTFit=50)
         self._diffcoefs(speciesTransport, False, NTFit=50)
         self._lightSpecs(idxLightSpecs, False)
         self._thermaldiffratios(speciesTransport, idxLightSpecs, False, NTFit=50)
@@ -4556,11 +4621,12 @@ class CPickler(CMill):
         self._write('void %s(double* %s ) {' % ("egtransetWT", "WT"))
         self._indent()
 
-        for species in self.species:
+        for species in self.nonqss_species:
             self._write('%s[%d] = %.8E;' % ("WT", species.id, float(species.weight)))
 
         self._outdent()
         self._write('}')
+
         return
 
 
@@ -4632,7 +4698,7 @@ class CPickler(CMill):
         self._write('void egtransetNLIN(int* NLIN) {')
         self._indent()
 
-        for species in mechanism.species():
+        for species in self.nonqss_species:
             self._write('%s[%d] = %d;' % ("NLIN", species.id, int(speciesTransport[species][0])))
 
         self._outdent()
@@ -4641,7 +4707,7 @@ class CPickler(CMill):
         return
 
 
-    def _viscosity(self, speciesTransport, do_declarations, NTFit):
+    def _viscosity(self, mechanism, speciesTransport, do_declarations, NTFit):
         #compute single constants in g/cm/s
         kb = 1.3806503e-16
         Na = 6.02214199e23 
@@ -4669,9 +4735,9 @@ class CPickler(CMill):
                 m_cvib[spec.id] = 3.0
                 isatm[spec.id] = 1.0
         #viscosities coefs (4 per spec)
-        cofeta = {}
+        cofeta = OrderedDict()
         #conductivities coefs (4 per spec)
-        coflam = {}
+        coflam = OrderedDict()
         for spec in speciesTransport:
             spvisc = []
             spcond = []
@@ -4687,19 +4753,19 @@ class CPickler(CMill):
                 #viscosity of spec at t
                 #eq. (1)
                 conversion = AtoCM * AtoCM
-                visc = (5.0 / 16.0) * np.sqrt(np.pi * self.species[spec.id].weight * kb * t / Na) / \
+                visc = (5.0 / 16.0) * np.sqrt(np.pi * spec.weight * kb * t / Na) / \
                     (self.om22_CHEMKIN(tr,dst) * np.pi * \
                     float(speciesTransport[spec][2]) * float(speciesTransport[spec][2]) * conversion)
                 #conductivity of spec at t
                 #eq. (30)
                 conversion = AtoCM * AtoCM
-                m_red = self.species[spec.id].weight / (2.0 * Na)
+                m_red = spec.weight / (2.0 * Na)
                 diffcoef = (3.0 / 16.0) * np.sqrt(2.0 * np.pi * kb**3 * t**3 / m_red) /  \
                         (10.0 * np.pi * self.om11_CHEMKIN(tr,dst) * float(speciesTransport[spec][2]) * \
                         float(speciesTransport[spec][2]) * conversion)
                 #eq. (19)
-                cv_vib_R = (self._getCVdRspecies(t, spec) - m_cvib[spec.id]) * isatm[spec.id]
-                rho_atm = 10.0 * self.species[spec.id].weight /(RU * t)
+                cv_vib_R = (self._getCVdRspecies(mechanism, t, spec) - m_cvib[spec.id]) * isatm[spec.id]
+                rho_atm = 10.0 * spec.weight /(RU * t)
                 f_vib = rho_atm * diffcoef / visc
                 #eq. (20)
                 A = 2.5 - f_vib
@@ -4715,10 +4781,10 @@ class CPickler(CMill):
                 cv_trans_R = 3.0 / 2.0 
                 f_trans = 5.0 / 2.0 * (1.0 - 2.0 / np.pi * A / B * cv_rot_R / cv_trans_R )
                 if (int(speciesTransport[spec][0]) == 0):
-                    cond = (visc * RU / self.species[spec.id].weight) * \
+                    cond = (visc * RU / spec.weight) * \
                             (5.0 / 2.0) * cv_trans_R
                 else:
-                    cond = (visc * RU / self.species[spec.id].weight) * \
+                    cond = (visc * RU / spec.weight) * \
                         (f_trans * cv_trans_R + f_rot * cv_rot_R + f_vib * cv_vib_R)
 
                 #log transformation for polyfit
@@ -4746,7 +4812,7 @@ class CPickler(CMill):
         self._write('void egtransetCOFETA(double* COFETA) {')
         self._indent()
 
-        for spec in self.species:
+        for spec in self.nonqss_species:
             for i in range(4):
                 self._write('%s[%d] = %.8E;' % ('COFETA', spec.id*4+i, cofeta[spec.id][3-i]))
 
@@ -4771,7 +4837,7 @@ class CPickler(CMill):
 
         self._indent()
 
-        for spec in self.species:
+        for spec in self.nonqss_species:
             for i in range(4):
                 self._write('%s[%d] = %.8E;' % ('COFLAM', spec.id*4+i, coflam[spec.id][3-i]))
 
@@ -4791,12 +4857,6 @@ class CPickler(CMill):
                 if spec.id == i:
                     specOrdered.append(spec)
                     break
-        #checks
-        #for spec in speciesTransport:
-        #    print spec.symbol, spec.id
-        #for i in range(self.nSpecies):
-        #    print i, specOrdered[i].id, specOrdered[i].symbol
-        #stop
 
         #compute single constants in g/cm/s
         kb = 1.3806503e-16
@@ -4822,8 +4882,8 @@ class CPickler(CMill):
                 sigm = (0.5 * (float(speciesTransport[spec1][2]) + float(speciesTransport[spec2][2])) * AtoCM)\
                         * self.Xi(spec1, spec2, speciesTransport)**(1.0/6.0)
                 #eq. (4)
-                m_red = self.species[spec1.id].weight * self.species[spec2.id].weight / \
-                        (self.species[spec1.id].weight + self.species[spec2.id].weight) / Na
+                m_red = spec1.weight * spec2.weight / \
+                        (spec1.weight + spec2.weight) / Na
                 #eq. (8) & (14)
                 epsm_k = np.sqrt(float(speciesTransport[spec1][1]) * float(speciesTransport[spec2][1])) \
                         * self.Xi(spec1, spec2, speciesTransport)**2.0
@@ -4961,8 +5021,8 @@ class CPickler(CMill):
                         print "Problem in _thermaldiffratios computation"
                         stop
                     #eq. (53)
-                    Wji = (self.species[spec2.id].weight - self.species[spec1.id].weight) / \
-                            (self.species[spec1.id].weight + self.species[spec2.id].weight) 
+                    Wji = (spec2.weight - spec1.weight) / \
+                            (spec1.weight + spec2.weight) 
                     epsj = float(speciesTransport[spec2][1]) * kb
                     sigj = float(speciesTransport[spec2][2]) * AtoCM
                     dipj = float(speciesTransport[spec2][3]) * DEBYEtoCGS
@@ -5017,10 +5077,10 @@ class CPickler(CMill):
 
     def _analyzeTransport(self, mechanism):
 
-        transdata = {}
+        transdata = OrderedDict()
 
-        for species in mechanism.species():
-
+        for spec in self.nonqss_species:
+            species = mechanism.species(spec.symbol)
             models = species.trans
             if len(models) > 2:
                 print 'species: ', species
@@ -5037,7 +5097,7 @@ class CPickler(CMill):
             pol = m1.pol
             zrot = m1.zrot
 
-            transdata[species] = [lin, eps, sig, dip, pol, zrot]
+            transdata[spec] = [lin, eps, sig, dip, pol, zrot]
 
         return transdata
 
@@ -5101,8 +5161,8 @@ class CPickler(CMill):
         self._write('void %s(double* %s ) {' % (nametab[0], nametab[4]))
         self._indent()
 
-        for species in mechanism.species():
-            self._write('%s[%d] = %.8E;' % (nametab[4], species.id, float(speciesTransport[species][id])))
+        for spec in self.nonqss_species:
+            self._write('%s[%d] = %.8E;' % (nametab[4], spec.id, float(speciesTransport[spec][id])))
 
         self._outdent()
         self._write('}')
@@ -5617,9 +5677,9 @@ class CPickler(CMill):
         return om22_interp
 
 
-    def _getCVdRspecies(self, t, species):
+    def _getCVdRspecies(self, mechanism, t, species):
 
-        models = species.thermo
+        models = mechanism.species(species.symbol).thermo
         m1 = models[0]
         m2 = models[1]
 
@@ -5706,23 +5766,20 @@ class CPickler(CMill):
         self._write("#endif")
         self._write()
         self._write('/* Species */')
-        nb_spec = 0
-        for species in mechanism.species():
-            if species.symbol not in self.qss_species:
-                s = species.symbol.strip()
-                # Ionic species
-                if s[-1] == '-': s = s[:-1] + 'n'
-                if s[-1] == '+': s = s[:-1] + 'p'
-                # Excited species
-                s = s.replace('*', 'D')
-                # Remove other characters not allowed in preprocessor defines
-                s = s.replace('-', '').replace('(','').replace(')','')
-                self._write('#define %s_ID %d' % (s, species.id))
-                nb_spec += 1
+        for species in self.nonqss_species_list:
+            s = species.strip()
+            # Ionic species
+            if s[-1] == '-': s = s[:-1] + 'n'
+            if s[-1] == '+': s = s[:-1] + 'p'
+            # Excited species
+            s = s.replace('*', 'D')
+            # Remove other characters not allowed in preprocessor defines
+            s = s.replace('-', '').replace('(','').replace(')','')
+            self._write('#define %s_ID %d' % (s, self.ordered_idx_map[species]))
         self._write()
         self._write("#define NUM_ELEMENTS %d" % (nb_elem))
-        self._write("#define NUM_SPECIES %d" % (nb_spec))
-        self._write("#define NUM_REACTIONS %d" %(len(mechanism.reaction())))
+        self._write("#define NUM_SPECIES %d" %  (self.nSpecies))
+        self._write("#define NUM_REACTIONS %d" % (len(mechanism.reaction())))
         self._write()
         self._write("#define NUM_FIT 4")
         self._write("#endif")
@@ -5801,6 +5858,7 @@ class CPickler(CMill):
 
         self._write("k_f *= F;")
         self._write("q_f = phi_f * k_f;")
+
         return
 
 
@@ -5927,14 +5985,15 @@ class CPickler(CMill):
         if not efficiencies:
             if species == "<mixture>":
                 return "mixture"
-            return "sc[%d]" % mechanism.species(species).id
+            return "sc[%d]" % self.nonqss_species[species].id 
 
         alpha = ["mixture"]
         for i, eff in enumerate(efficiencies):
             symbol, efficiency = eff
-            factor = "(TB[%d][%d] - 1)" % (reaction.id-1, i)
-            conc = "sc[%d]" % mechanism.species(symbol).id
-            alpha.append("%s*%s" % (factor, conc))
+            if symbol not in self.qss_species_list:
+                factor = "(TB[%d][%d] - 1)" % (reaction.id-1, i)
+                conc = "sc[%d]" % self.ordered_idx_map[symbol]
+                alpha.append("%s*%s" % (factor, conc))
 
         return " + ".join(alpha).replace('+ -','- ')
 
@@ -5949,10 +6008,10 @@ class CPickler(CMill):
             slist = []
             # get a list of species involved in the reactants and products
             for symbol, coefficient in r.reactants:
-                if symbol in self.qss_list:
+                if symbol in self.qss_species_list:
                     slist.append(symbol)
             for symbol, coeffecient in r.products:
-                if symbol in self.qss_list:
+                if symbol in self.qss_species_list:
                     slist.append(symbol)
             # if species s1 and species s2 are in the same reaction,
             # denote they are linked in the Species-Species network
@@ -5969,10 +6028,10 @@ class CPickler(CMill):
             reaction_number = i
             # get a list of species involved in the reactants and products
             for symbol, coefficient in r.reactants:
-                if symbol in self.qss_list:
+                if symbol in self.qss_species_list:
                     reactant_list.append(symbol)
             for	symbol,	coeffecient in r.products:
-                if symbol in self.qss_list:
+                if symbol in self.qss_species_list:
                     product_list.append(symbol)
             # if qss species s is in reaction number i, 
             # denote they are linked in the Species-Reaction network
@@ -5995,10 +6054,10 @@ class CPickler(CMill):
             count = 0
             for j in self.QSS_SC_Sj[self.QSS_SC_Si == i]:
                 if j != i:
-                    needs_species.append(self.qss_list[j])
+                    needs_species.append(self.qss_species_list[j])
                     count += 1
-            self.needs[self.qss_list[i]] = needs_species
-            self.needs_count[self.qss_list[i]] = count
+            self.needs[self.qss_species_list[i]] = needs_species
+            self.needs_count[self.qss_species_list[i]] = count
 
         self.needs_running = self.needs.copy()
         self.needs_count_running = self.needs_count.copy()
@@ -6021,10 +6080,10 @@ class CPickler(CMill):
             count = 0
             for j in self.QSS_SC_Si[self.QSS_SC_Sj == i]:
                 if j != i:
-                    is_needed_species.append(self.qss_list[j])
+                    is_needed_species.append(self.qss_species_list[j])
                     count += 1
-            self.is_needed[self.qss_list[i]] = is_needed_species
-            self.is_needed_count[self.qss_list[i]] = count
+            self.is_needed[self.qss_species_list[i]] = is_needed_species
+            self.is_needed_count[self.qss_species_list[i]] = count
 
         self.is_needed_running = self.is_needed.copy()
         self.is_needed_count_running = self.is_needed_count.copy()
@@ -6478,7 +6537,7 @@ class CPickler(CMill):
 
         # Check that QSS species are consumed/produced at least once to ensure theoretically valid QSS option
         # (There is more to it than that, but this is a quick catch based on that aspect)
-        for i, symbol in enumerate(self.qss_list):
+        for i, symbol in enumerate(self.qss_species_list):
             consumed = 0
             produced = 0
             for j in self.QSS_SR_Rj[self.QSS_SR_Si == i]:
@@ -6527,24 +6586,24 @@ class CPickler(CMill):
         for i in range(self.nQSSspecies):
             for j in self.QSS_SS_Sj[self.QSS_SS_Si == i]:
                 if j != i:
-                    # print("looking for coupling with species ", j, "(", self.qss_list[j], ")")
+                    # print("looking for coupling with species ", j, "(", self.qss_species_list[j], ")")
                     count = 0
                     for r in self.QSS_SR_Rj[self.QSS_SR_Si == j]:
                         reaction = mechanism.reaction(id=r)
 
                         #Check if QSS species i and QSS species j are both reactants in the reaction containing QSS species j
-                        if any(reactant == self.qss_list[j] for reactant,_ in  list(set(reaction.reactants))):
-                            if any(reactant == self.qss_list[i] for reactant,_ in list(set(reaction.reactants))):
-                                sys.exit('Quadratic coupling between '+self.qss_list[j]+' and '+self.qss_list[i]+' not allowed !!!')
+                        if any(reactant == self.qss_species_list[j] for reactant,_ in  list(set(reaction.reactants))):
+                            if any(reactant == self.qss_species_list[i] for reactant,_ in list(set(reaction.reactants))):
+                                sys.exit('Quadratic coupling between '+self.qss_species_list[j]+' and '+self.qss_species_list[i]+' not allowed !!!')
                             # if QSS specices j is a reactant and QSS species i is a product, then i depends on j
-                            elif any(product == self.qss_list[i] for product,_ in list(set(reaction.products))):
+                            elif any(product == self.qss_species_list[i] for product,_ in list(set(reaction.products))):
                                 count += 1
                         # if QSS species j is not a reactant, then it must be a product. Check if QSS species i is also a product
                         elif reaction.reversible:
-                            if any(product == self.qss_list[i] for product,_ in list(set(reaction.products))):
-                                sys.exit('Quadratic coupling between '+self.qss_list[j]+' and '+self.qss_list[i]+' not allowed !!!')
+                            if any(product == self.qss_species_list[i] for product,_ in list(set(reaction.products))):
+                                sys.exit('Quadratic coupling between '+self.qss_species_list[j]+' and '+self.qss_species_list[i]+' not allowed !!!')
                             # if QSS species i is a reactant in this reversible reaction, then i depends on j 
-                            elif any(reactant == self.qss_list[i] for reactant,_ in list(set(reaction.reactants))):
+                            elif any(reactant == self.qss_species_list[i] for reactant,_ in list(set(reaction.reactants))):
                                 count += 1
                                 
                     if count == 0:
@@ -6577,11 +6636,11 @@ class CPickler(CMill):
                 print coupled
                 
                 if not coupled:
-                    print("reaction ", r, " only contains QSS species ", self.qss_list[i])
+                    print("reaction ", r, " only contains QSS species ", self.qss_species_list[i])
                     print
                     # if QSS species is a reactant
                     if direction == -1:
-                        print("for species ", self.qss_list[i], " in reaction ", r, " is a reactant")
+                        print("for species ", self.qss_species_list[i], " in reaction ", r, " is a reactant")
                         if reaction.reversible:
                             print("MOVE THIS SPECIES TO RHS")
                             print
@@ -6596,15 +6655,15 @@ class CPickler(CMill):
                     elif direction == 1:
                         if reaction.reversible:
                             coeff_hold.append('-qf['+str(r)+']')
-                        print("for species ", self.qss_list[i], " in reaction ", r, " is a product")
+                        print("for species ", self.qss_species_list[i], " in reaction ", r, " is a product")
                         print("MOVE THIS SPECIES TO RHS")
                         rhs_hold.append('-qf['+str(r)+']')
                 else:
-                    # print("reaction ", r, " only contains QSS species ", self.qss_list[i])
+                    # print("reaction ", r, " only contains QSS species ", self.qss_species_list[i])
                     print
                     # if QSS species is a reactant
                     if direction == -1:
-                        print("for species ", self.qss_list[i], " in reaction ", r, " is a reactant")
+                        print("for species ", self.qss_species_list[i], " in reaction ", r, " is a reactant")
                         if reaction.reversible:
                             print("MOVE THIS SPECIES TO RHS")
                             print
@@ -6619,11 +6678,11 @@ class CPickler(CMill):
                     elif direction == 1:
                         if reaction.reversible:
                             coeff_hold.append('-qf['+str(r)+']')
-                        print("for species ", self.qss_list[i], " in reaction ", r, " is a product")
+                        print("for species ", self.qss_species_list[i], " in reaction ", r, " is a product")
                         print("MOVE THIS SPECIES TO RHS")
                         rhs_hold.append('-qf['+str(r)+']')
                                                 
-            self.QSS_rhs[self.qss_list[i]] = " ".join(rhs_hold)
+            self.QSS_rhs[self.qss_species_list[i]] = " ".join(rhs_hold)
 
         print(self.QSS_rhs)
         
@@ -6686,24 +6745,23 @@ class CPickler(CMill):
 
         #for symbol, coefficient in reagents:
         for symbol, coefficient in sorted(reagents,key=lambda x:mechanism.species(x[0]).id):
-            if symbol in self.qss_list:
+            if symbol in self.qss_species_list:
                 if (float(coefficient) == 1.0):
-                    conc = "qss_sc[%d]" % mechanism.qss_species(symbol).id
+                    conc = "qss_sc[%d]" % (self.ordered_idx_map[symbol]-self.nSpecies)
                 else:
-                    conc = "pow(qss_sc[%d], %f)" % (mechanism.qss_species(symbol).id, float(coefficient))
+                    conc = "pow(qss_sc[%d], %f)" % (self.ordered_idx_map[symbol]-self.nSpecies, float(coefficient))
                 phi += [conc]
             else:
                 if (float(coefficient) == 1.0):
-                    conc = "sc[%d]" % mechanism.species(symbol).id
+                    conc = "sc[%d]" % self.ordered_idx_map[symbol]
                 else:
-                    conc = "pow(sc[%d], %f)" % (mechanism.species(symbol).id, float(coefficient))
+                    conc = "pow(sc[%d], %f)" % (self.ordered_idx_map[symbol], float(coefficient))
                 phi += [conc]
         return "*".join(phi)
 
 
     def _QSScomponentFunctions(self, mechanism):
 
-        nSpecies = len(mechanism.species())
         nReactions = len(mechanism.reaction())
 
         itroe      = self.reactionIndex[0:2]
@@ -6751,7 +6809,7 @@ class CPickler(CMill):
         self._write()
         self._write(self.line('compute the mixture concentration'))
         self._write('double mixture = 0.0;')
-        self._write('for (int i = 0; i < %d; ++i) {' % nSpecies)
+        self._write('for (int i = 0; i < %d; ++i) {' % self.nSpecies)
         self._indent()
         self._write('mixture += sc[i];')
         self._outdent()
@@ -6986,115 +7044,41 @@ class CPickler(CMill):
     #unused
     ####################
 
-    def _initializeRateCalculationFR(self, mechanism):
-
-        nSpecies = len(mechanism.species())
-        nReactions = len(mechanism.reaction())
-
-        # declarations
-        self._write()
-        self._write('int id; ' + self.line('loop counter'))
-
-        self._write('double mixture;                 '
-                    + self.line('mixture concentration'))
-        self._write('double g_RT[%d];                ' % nSpecies
-                    + self.line('Gibbs free energy'))
-
-        self._write('double Kc;                      ' + self.line('equilibrium constant'))
-        self._write('double k_f;                     ' + self.line('forward reaction rate'))
-        self._write('double k_r;                     ' + self.line('reverse reaction rate'))
-        self._write('double phi_f;                   '
-                    + self.line('forward phase space factor'))
-        self._write('double phi_r;                   '
-                    + self.line('reverse phase space factor'))
-        self._write('double alpha;                   ' + self.line('enhancement'))
-
-
-        self._write('double redP;                    ' + self.line('reduced pressure'))
-        self._write('double logPred;                 ' + self.line('log of above'))
-        self._write('double F;                       '
-                    + self.line('fallof rate enhancement'))
-        self._write()
-        self._write('double F_troe;                  ' + self.line('TROE intermediate'))
-        self._write('double logFcent;                ' + self.line('TROE intermediate'))
-        self._write('double troe;                    ' + self.line('TROE intermediate'))
-        self._write('double troe_c;                  ' + self.line('TROE intermediate'))
-        self._write('double troe_n;                  ' + self.line('TROE intermediate'))
-        self._write()
-
-        self._write(
-            'double tc[] = { log(T), T, T*T, T*T*T, T*T*T*T }; '
-            + self.line('temperature cache'))
-
-        self._write()
-        self._write('double invT = 1.0 / tc[1];')
-
-        # compute the reference concentration
-        self._write()
-        self._write(self.line('reference concentration: P_atm / (RT) in inverse mol/m^3'))
-        self._write('double refC = %g / %g / T;' % (atm.value, R.value))
-
-        # compute the mixture concentration
-        self._write()
-        self._write(self.line('compute the mixture concentration'))
-        self._write('mixture = 0.0;')
-        self._write('for (id = 0; id < %d; ++id) {' % nSpecies)
-        self._indent()
-        self._write('mixture += sc[id];')
-        self._outdent()
-        self._write('}')
-
-        # compute the Gibbs free energies
-        self._write()
-        self._write(self.line('compute the Gibbs free energy'))
-        self._write('gibbs(g_RT, tc);')
-        return
-
-
-    def _sortedKc(self, mechanism, reaction):
-        conv = self._KcConv(mechanism,reaction)
-        exparg = self._sortedKcExpArg(mechanism,reaction)
-        if conv:
-            return conv + ' * exp('+exparg+')'
-        else:
-            return 'exp('+exparg+')'
-
-
     # Set up important QSS variables/containers
     # This function I don't think will be necessary once QSS parsing is implemented. Initialization of QSS networks can be put in setSpecies function
-    def _setQSSspecies(self, mechanism, QSS):
-        nQSS = len(QSS)
+    #def _setQSSspecies(self, mechanism, QSS):
+        #nQSS = len(QSS)
 
-        species = []
-        for s in mechanism.species():
-            species.append(s.symbol)
+        #species = []
+        #for s in mechanism.species():
+        #    species.append(s.symbol)
 
         # Get indices of QSS species from species list in mechanism 
-        isQSS = np.in1d(species, QSS)
-        QSS_index = np.array(np.argwhere(isQSS == True))
+        #isQSS = np.in1d(species, QSS)
+        #QSS_index = np.array(np.argwhere(isQSS == True))
 
-        print("\n QSS before sorting: ", QSS, "\n\n" )
-        # Sort QSS as they would be found in the mechanism ordering
-        QSS_species_index = {}
-        QSS_species_sorted = []
-        for i in range(nQSS):
-            QSS_species_sorted.append(species[int(QSS_index[i])])
-            QSS_species_index[species[int(QSS_index[i])]] = i
+        #print("\n QSS before sorting: ", QSS, "\n\n" )
+        ## Sort QSS as they would be found in the mechanism ordering
+        #QSS_species_index = {}
+        #QSS_species_sorted = []
+        #for i in range(nQSS):
+        #    QSS_species_sorted.append(species[int(QSS_index[i])])
+        #    QSS_species_index[species[int(QSS_index[i])]] = i
 
         # Set global QSS components
-        self.nQSS = nQSS
-        self.qss_species = QSS_species_sorted
+        #self.nQSS = nQSS
+        #self.qss_species = QSS_species_sorted
         # QSS_list_index refers to QSS position in QSS_species
-        self.QSS_list_index = QSS_species_index
+        #self.QSS_list_index = QSS_species_index
         # QSS_mech_index refers to QSS position in mechanism.species
-        self.QSS_mech_index = QSS_index
+        #self.QSS_mech_index = QSS_index
         # QSS_SSnet and QSS_SRnet are initialized for the entire mechanism
         # and are whittled down to just QSS terms with getQSSsubnetworks() 
 
         ## ONLY PART OF THIS THAT NEEDS TO BE KEPT: MOVED TO _setSpecies
-        self.QSS_SSnet = np.zeros([self.nSpecies, self.nSpecies], 'd')
-        self.QSS_SRnet = np.zeros([self.nSpecies, len(mechanism.reaction())], 'd')
-        self.QSS_SCnet = np.zeros([nQSS, nQSS], 'd')
+        #self.QSS_SSnet = np.zeros([self.nSpecies, self.nSpecies], 'd')
+        #self.QSS_SRnet = np.zeros([self.nSpecies, len(mechanism.reaction())], 'd')
+        #self.QSS_SCnet = np.zeros([nQSS, nQSS], 'd')
         ###########################################################################
         
         # print("\n QSS after sorting: ", self.qss_species,"\n\n")
