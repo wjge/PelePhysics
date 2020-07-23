@@ -3917,89 +3917,55 @@ class CPickler(CMill):
 
 
     def _analyzeThermodynamics(self, mechanism, QSS_Flag):
+
         lowT = 0.0
         highT = 1000000.0
 
-        midpoints = {}
+        midpoints = OrderedDict()
 
         lowT_qss = 0.0
         highT_qss = 1000000.0
 
         midpoints_qss = {}
         
-        for species in mechanism.species():
+        if QSS_Flag:
+            for symbol in self.qss_species_list:
+        else:
+            for symbol in self.nonqss_species_list:
 
-            models = species.thermo
-            if len(models) > 2:
-                print 'species: ', species
-                import pyre
-                pyre.debug.Firewall.hit("unsupported configuration in species.thermo")
-                return
-            
-            m1 = models[0]
-            m2 = models[1]
+                species = mechanism.species(symbol)
+                models  = species.thermo
+                if len(models) > 2:
+                    print 'species: ', species
+                    import pyre
+                    pyre.debug.Firewall.hit("unsupported configuration in species.thermo")
+                    return
+                
+                m1 = models[0]
+                m2 = models[1]
 
-            if m1.lowT < m2.lowT:
-                lowRange = m1
-                highRange = m2
-            else:
-                lowRange = m2
-                highRange = m1
+                if m1.lowT < m2.lowT:
+                    lowRange = m1
+                    highRange = m2
+                else:
+                    lowRange = m2
+                    highRange = m1
 
-            low = lowRange.lowT
-            mid = lowRange.highT
-            high = highRange.highT
+                low = lowRange.lowT
+                mid = lowRange.highT
+                high = highRange.highT
 
-            if low > lowT:
-                lowT = low
-            if high < highT:
-                highT = high
+                if low > lowT:
+                    lowT = low
+                if high < highT:
+                    highT = high
 
-            midpoints.setdefault(mid, []).append((species, lowRange, highRange))
+                midpoints.setdefault(mid, []).append((species, lowRange, highRange))
         
         self.lowT = lowT
         self.highT = highT
 
-        for species in mechanism.qss_species():
-
-            models = species.thermo
-            if len(models) > 2:
-                print 'species: ', species
-                import pyre
-                pyre.debug.Firewall.hit("unsupported configuration in species.thermo")
-                return
-            if len(models) == 0:
-                return lowT_qss, highT_qss, midpoints_qss
-            
-            m1 = models[0]
-            m2 = models[1]
-
-            if m1.lowT < m2.lowT:
-                lowRange = m1
-                highRange = m2
-            else:
-                lowRange = m2
-                highRange = m1
-
-            low = lowRange.lowT
-            mid = lowRange.highT
-            high = highRange.highT
-
-            if low > lowT_qss:
-                lowT_qss = low
-            if high < highT_qss:
-                highT_qss = high
-
-            midpoints_qss.setdefault(mid, []).append((species, lowRange, highRange))
-        
-        self.lowT_qss = lowT_qss
-        self.highT_qss = highT_qss
-
-        if QSS_Flag:
-            return lowT_qss, highT_qss, midpoints_qss
-        else:
-            return lowT, highT, midpoints
-
+        return lowT, highT, midpoints
 
 
 
@@ -4274,9 +4240,6 @@ class CPickler(CMill):
 
         lowT, highT, midpoints = speciesInfo
 
-        #print("SPECIES INFO FROM generateThermoRoutine_GPU: ")
-        # print(speciesInfo)
-        
         self._write('AMREX_GPU_HOST_DEVICE void %s(double * species, double *  tc)' % name)
         self._write('{')
 
@@ -4311,8 +4274,8 @@ class CPickler(CMill):
             self._indent()
 
             for species, lowRange, highRange in speciesList:
-                self._write(self.line('species %d: %s' % (species.id, species.symbol)))
-                self._write('species[%d] =' % species.id)
+                self._write(self.line('species %d: %s' % (self.ordered_idx_map[species.symbol], species.symbol)))
+                self._write('species[%d] =' % (self.ordered_idx_map[species.symbol]))
                 self._indent()
                 expressionGenerator(lowRange.parameters)
                 self._outdent()
@@ -4322,8 +4285,8 @@ class CPickler(CMill):
             self._indent()
 
             for species, lowRange, highRange in speciesList:
-                self._write(self.line('species %d: %s' % (species.id, species.symbol)))
-                self._write('species[%d] =' % species.id)
+                self._write(self.line('species %d: %s' % (self.ordered_idx_map[species.symbol], species.symbol)))
+                self._write('species[%d] =' % (self.ordered_idx_map[species.symbol]))
                 self._indent()
                 expressionGenerator(highRange.parameters)
                 self._outdent()
