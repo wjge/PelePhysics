@@ -271,7 +271,7 @@ class CPickler(CMill):
         self._T_given_ey(mechanism)
         self._T_given_hy(mechanism)
         #AF: add transport data
-        # self._transport(mechanism)
+        self._transport(mechanism)
         #AF: dummy gjs routines
         self._emptygjs(mechanism)
 
@@ -4733,9 +4733,7 @@ class CPickler(CMill):
         m_crot = np.zeros(self.nSpecies)
         m_cvib = np.zeros(self.nSpecies)
         isatm = np.zeros(self.nSpecies)
-        transported = (spec for spec in speciesTransport if spec.symbol not in self.qss_species_list)
-        print "TRANSPORTED SPECIES IN VISCOSITY FUNCTION ARE: ", list(transported)
-        for spec in transported:
+        for spec in speciesTransport:
             if int(speciesTransport[spec][0]) == 0:
                 m_crot[spec.id] = 0.0
                 m_cvib[spec.id] = 0.0
@@ -6896,12 +6894,14 @@ class CPickler(CMill):
 
     def _QSSreturnCoeff(self, mechanism, reagents):
 
+        # Simpler way would be 'for symbol in self.nonqss_species_list'
         for symbol, coefficient in sorted(reagents,key=lambda x:mechanism.species(x[0]).id):
             if symbol not in self.qss_species_list:
+        # Simpler way would be 'for symbol in self.nonqss_species_list'
                 if (float(coefficient) == 1.0):
-                    conc = "sc[%d]" % mechanism.species(symbol).id
+                    conc = "sc[%d]" % self.ordered_idx_map[symbol]
                 else:
-                    conc = "pow(sc[%d], %f)" % (mechanism.species(symbol).id, float(coefficient))
+                    conc = "pow(sc[%d], %f)" % (self.ordered_idx_map[symbol], float(coefficient))
                     
         return conc
 
