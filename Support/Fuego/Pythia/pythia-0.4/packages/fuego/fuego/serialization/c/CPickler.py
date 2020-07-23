@@ -33,25 +33,47 @@ sym  = ""
 fsym = "_"
 
 class speciesDb:
-    def __init__(self, id, name, mwt):
-        self.id = id
-        self.symbol = name
-        self.weight = mwt
+    def __init__(self, mech_id, ordered_id, name, mwt):
+        self.mech_id = mech_id
+        self.symbol  = name
+        self.weight  = mwt
+        self.id      = ordered_id
         return
 
 
 class CPickler(CMill):
 
     def __init__(self):
+
         CMill.__init__(self)
-        self.species = []
-        self.qss_species = []
-        self.qss_list = []
-        self.nSpecies = 0
-        self.nQSSspecies = 0
+
+        # SPEC #
+        ########
+        ##non QSS
+        #list of speciesDb for each non QSS spec
+        self.nonqss_species      = []
+        #list of non QSS species names
+        self.nonqss_species_list = []
+        #number of non QSS species
+        self.nSpecies            = 0
+        ##QSS
+        #list of speciesDb for each QSS spec
+        self.qss_species      = []
+        #list of QSS species names
+        self.qss_species_list = []
+        #number of QSS species
+        self.nQSSspecies      = 0
+        ##all Species
+        self.all_species      = []
+        self.all_species_list = []
+        self.nAllspecies      = 0
+
+        # REACTIONS #
+        #############
         self.reactionIndex = []
         self.lowT = 100.0
         self.highT = 10000.0
+
         # idk if these should be put elsewhere (or if this is even the best way to do this)
         self.QSS_mech_index = {}
         return
@@ -62,52 +84,60 @@ class CPickler(CMill):
         import pyre
         periodic = pyre.handbook.periodicTable()
  
-        nSpecies    = len(mechanism.species())
-        nQSSspecies = len(mechanism.qss_species())
+        # Fill species counters
+        self.nAllspecies  = len(mechanism.species())
+        self.nQSSspecies  = len(mechanism.qss_species())
+        self.nSpecies     = len(mechanism.species()) - len(mechanism.qss_species()) 
 
-        print nSpecies
-        print nQSSspecies
-        print
-
-        self.nSpecies = nSpecies
-        self.nQSSspecies = nQSSspecies
-        
-        # Split into two loops eventually for mech.species and mech.qss_species
-        # Currently just minorly manipulated to split species from qss_species b/c right now mech.species also contains the QSS species
-        
+        qss_list_tmp = []
+        # get the unsorted self.qss_species_list
         for qss_sp in mechanism.qss_species():
-            weight = 0.0
-            for elem, coef in qss_sp.composition:
-                aw = mechanism.element(elem).weight
-                if not aw:
-                    aw = periodic.symbol(elem.capitalize()).atomicWeight
-                weight += coef * aw
+            qss_list_tmp.append(qss_sp.symbol)
 
-            tempspqss = speciesDb(qss_sp.id, qss_sp.symbol, weight)
-            self.qss_species.append(tempspqss)
-            self.qss_list.append(qss_sp.symbol)
-
-        nonQSS = []
+        # sort all species. First pass is for non QSS species 
+        # so we can put them at the beginning of the all species list 
+        sorted_idx = 0
         for species in mechanism.species():
-            if species.symbol not in self.qss_list:
+            if species.symbol not in qss_list_tmp:
                 weight = 0.0 
                 for elem, coef in species.composition:
                     aw = mechanism.element(elem).weight
                     if not aw:
                         aw = periodic.symbol(elem.capitalize()).atomicWeight
                     weight += coef * aw
+                tempsp = speciesDb(species.id, sorted_idx, species.symbol, weight)
+                self.all_species.append(tempsp)
+                self.nonqss_species.append(tempsp)
+                self.all_species_list.append(species.symbol)
+                self.nonqss_species_list.append(species.symbol)
+                sorted_idx = sorted_idx + 1
 
-                tempsp = speciesDb(species.id, species.symbol, weight)
-                self.species.append(tempsp)
-                nonQSS.append(species.symbol)
+        # second pass through QSS species - put them at the end of the all spec list
+        for species in mechanism.species():
+            if species.symbol in qss_list_tmp:
+                weight = 0.0 
+                for elem, coef in species.composition:
+                    aw = mechanism.element(elem).weight
+                    if not aw:
+                        aw = periodic.symbol(elem.capitalize()).atomicWeight
+                    weight += coef * aw
+                tempsp = speciesDb(species.id, sorted_idx, species.symbol, weight)
+                self.all_species.append(tempsp)
+                self.qss_species.append(tempsp)
+                self.all_species_list.append(species.symbol)
+                self.qss_species_list.append(species.symbol)
+                sorted_idx = sorted_idx + 1
+
+        # print some info
+        print "** Species info:" 
+        print "Reorganized species list =", self.all_species_list
+        print "Transported species list =", self.nonqss_species_list
+        print "QSS species list =", self.qss_species_list
 
         # Initialize QSS species-species, species-reaction, and species coupling networks        
         self.QSS_SSnet = np.zeros([self.nQSSspecies, self.nQSSspecies], 'd')
         self.QSS_SRnet = np.zeros([self.nQSSspecies, len(mechanism.reaction())], 'd')
         self.QSS_SCnet = np.zeros([self.nQSSspecies, self.nQSSspecies], 'd')
-
-        print "Transported species list =", list(nonQSS)
-        print "QSS species list =", self.qss_list
 
         return
 
@@ -118,8 +148,6 @@ class CPickler(CMill):
     #Eventually we will have to add all missing pieces back
     ##########################
     def _renderDocument_QSS(self, mechanism, options=None):
-
-        print "we are now in CPickler !"
 
         self._setSpecies(mechanism)
         self.reactionIndex = mechanism._sort_reactions()
@@ -6656,7 +6684,8 @@ class CPickler(CMill):
 
         phi = []
 
-        for symbol, coefficient in reagents:
+        #for symbol, coefficient in reagents:
+        for symbol, coefficient in sorted(reagents,key=lambda x:mechanism.species(x[0]).id):
             if symbol in self.qss_list:
                 if (float(coefficient) == 1.0):
                     conc = "qss_sc[%d]" % mechanism.qss_species(symbol).id

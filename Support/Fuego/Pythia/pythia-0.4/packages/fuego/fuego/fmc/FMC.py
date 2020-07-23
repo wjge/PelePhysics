@@ -35,9 +35,9 @@ class FMC(Application):
 
         timer = pyre.monitors.timer("fuego")
         if not input:
-            print "Loading '%s' as input file" % (mechanismFile)
+            print "\nLoading '%s' as input file" % (mechanismFile)
         else:
-            print "Loading '%s' using '%s' parser" % (mechanismFile, input)
+            print "\nLoading '%s' using '%s' parser" % (mechanismFile, input)
 
         timer.start()
 
@@ -55,7 +55,7 @@ class FMC(Application):
 
         timer.reset()
         timer.start()
-        print "Converting into '%s' format" % output,
+        print "\nConverting into '%s' format" % output
         lines        = fuego.serialization.save(mechanism, output)
         print "... done (%g sec)" % timer.stop()
         # stop
