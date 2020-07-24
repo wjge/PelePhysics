@@ -6643,8 +6643,8 @@ class CPickler(CMill):
         print(self.QSS_SCnet)
         print
 
-    # Components needed to set up QSS algebraic expressions from AX = B, where A contains coeffiencts from qf's and qr's, X contains QSS species concentrations, and B contains:
-    # RHS vector (non-QSS and QSS qf's and qr's), coefficient of species (diagonal elements of A), coefficient of group mates (coupled off-diagonal elements of A)
+    # Components needed to set up QSS algebraic expressions from AX = B, where A contains coeffiencts from qf's and qr's, X contains QSS species concentrations, and B contains qf's and qr's
+    # Info stored as: RHS vector (non-QSS and QSS qf's and qr's), coefficient of species (diagonal elements of A), coefficient of group mates (coupled off-diagonal elements of A)
     def _sortQSSsolution_elements(self, mechanism):
 
         self.QSS_rhs = OrderedDict()
@@ -7033,12 +7033,11 @@ class CPickler(CMill):
         for qss in self.qss_species:
             print(qss.symbol, " ", qss.id, " ", qss.weight)
 
-    # Not actually sorted right now, just regular PhaseSpace with QSS distinction
+            
     def _QSSsortedPhaseSpace(self, mechanism, reagents):
 
         phi = []
 
-        #for symbol, coefficient in reagents:
         for symbol, coefficient in sorted(reagents,key=lambda x:mechanism.species(x[0]).id):
             if symbol in self.qss_species_list:
                 if (float(coefficient) == 1.0):
@@ -7058,11 +7057,9 @@ class CPickler(CMill):
     def _QSSreturnCoeff(self, mechanism, reagents):
 
         phi = []
-        
-        # Simpler way would be 'for symbol in self.nonqss_species_list'
+
         for symbol, coefficient in sorted(reagents,key=lambda x:mechanism.species(x[0]).id):
             if symbol not in self.qss_species_list:
-        # Simpler way would be 'for symbol in self.nonqss_species_list'
                 if (float(coefficient) == 1.0):
                     conc = "sc[%d]" % self.ordered_idx_map[symbol]
                 else:
