@@ -7441,6 +7441,65 @@ class CPickler(CMill):
                 self._write()
                 self._write()
 
+
+            if symbol in self.super_group.keys():
+
+                supergr_species = []
+                
+                if symbol in self.group.keys():
+                    supergr_species.extend(self.group[symbol])
+                else:
+                    supergr_species.extend(symbol)
+
+                Coeff_subMatrix = [['0'] * len(supergr_species) for i in range(len(supergr_species))]
+                RHS_subMatrix = ['0'] * len(supergr_species)
+
+                for index, species in enumerate(supergr_species):
+                    print
+                    print species
+                    print index
+                    print
+
+                    self._write(self.line('QSS species '+str(self.qss_species_list.index(species))+': '+species))
+                    self._write()
+
+                    denominator = species+'_denom'
+                    numerator = species+'_num'
+
+                    self._write('double %s = epsilon %s;'% (numerator, self.QSS_rhs[species]))
+                    self._write('double %s = epsilon %s;' % (denominator, self.QSS_coeff[species]))
+                    self._write('double '+species+'_rhs = '+numerator+'/'+denominator+';')
+                    self._write()
+
+                    
+                    for j in range(len(supergr_species)):
+                        if j == index:
+                            Coeff_subMatrix[index][j] = '1'
+                        else:
+                            Coeff_subMatrix[index][j] = str(species)+'_'+str(supergr_species[j])
+                            self._write('double '+str(species)+'_'+str(supergr_species[j])+' = (epsilon '+self.QSS_supergroupSp[species][supergr_species[j]]+')/'+denominator+';')
+                            self._write()
+                            
+                    RHS_subMatrix[index] = str(species)+'_rhs'
+                print "A IS "
+                print Coeff_subMatrix
+                print
+                print "B IS "
+                print RHS_subMatrix
+                print
+                A, X, B = self._Gauss_pivoting(Coeff_subMatrix, RHS_subMatrix)
+
+                print "X IS "
+                print X
+
+                for count, species in enumerate(supergr_species):
+
+                    self._write('sc_qss['+str(self.qss_species_list.index(species))+'] = '+X[count]+';')
+                self._write()
+                self._write()
+
+
+                
         self._write()
         self._write('return;')
         self._outdent()
