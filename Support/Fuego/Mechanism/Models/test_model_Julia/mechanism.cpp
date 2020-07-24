@@ -21,7 +21,7 @@ using namespace thermo;
 #endif
 
 /* Inverse molecular weights */
-static AMREX_GPU_DEVICE_MANAGED double imw[14] = {
+static AMREX_GPU_DEVICE_MANAGED double imw[6] = {
     1.0 / 2.015940,  /*H2 */
     1.0 / 1.007970,  /*H */
     1.0 / 15.999400,  /*O */
@@ -29,8 +29,8 @@ static AMREX_GPU_DEVICE_MANAGED double imw[14] = {
     1.0 / 44.009950,  /*CO2 */
     1.0 / 29.018520};  /*HCO */
 
-/* Inverse molecular weights */
-static AMREX_GPU_DEVICE_MANAGED double molecular_weights[14] = {
+/* Molecular weights */
+static AMREX_GPU_DEVICE_MANAGED double molecular_weights[6] = {
     2.015940,  /*H2 */
     1.007970,  /*H */
     15.999400,  /*O */
@@ -40,13 +40,13 @@ static AMREX_GPU_DEVICE_MANAGED double molecular_weights[14] = {
 
 AMREX_GPU_HOST_DEVICE
 void get_imw(double imw_new[]){
-    for(int i = 0; i<14; ++i) imw_new[i] = imw[i];
+    for(int i = 0; i<6; ++i) imw_new[i] = imw[i];
 }
 
 /* TODO: check necessity because redundant with CKWT */
 AMREX_GPU_HOST_DEVICE
 void get_mw(double mw_new[]){
-    for(int i = 0; i<14; ++i) mw_new[i] = molecular_weights[i];
+    for(int i = 0; i<6; ++i) mw_new[i] = molecular_weights[i];
 }
 
 
@@ -235,7 +235,7 @@ AMREX_GPU_HOST_DEVICE void CKFINALIZE()
 void CKINDX(int * mm, int * kk, int * ii, int * nfit)
 {
     *mm = 3;
-    *kk = 14;
+    *kk = 6;
     *ii = 10;
     *nfit = -1; /*Why do you need this anyway ?  */
 }
@@ -279,19 +279,11 @@ void CKSYME(int * kname, int * plenkname )
 /* Returns the vector of strings of species names */
 void CKSYMS_STR(amrex::Vector<std::string>& kname)
 {
-    kname.resize(14);
+    kname.resize(6);
     kname[0] = "H2";
     kname[1] = "H";
     kname[2] = "O";
-    kname[0] = "O2";
     kname[3] = "OH";
-    kname[1] = "H2O";
-    kname[2] = "HO2";
-    kname[3] = "H2O2";
-    kname[4] = "C";
-    kname[5] = "CH";
-    kname[6] = "CH2";
-    kname[7] = "CO";
     kname[4] = "CO2";
     kname[5] = "HCO";
 }
@@ -303,7 +295,7 @@ void CKSYMS(int * kname, int * plenkname )
     int i; /*Loop Counter */
     int lenkname = *plenkname;
     /*clear kname */
-    for (i=0; i<lenkname*14; i++) {
+    for (i=0; i<lenkname*6; i++) {
         kname[i] = ' ';
     }
 
@@ -320,54 +312,10 @@ void CKSYMS(int * kname, int * plenkname )
     kname[ 2*lenkname + 0 ] = 'O';
     kname[ 2*lenkname + 1 ] = ' ';
 
-    /* O2  */
-    kname[ 0*lenkname + 0 ] = 'O';
-    kname[ 0*lenkname + 1 ] = '2';
-    kname[ 0*lenkname + 2 ] = ' ';
-
     /* OH  */
     kname[ 3*lenkname + 0 ] = 'O';
     kname[ 3*lenkname + 1 ] = 'H';
     kname[ 3*lenkname + 2 ] = ' ';
-
-    /* H2O  */
-    kname[ 1*lenkname + 0 ] = 'H';
-    kname[ 1*lenkname + 1 ] = '2';
-    kname[ 1*lenkname + 2 ] = 'O';
-    kname[ 1*lenkname + 3 ] = ' ';
-
-    /* HO2  */
-    kname[ 2*lenkname + 0 ] = 'H';
-    kname[ 2*lenkname + 1 ] = 'O';
-    kname[ 2*lenkname + 2 ] = '2';
-    kname[ 2*lenkname + 3 ] = ' ';
-
-    /* H2O2  */
-    kname[ 3*lenkname + 0 ] = 'H';
-    kname[ 3*lenkname + 1 ] = '2';
-    kname[ 3*lenkname + 2 ] = 'O';
-    kname[ 3*lenkname + 3 ] = '2';
-    kname[ 3*lenkname + 4 ] = ' ';
-
-    /* C  */
-    kname[ 4*lenkname + 0 ] = 'C';
-    kname[ 4*lenkname + 1 ] = ' ';
-
-    /* CH  */
-    kname[ 5*lenkname + 0 ] = 'C';
-    kname[ 5*lenkname + 1 ] = 'H';
-    kname[ 5*lenkname + 2 ] = ' ';
-
-    /* CH2  */
-    kname[ 6*lenkname + 0 ] = 'C';
-    kname[ 6*lenkname + 1 ] = 'H';
-    kname[ 6*lenkname + 2 ] = '2';
-    kname[ 6*lenkname + 3 ] = ' ';
-
-    /* CO  */
-    kname[ 7*lenkname + 0 ] = 'C';
-    kname[ 7*lenkname + 1 ] = 'O';
-    kname[ 7*lenkname + 2 ] = ' ';
 
     /* CO2  */
     kname[ 4*lenkname + 0 ] = 'C';
@@ -397,20 +345,12 @@ void CKRP(double *  ru, double *  ruc, double *  pa)
 void CKPX(double *  rho, double *  T, double *  x, double *  P)
 {
     double XW = 0;/* To hold mean molecular wt */
-    XW += x[0]*2.015940; /*H2 */
-    XW += x[1]*1.007970; /*H */
-    XW += x[2]*15.999400; /*O */
-    XW += x[3]*17.007370; /*OH */
-    XW += x[4]*44.009950; /*CO2 */
-    XW += x[5]*29.018520; /*HCO */
-    XW += x[0]*31.998800; /*O2 */
-    XW += x[1]*18.015340; /*H2O */
-    XW += x[2]*33.006770; /*HO2 */
-    XW += x[3]*34.014740; /*H2O2 */
-    XW += x[4]*12.011150; /*C */
-    XW += x[5]*13.019120; /*CH */
-    XW += x[6]*14.027090; /*CH2 */
-    XW += x[7]*28.010550; /*CO */
+    XW += x[0]*molecular_weights[0]; /*H2 */
+    XW += x[1]*molecular_weights[1]; /*H */
+    XW += x[2]*molecular_weights[2]; /*O */
+    XW += x[3]*molecular_weights[3]; /*OH */
+    XW += x[4]*molecular_weights[4]; /*CO2 */
+    XW += x[5]*molecular_weights[5]; /*HCO */
     *P = *rho * 8.31446e+07 * (*T) / XW; /*P = rho*R*T/W */
 
     return;
@@ -427,14 +367,6 @@ AMREX_GPU_HOST_DEVICE void CKPY(double *  rho, double *  T, double *  y,  double
     YOW += y[3]*imw[3]; /*OH */
     YOW += y[4]*imw[4]; /*CO2 */
     YOW += y[5]*imw[5]; /*HCO */
-    YOW += y[0]*imw[0]; /*O2 */
-    YOW += y[1]*imw[1]; /*H2O */
-    YOW += y[2]*imw[2]; /*HO2 */
-    YOW += y[3]*imw[3]; /*H2O2 */
-    YOW += y[4]*imw[4]; /*C */
-    YOW += y[5]*imw[5]; /*CH */
-    YOW += y[6]*imw[6]; /*CH2 */
-    YOW += y[7]*imw[7]; /*CO */
     *P = *rho * 8.31446e+07 * (*T) * YOW; /*P = rho*R*T/W */
 
     return;
@@ -454,16 +386,8 @@ void CKPC(double *  rho, double *  T, double *  c,  double *  P)
     W += c[3]*17.007370; /*OH */
     W += c[4]*44.009950; /*CO2 */
     W += c[5]*29.018520; /*HCO */
-    W += c[0]*31.998800; /*O2 */
-    W += c[1]*18.015340; /*H2O */
-    W += c[2]*33.006770; /*HO2 */
-    W += c[3]*34.014740; /*H2O2 */
-    W += c[4]*12.011150; /*C */
-    W += c[5]*13.019120; /*CH */
-    W += c[6]*14.027090; /*CH2 */
-    W += c[7]*28.010550; /*CO */
 
-    for (id = 0; id < 14; ++id) {
+    for (id = 0; id < 6; ++id) {
         sumC += c[id];
     }
     *P = *rho * 8.31446e+07 * (*T) * sumC / W; /*P = rho*R*T/W */
@@ -482,14 +406,6 @@ void CKRHOX(double *  P, double *  T, double *  x,  double *  rho)
     XW += x[3]*17.007370; /*OH */
     XW += x[4]*44.009950; /*CO2 */
     XW += x[5]*29.018520; /*HCO */
-    XW += x[0]*31.998800; /*O2 */
-    XW += x[1]*18.015340; /*H2O */
-    XW += x[2]*33.006770; /*HO2 */
-    XW += x[3]*34.014740; /*H2O2 */
-    XW += x[4]*12.011150; /*C */
-    XW += x[5]*13.019120; /*CH */
-    XW += x[6]*14.027090; /*CH2 */
-    XW += x[7]*28.010550; /*CO */
     *rho = *P * XW / (8.31446e+07 * (*T)); /*rho = P*W/(R*T) */
 
     return;
@@ -500,13 +416,13 @@ void CKRHOX(double *  P, double *  T, double *  x,  double *  rho)
 AMREX_GPU_HOST_DEVICE void CKRHOY(double *  P, double *  T, double *  y,  double *  rho)
 {
     double YOW = 0;
-    double tmp[14];
+    double tmp[6];
 
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         tmp[i] = y[i]*imw[i];
     }
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         YOW += tmp[i];
     }
@@ -529,14 +445,6 @@ void CKRHOC(double *  P, double *  T, double *  c,  double *  rho)
     W += c[3]*17.007370; /*OH */
     W += c[4]*44.009950; /*CO2 */
     W += c[5]*29.018520; /*HCO */
-    W += c[0]*31.998800; /*O2 */
-    W += c[1]*18.015340; /*H2O */
-    W += c[2]*33.006770; /*HO2 */
-    W += c[3]*34.014740; /*H2O2 */
-    W += c[4]*12.011150; /*C */
-    W += c[5]*13.019120; /*CH */
-    W += c[6]*14.027090; /*CH2 */
-    W += c[7]*28.010550; /*CO */
 
     for (id = 0; id < 6; ++id) {
         sumC += c[id];
@@ -566,13 +474,13 @@ void CKAWT( double *  awt)
 AMREX_GPU_HOST_DEVICE void CKMMWY(double *  y,  double *  wtm)
 {
     double YOW = 0;
-    double tmp[14];
+    double tmp[6];
 
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         tmp[i] = y[i]*imw[i];
     }
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         YOW += tmp[i];
     }
@@ -587,20 +495,12 @@ AMREX_GPU_HOST_DEVICE void CKMMWY(double *  y,  double *  wtm)
 void CKMMWX(double *  x,  double *  wtm)
 {
     double XW = 0;/* see Eq 4 in CK Manual */
-    XW += x[0]*2.015940; /*H2 */
-    XW += x[1]*1.007970; /*H */
-    XW += x[2]*15.999400; /*O */
-    XW += x[3]*17.007370; /*OH */
-    XW += x[4]*44.009950; /*CO2 */
-    XW += x[5]*29.018520; /*HCO */
-    XW += x[0]*31.998800; /*O2 */
-    XW += x[1]*18.015340; /*H2O */
-    XW += x[2]*33.006770; /*HO2 */
-    XW += x[3]*34.014740; /*H2O2 */
-    XW += x[4]*12.011150; /*C */
-    XW += x[5]*13.019120; /*CH */
-    XW += x[6]*14.027090; /*CH2 */
-    XW += x[7]*28.010550; /*CO */
+    XW += x[0]*molecular_weights[0]; /*H2 */
+    XW += x[1]*molecular_weights[1]; /*H */
+    XW += x[2]*molecular_weights[2]; /*O */
+    XW += x[3]*molecular_weights[3]; /*OH */
+    XW += x[4]*molecular_weights[4]; /*CO2 */
+    XW += x[5]*molecular_weights[5]; /*HCO */
     *wtm = XW;
 
     return;
@@ -615,20 +515,12 @@ void CKMMWC(double *  c,  double *  wtm)
     /*See Eq 5 in CK Manual */
     double W = 0;
     double sumC = 0;
-    W += c[0]*2.015940; /*H2 */
-    W += c[1]*1.007970; /*H */
-    W += c[2]*15.999400; /*O */
-    W += c[3]*17.007370; /*OH */
-    W += c[4]*44.009950; /*CO2 */
-    W += c[5]*29.018520; /*HCO */
-    W += c[0]*31.998800; /*O2 */
-    W += c[1]*18.015340; /*H2O */
-    W += c[2]*33.006770; /*HO2 */
-    W += c[3]*34.014740; /*H2O2 */
-    W += c[4]*12.011150; /*C */
-    W += c[5]*13.019120; /*CH */
-    W += c[6]*14.027090; /*CH2 */
-    W += c[7]*28.010550; /*CO */
+    W += c[0]*molecular_weights[0]; /*H2 */
+    W += c[1]*molecular_weights[1]; /*H */
+    W += c[2]*molecular_weights[2]; /*O */
+    W += c[3]*molecular_weights[3]; /*OH */
+    W += c[4]*molecular_weights[4]; /*CO2 */
+    W += c[5]*molecular_weights[5]; /*HCO */
 
     for (id = 0; id < 6; ++id) {
         sumC += c[id];
@@ -644,20 +536,20 @@ void CKMMWC(double *  c,  double *  wtm)
 AMREX_GPU_HOST_DEVICE void CKYTX(double *  y,  double *  x)
 {
     double YOW = 0;
-    double tmp[14];
+    double tmp[6];
 
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         tmp[i] = y[i]*imw[i];
     }
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         YOW += tmp[i];
     }
 
     double YOWINV = 1.0/YOW;
 
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         x[i] = y[i]*imw[i]*YOWINV;
     }
@@ -672,11 +564,11 @@ void CKYTCP(double *  P, double *  T, double *  y,  double *  c)
     double PWORT;
 
     /*Compute inverse of mean molecular wt first */
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         c[i] = y[i]*imw[i];
     }
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         YOW += c[i];
     }
@@ -685,7 +577,7 @@ void CKYTCP(double *  P, double *  T, double *  y,  double *  c)
     PWORT = (*P)/(YOW * 8.31446e+07 * (*T)); 
     /*Now compute conversion */
 
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         c[i] = PWORT * y[i] * imw[i];
     }
@@ -696,7 +588,7 @@ void CKYTCP(double *  P, double *  T, double *  y,  double *  c)
 /*convert y[species] (mass fracs) to c[species] (molar conc) */
 AMREX_GPU_HOST_DEVICE void CKYTCR(double *  rho, double *  T, double *  y,  double *  c)
 {
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         c[i] = (*rho)  * y[i] * imw[i];
     }
@@ -714,14 +606,7 @@ AMREX_GPU_HOST_DEVICE void CKXTY(double *  x,  double *  y)
     XW += x[3]*17.007370; /*OH */
     XW += x[4]*44.009950; /*CO2 */
     XW += x[5]*29.018520; /*HCO */
-    XW += x[0]*31.998800; /*O2 */
-    XW += x[1]*18.015340; /*H2O */
-    XW += x[2]*33.006770; /*HO2 */
-    XW += x[3]*34.014740; /*H2O2 */
-    XW += x[4]*12.011150; /*C */
-    XW += x[5]*13.019120; /*CH */
-    XW += x[6]*14.027090; /*CH2 */
-    XW += x[7]*28.010550; /*CO */
+
     /*Now compute conversion */
     double XWinv = 1.0/XW;
     y[0] = x[0]*2.015940*XWinv; 
@@ -730,14 +615,6 @@ AMREX_GPU_HOST_DEVICE void CKXTY(double *  x,  double *  y)
     y[3] = x[3]*17.007370*XWinv; 
     y[4] = x[4]*44.009950*XWinv; 
     y[5] = x[5]*29.018520*XWinv; 
-    y[0] = x[0]*31.998800*XWinv; 
-    y[1] = x[1]*18.015340*XWinv; 
-    y[2] = x[2]*33.006770*XWinv; 
-    y[3] = x[3]*34.014740*XWinv; 
-    y[4] = x[4]*12.011150*XWinv; 
-    y[5] = x[5]*13.019120*XWinv; 
-    y[6] = x[6]*14.027090*XWinv; 
-    y[7] = x[7]*28.010550*XWinv; 
 
     return;
 }
@@ -771,14 +648,6 @@ void CKXTCR(double *  rho, double *  T, double *  x, double *  c)
     XW += x[3]*17.007370; /*OH */
     XW += x[4]*44.009950; /*CO2 */
     XW += x[5]*29.018520; /*HCO */
-    XW += x[0]*31.998800; /*O2 */
-    XW += x[1]*18.015340; /*H2O */
-    XW += x[2]*33.006770; /*HO2 */
-    XW += x[3]*34.014740; /*H2O2 */
-    XW += x[4]*12.011150; /*C */
-    XW += x[5]*13.019120; /*CH */
-    XW += x[6]*14.027090; /*CH2 */
-    XW += x[7]*28.010550; /*CO */
     ROW = (*rho) / XW;
 
     /*Compute conversion, see Eq 11 */
@@ -822,14 +691,6 @@ void CKCTY(double *  c, double *  y)
     CW += c[3]*17.007370; /*OH */
     CW += c[4]*44.009950; /*CO2 */
     CW += c[5]*29.018520; /*HCO */
-    CW += c[0]*31.998800; /*O2 */
-    CW += c[1]*18.015340; /*H2O */
-    CW += c[2]*33.006770; /*HO2 */
-    CW += c[3]*34.014740; /*H2O2 */
-    CW += c[4]*12.011150; /*C */
-    CW += c[5]*13.019120; /*CH */
-    CW += c[6]*14.027090; /*CH2 */
-    CW += c[7]*28.010550; /*CO */
     /*Now compute conversion */
     double CWinv = 1.0/CW;
     y[0] = c[0]*2.015940*CWinv; 
@@ -838,14 +699,6 @@ void CKCTY(double *  c, double *  y)
     y[3] = c[3]*17.007370*CWinv; 
     y[4] = c[4]*44.009950*CWinv; 
     y[5] = c[5]*29.018520*CWinv; 
-    y[0] = c[0]*31.998800*CWinv; 
-    y[1] = c[1]*18.015340*CWinv; 
-    y[2] = c[2]*33.006770*CWinv; 
-    y[3] = c[3]*34.014740*CWinv; 
-    y[4] = c[4]*12.011150*CWinv; 
-    y[5] = c[5]*13.019120*CWinv; 
-    y[6] = c[6]*14.027090*CWinv; 
-    y[7] = c[7]*28.010550*CWinv; 
 
     return;
 }
@@ -895,14 +748,6 @@ AMREX_GPU_HOST_DEVICE void CKCVMS(double *  T,  double *  cvms)
     cvms[3] *= 4.888740950630956e+06; /*OH */
     cvms[4] *= 1.889223372931176e+06; /*CO2 */
     cvms[5] *= 2.865226282440744e+06; /*HCO */
-    cvms[0] *= 2.598367006935648e+06; /*O2 */
-    cvms[1] *= 4.615212712140454e+06; /*H2O */
-    cvms[2] *= 2.519017346487778e+06; /*HO2 */
-    cvms[3] *= 2.444370475315478e+06; /*H2O2 */
-    cvms[4] *= 6.922286890225532e+06; /*C */
-    cvms[5] *= 6.386347631908485e+06; /*CH */
-    cvms[6] *= 5.927432288630956e+06; /*CH2 */
-    cvms[7] *= 2.968332509769797e+06; /*CO */
 }
 
 
@@ -920,14 +765,6 @@ AMREX_GPU_HOST_DEVICE void CKCPMS(double *  T,  double *  cpms)
     cpms[3] *= 4.888740950630956e+06; /*OH */
     cpms[4] *= 1.889223372931176e+06; /*CO2 */
     cpms[5] *= 2.865226282440744e+06; /*HCO */
-    cpms[0] *= 2.598367006935648e+06; /*O2 */
-    cpms[1] *= 4.615212712140454e+06; /*H2O */
-    cpms[2] *= 2.519017346487778e+06; /*HO2 */
-    cpms[3] *= 2.444370475315478e+06; /*H2O2 */
-    cpms[4] *= 6.922286890225532e+06; /*C */
-    cpms[5] *= 6.386347631908485e+06; /*CH */
-    cpms[6] *= 5.927432288630956e+06; /*CH2 */
-    cpms[7] *= 2.968332509769797e+06; /*CO */
 }
 
 
@@ -938,7 +775,7 @@ AMREX_GPU_HOST_DEVICE void CKUMS(double *  T,  double *  ums)
     double tc[] = { 0, tT, tT*tT, tT*tT*tT, tT*tT*tT*tT }; /*temperature cache */
     double RT = 8.31446e+07*tT; /*R*T */
     speciesInternalEnergy(ums, tc);
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         ums[i] *= RT*imw[i];
     }
@@ -952,7 +789,7 @@ AMREX_GPU_HOST_DEVICE void CKHMS(double *  T,  double *  hms)
     double tc[] = { 0, tT, tT*tT, tT*tT*tT, tT*tT*tT*tT }; /*temperature cache */
     double RT = 8.31446e+07*tT; /*R*T */
     speciesEnthalpy(hms, tc);
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         hms[i] *= RT*imw[i];
     }
@@ -966,7 +803,7 @@ void CKGMS(double *  T,  double *  gms)
     double tc[] = { log(tT), tT, tT*tT, tT*tT*tT, tT*tT*tT*tT }; /*temperature cache */
     double RT = 8.31446e+07*tT; /*R*T */
     gibbs(gms, tc);
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         gms[i] *= RT*imw[i];
     }
@@ -980,7 +817,7 @@ void CKAMS(double *  T,  double *  ams)
     double tc[] = { log(tT), tT, tT*tT, tT*tT*tT, tT*tT*tT*tT }; /*temperature cache */
     double RT = 8.31446e+07*tT; /*R*T */
     helmholtz(ams, tc);
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         ams[i] *= RT*imw[i];
     }
@@ -1000,14 +837,6 @@ void CKSMS(double *  T,  double *  sms)
     sms[3] *= 4.888740950630956e+06; /*OH */
     sms[4] *= 1.889223372931176e+06; /*CO2 */
     sms[5] *= 2.865226282440744e+06; /*HCO */
-    sms[0] *= 2.598367006935648e+06; /*O2 */
-    sms[1] *= 4.615212712140454e+06; /*H2O */
-    sms[2] *= 2.519017346487778e+06; /*HO2 */
-    sms[3] *= 2.444370475315478e+06; /*H2O2 */
-    sms[4] *= 6.922286890225532e+06; /*C */
-    sms[5] *= 6.386347631908485e+06; /*CH */
-    sms[6] *= 5.927432288630956e+06; /*CH2 */
-    sms[7] *= 2.968332509769797e+06; /*CO */
 }
 
 
@@ -1038,12 +867,12 @@ AMREX_GPU_HOST_DEVICE void CKCPBS(double *  T, double *  y,  double *  cpbs)
     double tc[] = { 0, tT, tT*tT, tT*tT*tT, tT*tT*tT*tT }; /*temperature cache */
     double cpor[6], tresult[6]; /* temporary storage */
     cp_R(cpor, tc);
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         tresult[i] = cpor[i]*y[i]*imw[i];
 
     }
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 6; i++)
     {
         result += tresult[i];
     }
@@ -1086,14 +915,6 @@ AMREX_GPU_HOST_DEVICE void CKCVBS(double *  T, double *  y,  double *  cvbs)
     result += cvor[3]*y[3]*imw[3]; /*OH */
     result += cvor[4]*y[4]*imw[4]; /*CO2 */
     result += cvor[5]*y[5]*imw[5]; /*HCO */
-    result += cvor[0]*y[0]*imw[0]; /*O2 */
-    result += cvor[1]*y[1]*imw[1]; /*H2O */
-    result += cvor[2]*y[2]*imw[2]; /*HO2 */
-    result += cvor[3]*y[3]*imw[3]; /*H2O2 */
-    result += cvor[4]*y[4]*imw[4]; /*C */
-    result += cvor[5]*y[5]*imw[5]; /*CH */
-    result += cvor[6]*y[6]*imw[6]; /*CH2 */
-    result += cvor[7]*y[7]*imw[7]; /*CO */
 
     *cvbs = result * 8.31446e+07;
 }
@@ -1176,14 +997,6 @@ AMREX_GPU_HOST_DEVICE void CKUBMS(double *  T, double *  y,  double *  ubms)
     result += y[3]*ums[3]*imw[3]; /*OH */
     result += y[4]*ums[4]*imw[4]; /*CO2 */
     result += y[5]*ums[5]*imw[5]; /*HCO */
-    result += y[0]*ums[0]*imw[0]; /*O2 */
-    result += y[1]*ums[1]*imw[1]; /*H2O */
-    result += y[2]*ums[2]*imw[2]; /*HO2 */
-    result += y[3]*ums[3]*imw[3]; /*H2O2 */
-    result += y[4]*ums[4]*imw[4]; /*C */
-    result += y[5]*ums[5]*imw[5]; /*CH */
-    result += y[6]*ums[6]*imw[6]; /*CH2 */
-    result += y[7]*ums[7]*imw[7]; /*CO */
 
     *ubms = result * RT;
 }
@@ -1228,14 +1041,6 @@ void CKSBMS(double *  P, double *  T, double *  y,  double *  sbms)
     YOW += y[3]*imw[3]; /*OH */
     YOW += y[4]*imw[4]; /*CO2 */
     YOW += y[5]*imw[5]; /*HCO */
-    YOW += y[0]*imw[0]; /*O2 */
-    YOW += y[1]*imw[1]; /*H2O */
-    YOW += y[2]*imw[2]; /*HO2 */
-    YOW += y[3]*imw[3]; /*H2O2 */
-    YOW += y[4]*imw[4]; /*C */
-    YOW += y[5]*imw[5]; /*CH */
-    YOW += y[6]*imw[6]; /*CH2 */
-    YOW += y[7]*imw[7]; /*CO */
     /*Now compute y to x conversion */
     x[0] = y[0]/(2.015940*YOW); 
     x[1] = y[1]/(1.007970*YOW); 
@@ -1243,14 +1048,6 @@ void CKSBMS(double *  P, double *  T, double *  y,  double *  sbms)
     x[3] = y[3]/(17.007370*YOW); 
     x[4] = y[4]/(44.009950*YOW); 
     x[5] = y[5]/(29.018520*YOW); 
-    x[0] = y[0]/(31.998800*YOW); 
-    x[1] = y[1]/(18.015340*YOW); 
-    x[2] = y[2]/(33.006770*YOW); 
-    x[3] = y[3]/(34.014740*YOW); 
-    x[4] = y[4]/(12.011150*YOW); 
-    x[5] = y[5]/(13.019120*YOW); 
-    x[6] = y[6]/(14.027090*YOW); 
-    x[7] = y[7]/(28.010550*YOW); 
     speciesEntropy(sor, tc);
     /*Perform computation in Eq 42 and 43 */
     result += x[0]*(sor[0]-log((x[0]+1e-100))-logPratio);
@@ -1259,14 +1056,6 @@ void CKSBMS(double *  P, double *  T, double *  y,  double *  sbms)
     result += x[3]*(sor[3]-log((x[3]+1e-100))-logPratio);
     result += x[4]*(sor[4]-log((x[4]+1e-100))-logPratio);
     result += x[5]*(sor[5]-log((x[5]+1e-100))-logPratio);
-    result += x[0]*(sor[0]-log((x[0]+1e-100))-logPratio);
-    result += x[1]*(sor[1]-log((x[1]+1e-100))-logPratio);
-    result += x[2]*(sor[2]-log((x[2]+1e-100))-logPratio);
-    result += x[3]*(sor[3]-log((x[3]+1e-100))-logPratio);
-    result += x[4]*(sor[4]-log((x[4]+1e-100))-logPratio);
-    result += x[5]*(sor[5]-log((x[5]+1e-100))-logPratio);
-    result += x[6]*(sor[6]-log((x[6]+1e-100))-logPratio);
-    result += x[7]*(sor[7]-log((x[7]+1e-100))-logPratio);
     /*Scale by R/W */
     *sbms = result * 8.31446e+07 * YOW;
 }
@@ -1314,14 +1103,6 @@ void CKGBMS(double *  P, double *  T, double *  y,  double *  gbms)
     YOW += y[3]*imw[3]; /*OH */
     YOW += y[4]*imw[4]; /*CO2 */
     YOW += y[5]*imw[5]; /*HCO */
-    YOW += y[0]*imw[0]; /*O2 */
-    YOW += y[1]*imw[1]; /*H2O */
-    YOW += y[2]*imw[2]; /*HO2 */
-    YOW += y[3]*imw[3]; /*H2O2 */
-    YOW += y[4]*imw[4]; /*C */
-    YOW += y[5]*imw[5]; /*CH */
-    YOW += y[6]*imw[6]; /*CH2 */
-    YOW += y[7]*imw[7]; /*CO */
     /*Now compute y to x conversion */
     x[0] = y[0]/(2.015940*YOW); 
     x[1] = y[1]/(1.007970*YOW); 
@@ -1329,14 +1110,6 @@ void CKGBMS(double *  P, double *  T, double *  y,  double *  gbms)
     x[3] = y[3]/(17.007370*YOW); 
     x[4] = y[4]/(44.009950*YOW); 
     x[5] = y[5]/(29.018520*YOW); 
-    x[0] = y[0]/(31.998800*YOW); 
-    x[1] = y[1]/(18.015340*YOW); 
-    x[2] = y[2]/(33.006770*YOW); 
-    x[3] = y[3]/(34.014740*YOW); 
-    x[4] = y[4]/(12.011150*YOW); 
-    x[5] = y[5]/(13.019120*YOW); 
-    x[6] = y[6]/(14.027090*YOW); 
-    x[7] = y[7]/(28.010550*YOW); 
     gibbs(gort, tc);
     /*Perform computation in Eq 44 */
     result += x[0]*(gort[0]+log((x[0]+1e-100))+logPratio);
@@ -1345,14 +1118,6 @@ void CKGBMS(double *  P, double *  T, double *  y,  double *  gbms)
     result += x[3]*(gort[3]+log((x[3]+1e-100))+logPratio);
     result += x[4]*(gort[4]+log((x[4]+1e-100))+logPratio);
     result += x[5]*(gort[5]+log((x[5]+1e-100))+logPratio);
-    result += x[0]*(gort[0]+log((x[0]+1e-100))+logPratio);
-    result += x[1]*(gort[1]+log((x[1]+1e-100))+logPratio);
-    result += x[2]*(gort[2]+log((x[2]+1e-100))+logPratio);
-    result += x[3]*(gort[3]+log((x[3]+1e-100))+logPratio);
-    result += x[4]*(gort[4]+log((x[4]+1e-100))+logPratio);
-    result += x[5]*(gort[5]+log((x[5]+1e-100))+logPratio);
-    result += x[6]*(gort[6]+log((x[6]+1e-100))+logPratio);
-    result += x[7]*(gort[7]+log((x[7]+1e-100))+logPratio);
     /*Scale by RT/W */
     *gbms = result * RT * YOW;
 }
@@ -1400,14 +1165,6 @@ void CKABMS(double *  P, double *  T, double *  y,  double *  abms)
     YOW += y[3]*imw[3]; /*OH */
     YOW += y[4]*imw[4]; /*CO2 */
     YOW += y[5]*imw[5]; /*HCO */
-    YOW += y[0]*imw[0]; /*O2 */
-    YOW += y[1]*imw[1]; /*H2O */
-    YOW += y[2]*imw[2]; /*HO2 */
-    YOW += y[3]*imw[3]; /*H2O2 */
-    YOW += y[4]*imw[4]; /*C */
-    YOW += y[5]*imw[5]; /*CH */
-    YOW += y[6]*imw[6]; /*CH2 */
-    YOW += y[7]*imw[7]; /*CO */
     /*Now compute y to x conversion */
     x[0] = y[0]/(2.015940*YOW); 
     x[1] = y[1]/(1.007970*YOW); 
@@ -1415,14 +1172,6 @@ void CKABMS(double *  P, double *  T, double *  y,  double *  abms)
     x[3] = y[3]/(17.007370*YOW); 
     x[4] = y[4]/(44.009950*YOW); 
     x[5] = y[5]/(29.018520*YOW); 
-    x[0] = y[0]/(31.998800*YOW); 
-    x[1] = y[1]/(18.015340*YOW); 
-    x[2] = y[2]/(33.006770*YOW); 
-    x[3] = y[3]/(34.014740*YOW); 
-    x[4] = y[4]/(12.011150*YOW); 
-    x[5] = y[5]/(13.019120*YOW); 
-    x[6] = y[6]/(14.027090*YOW); 
-    x[7] = y[7]/(28.010550*YOW); 
     helmholtz(aort, tc);
     /*Perform computation in Eq 44 */
     result += x[0]*(aort[0]+log((x[0]+1e-100))+logPratio);
@@ -1431,14 +1180,6 @@ void CKABMS(double *  P, double *  T, double *  y,  double *  abms)
     result += x[3]*(aort[3]+log((x[3]+1e-100))+logPratio);
     result += x[4]*(aort[4]+log((x[4]+1e-100))+logPratio);
     result += x[5]*(aort[5]+log((x[5]+1e-100))+logPratio);
-    result += x[0]*(aort[0]+log((x[0]+1e-100))+logPratio);
-    result += x[1]*(aort[1]+log((x[1]+1e-100))+logPratio);
-    result += x[2]*(aort[2]+log((x[2]+1e-100))+logPratio);
-    result += x[3]*(aort[3]+log((x[3]+1e-100))+logPratio);
-    result += x[4]*(aort[4]+log((x[4]+1e-100))+logPratio);
-    result += x[5]*(aort[5]+log((x[5]+1e-100))+logPratio);
-    result += x[6]*(aort[6]+log((x[6]+1e-100))+logPratio);
-    result += x[7]*(aort[7]+log((x[7]+1e-100))+logPratio);
     /*Scale by RT/W */
     *abms = result * RT * YOW;
 }
@@ -1480,14 +1221,6 @@ void CKWYP(double *  P, double *  T, double *  y,  double *  wdot)
     YOW += y[3]*imw[3]; /*OH */
     YOW += y[4]*imw[4]; /*CO2 */
     YOW += y[5]*imw[5]; /*HCO */
-    YOW += y[0]*imw[0]; /*O2 */
-    YOW += y[1]*imw[1]; /*H2O */
-    YOW += y[2]*imw[2]; /*HO2 */
-    YOW += y[3]*imw[3]; /*H2O2 */
-    YOW += y[4]*imw[4]; /*C */
-    YOW += y[5]*imw[5]; /*CH */
-    YOW += y[6]*imw[6]; /*CH2 */
-    YOW += y[7]*imw[7]; /*CO */
     /*PW/RT (see Eq. 7) */
     PWORT = (*P)/(YOW * 8.31446e+07 * (*T)); 
     /*multiply by 1e6 so c goes to SI */
@@ -1499,14 +1232,6 @@ void CKWYP(double *  P, double *  T, double *  y,  double *  wdot)
     c[3] = PWORT * y[3]*imw[3]; 
     c[4] = PWORT * y[4]*imw[4]; 
     c[5] = PWORT * y[5]*imw[5]; 
-    c[0] = PWORT * y[0]*imw[0]; 
-    c[1] = PWORT * y[1]*imw[1]; 
-    c[2] = PWORT * y[2]*imw[2]; 
-    c[3] = PWORT * y[3]*imw[3]; 
-    c[4] = PWORT * y[4]*imw[4]; 
-    c[5] = PWORT * y[5]*imw[5]; 
-    c[6] = PWORT * y[6]*imw[6]; 
-    c[7] = PWORT * y[7]*imw[7]; 
 
     /*convert to chemkin units */
     productionRate(wdot, c, *T);
@@ -1554,14 +1279,6 @@ AMREX_GPU_HOST_DEVICE void CKWYR(double *  rho, double *  T, double *  y,  doubl
     c[3] = 1e6 * (*rho) * y[3]*imw[3]; 
     c[4] = 1e6 * (*rho) * y[4]*imw[4]; 
     c[5] = 1e6 * (*rho) * y[5]*imw[5]; 
-    c[0] = 1e6 * (*rho) * y[0]*imw[0]; 
-    c[1] = 1e6 * (*rho) * y[1]*imw[1]; 
-    c[2] = 1e6 * (*rho) * y[2]*imw[2]; 
-    c[3] = 1e6 * (*rho) * y[3]*imw[3]; 
-    c[4] = 1e6 * (*rho) * y[4]*imw[4]; 
-    c[5] = 1e6 * (*rho) * y[5]*imw[5]; 
-    c[6] = 1e6 * (*rho) * y[6]*imw[6]; 
-    c[7] = 1e6 * (*rho) * y[7]*imw[7]; 
 
     /*call productionRate */
     productionRate(wdot, c, *T);
@@ -1588,14 +1305,6 @@ void CKWXR(double *  rho, double *  T, double *  x,  double *  wdot)
     XW += x[3]*17.007370; /*OH */
     XW += x[4]*44.009950; /*CO2 */
     XW += x[5]*29.018520; /*HCO */
-    XW += x[0]*31.998800; /*O2 */
-    XW += x[1]*18.015340; /*H2O */
-    XW += x[2]*33.006770; /*HO2 */
-    XW += x[3]*34.014740; /*H2O2 */
-    XW += x[4]*12.011150; /*C */
-    XW += x[5]*13.019120; /*CH */
-    XW += x[6]*14.027090; /*CH2 */
-    XW += x[7]*28.010550; /*CO */
     /*Extra 1e6 factor to take c to SI */
     ROW = 1e6*(*rho) / XW;
 
@@ -1615,7 +1324,7 @@ void CKWXR(double *  rho, double *  T, double *  x,  double *  wdot)
 
 
 /*Returns the elemental composition  */
-/*of the speciesi (mdim is num of elements) */
+/*of the species (mdim is num of elements) */
 void CKNCF(int * ncf)
 {
     int id; /*loop counter */
@@ -1627,51 +1336,16 @@ void CKNCF(int * ncf)
 
     /*H2 */
     ncf[ 0 * kd + 1 ] = 2; /*H */
-
     /*H */
     ncf[ 1 * kd + 1 ] = 1; /*H */
-
     /*O */
     ncf[ 2 * kd + 0 ] = 1; /*O */
-
-    /*O2 */
-    ncf[ 0 * kd + 0 ] = 2; /*O */
-
     /*OH */
     ncf[ 3 * kd + 0 ] = 1; /*O */
     ncf[ 3 * kd + 1 ] = 1; /*H */
-
-    /*H2O */
-    ncf[ 1 * kd + 1 ] = 2; /*H */
-    ncf[ 1 * kd + 0 ] = 1; /*O */
-
-    /*HO2 */
-    ncf[ 2 * kd + 1 ] = 1; /*H */
-    ncf[ 2 * kd + 0 ] = 2; /*O */
-
-    /*H2O2 */
-    ncf[ 3 * kd + 1 ] = 2; /*H */
-    ncf[ 3 * kd + 0 ] = 2; /*O */
-
-    /*C */
-    ncf[ 4 * kd + 2 ] = 1; /*C */
-
-    /*CH */
-    ncf[ 5 * kd + 2 ] = 1; /*C */
-    ncf[ 5 * kd + 1 ] = 1; /*H */
-
-    /*CH2 */
-    ncf[ 6 * kd + 2 ] = 1; /*C */
-    ncf[ 6 * kd + 1 ] = 2; /*H */
-
-    /*CO */
-    ncf[ 7 * kd + 2 ] = 1; /*C */
-    ncf[ 7 * kd + 0 ] = 1; /*O */
-
     /*CO2 */
     ncf[ 4 * kd + 2 ] = 1; /*C */
     ncf[ 4 * kd + 0 ] = 2; /*O */
-
     /*HCO */
     ncf[ 5 * kd + 1 ] = 1; /*H */
     ncf[ 5 * kd + 2 ] = 1; /*C */
@@ -1712,9 +1386,10 @@ void productionRate(double *  wdot, double *  sc, double T)
     double qdot, q_f[10], q_r[10];
     double sc_qss[8];
     /* Fill sc_qss here*/
+    comp_qss_sc(q_f, q_r, sc, sc_qss, tc, invT);
     comp_qfqr(q_f, q_r, sc, sc_qss, tc, invT);
 
-    for (int i = 0; i < 14; ++i) {
+    for (int i = 0; i < 6; ++i) {
         wdot[i] = 0.0;
     }
 
@@ -1780,7 +1455,7 @@ void comp_k_f(double *  tc, double invT, double *  k_f)
 void comp_Kc(double *  tc, double invT, double *  Kc)
 {
     /*compute the Gibbs free energy */
-    double g_RT[14], g_RT_qss[8];
+    double g_RT[6], g_RT_qss[8];
     gibbs(g_RT, tc);
     gibbs_qss(g_RT_qss, tc);
 
@@ -1831,7 +1506,7 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
 
     /*reaction 5: H + CH <=> C + H2 */
     qf[4] = sc[1]*qss_sc[5];
-    qr[4] = qss_sc[4]*sc[0];
+    qr[4] = sc[0]*qss_sc[4];
 
     /*reaction 6: O + CH2 <=> H + HCO */
     qf[5] = sc[2]*qss_sc[6];
@@ -1857,7 +1532,7 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
 
     /*compute the mixture concentration */
     double mixture = 0.0;
-    for (int i = 0; i < 14; ++i) {
+    for (int i = 0; i < 6; ++i) {
         mixture += sc[i];
     }
 
@@ -1876,54 +1551,54 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
 }
 #endif
 
-void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double * qss_sc, double *  tc, double invT)
+void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc, double invT)
 {
 
     /*reaction 1: O + HO2 => OH + O2 */
-    qf_co[0] = sc[2]*qss_sc[2];
+    qf_co[0] = sc[2];
     qr_co[0] = 0.0;
 
     /*reaction 2: H + HO2 => O + H2O */
-    qf_co[1] = sc[1]*qss_sc[2];
+    qf_co[1] = sc[1];
     qr_co[1] = 0.0;
 
     /*reaction 3: H + H2O2 <=> OH + H2O */
-    qf_co[2] = sc[1]*qss_sc[3];
-    qr_co[2] = sc[3]*qss_sc[1];
+    qf_co[2] = sc[1];
+    qr_co[2] = sc[3];
 
     /*reaction 4: O + CH => H + CO */
-    qf_co[3] = sc[2]*qss_sc[5];
+    qf_co[3] = sc[2];
     qr_co[3] = 0.0;
 
     /*reaction 5: H + CH <=> C + H2 */
-    qf_co[4] = sc[1]*qss_sc[5];
-    qr_co[4] = qss_sc[4]*sc[0];
+    qf_co[4] = sc[1];
+    qr_co[4] = sc[0];
 
     /*reaction 6: O + CH2 <=> H + HCO */
-    qf_co[5] = sc[2]*qss_sc[6];
-    qr_co[5] = sc[1]*sc[5];
+    qf_co[5] = sc[2];
+    qr_co[5] = sc[5];
 
     /*reaction 7: H + O2 <=> O + OH */
-    qf_co[6] = sc[1]*qss_sc[0];
-    qr_co[6] = sc[2]*sc[3];
+    qf_co[6] = sc[1];
+    qr_co[6] = sc[3];
 
     /*reaction 8: H + HO2 <=> 2.000000 OH */
-    qf_co[7] = sc[1]*qss_sc[2];
+    qf_co[7] = sc[1];
     qr_co[7] = pow(sc[3], 2.000000);
 
     /*reaction 9: OH + CO <=> H + CO2 */
-    qf_co[8] = sc[3]*qss_sc[7];
-    qr_co[8] = sc[1]*sc[4];
+    qf_co[8] = sc[3];
+    qr_co[8] = sc[4];
 
     /*reaction 10: OH + CH <=> H + HCO */
-    qf_co[9] = sc[3]*qss_sc[5];
-    qr_co[9] = sc[1]*sc[5];
+    qf_co[9] = sc[3];
+    qr_co[9] = sc[5];
 
     double T = tc[1];
 
     /*compute the mixture concentration */
     double mixture = 0.0;
-    for (int i = 0; i < 14; ++i) {
+    for (int i = 0; i < 6; ++i) {
         mixture += sc[i];
     }
 
@@ -1941,12 +1616,101 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double * qss
     return;
 }
 
+void comp_qss_sc(double * qf, double * qr, double * sc, double * sc_qss, double * tc, double * invT)
+{
+
+    double qf_co[10], qr_co[10];
+
+    comp_qfqr(qf, qr, sc, sc_qss, tc, invT);
+    comp_qss_coeff(qf_co, qr_co, sc, tc, invT);
+
+    /*QSS species 2: HO2 */
+
+    double HO2_num = epsilon - qr[7];
+    double HO2_denom = epsilon - qf_co[0] - qf_co[1] - qf_co[7];
+
+    sc_qss[2] = HO2_num/HO2_denom;
+
+
+
+    /*QSS species 6: CH2 */
+
+    double CH2_num = epsilon - qr[5];
+    double CH2_denom = epsilon - qf_co[5];
+
+    sc_qss[6] = CH2_num/CH2_denom;
+
+
+
+    /*QSS species 4: C */
+
+    double C_num = epsilon ;
+    double C_denom = epsilon - qr_co[4];
+    double C_rhs = C_num/C_denom;
+
+    double C_CH = (epsilon + qf_co[4])/C_denom;
+
+    /*QSS species 5: CH */
+
+    double CH_num = epsilon - qr[9];
+    double CH_denom = epsilon - qf_co[3] - qf_co[4] - qf_co[9];
+    double CH_rhs = CH_num/CH_denom;
+
+    double CH_C = (epsilon + qr_co[4])/CH_denom;
+
+    sc_qss[4] = C_rhs - (C_CH * (CH_rhs - C_rhs * CH_C) / (1 - C_CH * CH_C));
+    sc_qss[5] = (CH_rhs - C_rhs * CH_C) / (1 - C_CH * CH_C);
+
+
+
+    /*QSS species 0: O2 */
+
+    double O2_num = epsilon - qf_co[0]*sc_qss[0] - qr[6];
+    double O2_denom = epsilon - qf_co[6];
+
+    sc_qss[0] = O2_num/O2_denom;
+
+
+
+    /*QSS species 7: CO */
+
+    double CO_num = epsilon - qf_co[3]*sc_qss[7] - qr[8];
+    double CO_denom = epsilon - qf_co[8];
+
+    sc_qss[7] = CO_num/CO_denom;
+
+
+
+    /*QSS species 1: H2O */
+
+    double H2O_num = epsilon - qf_co[1]*sc_qss[1];
+    double H2O_denom = epsilon - qr_co[2];
+    double H2O_rhs = H2O_num/H2O_denom;
+
+    double H2O_H2O2 = (epsilon + qf_co[2])/H2O_denom;
+
+    /*QSS species 3: H2O2 */
+
+    double H2O2_num = epsilon ;
+    double H2O2_denom = epsilon - qf_co[2];
+    double H2O2_rhs = H2O2_num/H2O2_denom;
+
+    double H2O2_H2O = (epsilon + qr_co[2])/H2O2_denom;
+
+    sc_qss[1] = H2O_rhs - (H2O_H2O2 * (H2O2_rhs - H2O_rhs * H2O2_H2O) / (1 - H2O_H2O2 * H2O2_H2O));
+    sc_qss[3] = (H2O2_rhs - H2O_rhs * H2O2_H2O) / (1 - H2O_H2O2 * H2O2_H2O);
+
+
+
+    return;
+}
+
 /*compute an approx to the reaction Jacobian (for preconditioning) */
 AMREX_GPU_HOST_DEVICE void DWDOT_SIMPLIFIED(double *  J, double *  sc, double *  Tp, int * HP)
 {
-    double c[14];
+    double c[6];
 
-    for (int k=0; k<14; k++) {
+    for (int k=0; k<6; k++) {
         c[k] = 1.e6 * sc[k];
     }
 
@@ -1954,9 +1718,9 @@ AMREX_GPU_HOST_DEVICE void DWDOT_SIMPLIFIED(double *  J, double *  sc, double * 
 
     /* dwdot[k]/dT */
     /* dTdot/d[X] */
-    for (int k=0; k<14; k++) {
-        J[210+k] *= 1.e-6;
-        J[k*15+14] *= 1.e6;
+    for (int k=0; k<6; k++) {
+        J[42+k] *= 1.e-6;
+        J[k*7+6] *= 1.e6;
     }
 
     return;
@@ -1965,9 +1729,9 @@ AMREX_GPU_HOST_DEVICE void DWDOT_SIMPLIFIED(double *  J, double *  sc, double * 
 /*compute the reaction Jacobian */
 AMREX_GPU_HOST_DEVICE void DWDOT(double *  J, double *  sc, double *  Tp, int * consP)
 {
-    double c[14];
+    double c[6];
 
-    for (int k=0; k<14; k++) {
+    for (int k=0; k<6; k++) {
         c[k] = 1.e6 * sc[k];
     }
 
@@ -1975,9 +1739,9 @@ AMREX_GPU_HOST_DEVICE void DWDOT(double *  J, double *  sc, double *  Tp, int * 
 
     /* dwdot[k]/dT */
     /* dTdot/d[X] */
-    for (int k=0; k<14; k++) {
-        J[210+k] *= 1.e-6;
-        J[k*15+14] *= 1.e6;
+    for (int k=0; k<6; k++) {
+        J[42+k] *= 1.e-6;
+        J[k*7+6] *= 1.e6;
     }
 
     return;
@@ -1986,19 +1750,19 @@ AMREX_GPU_HOST_DEVICE void DWDOT(double *  J, double *  sc, double *  Tp, int * 
 /*compute the sparsity pattern of the chemistry Jacobian */
 AMREX_GPU_HOST_DEVICE void SPARSITY_INFO( int * nJdata, int * consP, int NCELLS)
 {
-    double c[14];
-    double J[225];
+    double c[6];
+    double J[49];
 
-    for (int k=0; k<14; k++) {
-        c[k] = 1.0/ 14.000000 ;
+    for (int k=0; k<6; k++) {
+        c[k] = 1.0/ 6.000000 ;
     }
 
     aJacobian(J, c, 1500.0, *consP);
 
     int nJdata_tmp = 0;
-    for (int k=0; k<15; k++) {
-        for (int l=0; l<15; l++) {
-            if(J[ 15 * k + l] != 0.0){
+    for (int k=0; k<7; k++) {
+        for (int l=0; l<7; l++) {
+            if(J[ 7 * k + l] != 0.0){
                 nJdata_tmp = nJdata_tmp + 1;
             }
         }
@@ -2014,22 +1778,22 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_INFO( int * nJdata, int * consP, int NCELLS)
 /*compute the sparsity pattern of the system Jacobian */
 AMREX_GPU_HOST_DEVICE void SPARSITY_INFO_SYST( int * nJdata, int * consP, int NCELLS)
 {
-    double c[14];
-    double J[225];
+    double c[6];
+    double J[49];
 
-    for (int k=0; k<14; k++) {
-        c[k] = 1.0/ 14.000000 ;
+    for (int k=0; k<6; k++) {
+        c[k] = 1.0/ 6.000000 ;
     }
 
     aJacobian(J, c, 1500.0, *consP);
 
     int nJdata_tmp = 0;
-    for (int k=0; k<15; k++) {
-        for (int l=0; l<15; l++) {
+    for (int k=0; k<7; k++) {
+        for (int l=0; l<7; l++) {
             if(k == l){
                 nJdata_tmp = nJdata_tmp + 1;
             } else {
-                if(J[ 15 * k + l] != 0.0){
+                if(J[ 7 * k + l] != 0.0){
                     nJdata_tmp = nJdata_tmp + 1;
                 }
             }
@@ -2046,22 +1810,22 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_INFO_SYST( int * nJdata, int * consP, int NC
 /*compute the sparsity pattern of the simplified (for preconditioning) system Jacobian */
 AMREX_GPU_HOST_DEVICE void SPARSITY_INFO_SYST_SIMPLIFIED( int * nJdata, int * consP)
 {
-    double c[14];
-    double J[225];
+    double c[6];
+    double J[49];
 
-    for (int k=0; k<14; k++) {
-        c[k] = 1.0/ 14.000000 ;
+    for (int k=0; k<6; k++) {
+        c[k] = 1.0/ 6.000000 ;
     }
 
     aJacobian_precond(J, c, 1500.0, *consP);
 
     int nJdata_tmp = 0;
-    for (int k=0; k<15; k++) {
-        for (int l=0; l<15; l++) {
+    for (int k=0; k<7; k++) {
+        for (int l=0; l<7; l++) {
             if(k == l){
                 nJdata_tmp = nJdata_tmp + 1;
             } else {
-                if(J[ 15 * k + l] != 0.0){
+                if(J[ 7 * k + l] != 0.0){
                     nJdata_tmp = nJdata_tmp + 1;
                 }
             }
@@ -2077,13 +1841,13 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_INFO_SYST_SIMPLIFIED( int * nJdata, int * co
 /*compute the sparsity pattern of the chemistry Jacobian in CSC format -- base 0 */
 AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_CSC(int *  rowVals, int *  colPtrs, int * consP, int NCELLS)
 {
-    double c[14];
-    double J[225];
+    double c[6];
+    double J[49];
     int offset_row;
     int offset_col;
 
-    for (int k=0; k<14; k++) {
-        c[k] = 1.0/ 14.000000 ;
+    for (int k=0; k<6; k++) {
+        c[k] = 1.0/ 6.000000 ;
     }
 
     aJacobian(J, c, 1500.0, *consP);
@@ -2091,11 +1855,11 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_CSC(int *  rowVals, int *  colPtrs, 
     colPtrs[0] = 0;
     int nJdata_tmp = 0;
     for (int nc=0; nc<NCELLS; nc++) {
-        offset_row = nc * 15;
-        offset_col = nc * 15;
-        for (int k=0; k<15; k++) {
-            for (int l=0; l<15; l++) {
-                if(J[15*k + l] != 0.0) {
+        offset_row = nc * 7;
+        offset_col = nc * 7;
+        for (int k=0; k<7; k++) {
+            for (int l=0; l<7; l++) {
+                if(J[7*k + l] != 0.0) {
                     rowVals[nJdata_tmp] = l + offset_row; 
                     nJdata_tmp = nJdata_tmp + 1; 
                 }
@@ -2110,12 +1874,12 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_CSC(int *  rowVals, int *  colPtrs, 
 /*compute the sparsity pattern of the chemistry Jacobian in CSR format -- base 0 */
 AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_CSR(int * colVals, int * rowPtrs, int * consP, int NCELLS, int base)
 {
-    double c[14];
-    double J[225];
+    double c[6];
+    double J[49];
     int offset;
 
-    for (int k=0; k<14; k++) {
-        c[k] = 1.0/ 14.000000 ;
+    for (int k=0; k<6; k++) {
+        c[k] = 1.0/ 6.000000 ;
     }
 
     aJacobian(J, c, 1500.0, *consP);
@@ -2124,10 +1888,10 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_CSR(int * colVals, int * rowPtrs, in
         rowPtrs[0] = 1;
         int nJdata_tmp = 1;
         for (int nc=0; nc<NCELLS; nc++) {
-            offset = nc * 15;
-            for (int l=0; l<15; l++) {
-                for (int k=0; k<15; k++) {
-                    if(J[15*k + l] != 0.0) {
+            offset = nc * 7;
+            for (int l=0; l<7; l++) {
+                for (int k=0; k<7; k++) {
+                    if(J[7*k + l] != 0.0) {
                         colVals[nJdata_tmp-1] = k+1 + offset; 
                         nJdata_tmp = nJdata_tmp + 1; 
                     }
@@ -2139,10 +1903,10 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_CSR(int * colVals, int * rowPtrs, in
         rowPtrs[0] = 0;
         int nJdata_tmp = 0;
         for (int nc=0; nc<NCELLS; nc++) {
-            offset = nc * 15;
-            for (int l=0; l<15; l++) {
-                for (int k=0; k<15; k++) {
-                    if(J[15*k + l] != 0.0) {
+            offset = nc * 7;
+            for (int l=0; l<7; l++) {
+                for (int k=0; k<7; k++) {
+                    if(J[7*k + l] != 0.0) {
                         colVals[nJdata_tmp] = k + offset; 
                         nJdata_tmp = nJdata_tmp + 1; 
                     }
@@ -2159,12 +1923,12 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_CSR(int * colVals, int * rowPtrs, in
 /*CSR format BASE is user choice */
 AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_SYST_CSR(int * colVals, int * rowPtr, int * consP, int NCELLS, int base)
 {
-    double c[14];
-    double J[225];
+    double c[6];
+    double J[49];
     int offset;
 
-    for (int k=0; k<14; k++) {
-        c[k] = 1.0/ 14.000000 ;
+    for (int k=0; k<6; k++) {
+        c[k] = 1.0/ 6.000000 ;
     }
 
     aJacobian(J, c, 1500.0, *consP);
@@ -2173,14 +1937,14 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_SYST_CSR(int * colVals, int * rowPtr
         rowPtr[0] = 1;
         int nJdata_tmp = 1;
         for (int nc=0; nc<NCELLS; nc++) {
-            offset = nc * 15;
-            for (int l=0; l<15; l++) {
-                for (int k=0; k<15; k++) {
+            offset = nc * 7;
+            for (int l=0; l<7; l++) {
+                for (int k=0; k<7; k++) {
                     if (k == l) {
                         colVals[nJdata_tmp-1] = l+1 + offset; 
                         nJdata_tmp = nJdata_tmp + 1; 
                     } else {
-                        if(J[15*k + l] != 0.0) {
+                        if(J[7*k + l] != 0.0) {
                             colVals[nJdata_tmp-1] = k+1 + offset; 
                             nJdata_tmp = nJdata_tmp + 1; 
                         }
@@ -2193,14 +1957,14 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_SYST_CSR(int * colVals, int * rowPtr
         rowPtr[0] = 0;
         int nJdata_tmp = 0;
         for (int nc=0; nc<NCELLS; nc++) {
-            offset = nc * 15;
-            for (int l=0; l<15; l++) {
-                for (int k=0; k<15; k++) {
+            offset = nc * 7;
+            for (int l=0; l<7; l++) {
+                for (int k=0; k<7; k++) {
                     if (k == l) {
                         colVals[nJdata_tmp] = l + offset; 
                         nJdata_tmp = nJdata_tmp + 1; 
                     } else {
-                        if(J[15*k + l] != 0.0) {
+                        if(J[7*k + l] != 0.0) {
                             colVals[nJdata_tmp] = k + offset; 
                             nJdata_tmp = nJdata_tmp + 1; 
                         }
@@ -2218,27 +1982,27 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_SYST_CSR(int * colVals, int * rowPtr
 /*BASE 0 */
 AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_SYST_SIMPLIFIED_CSC(int * rowVals, int * colPtrs, int * indx, int * consP)
 {
-    double c[14];
-    double J[225];
+    double c[6];
+    double J[49];
 
-    for (int k=0; k<14; k++) {
-        c[k] = 1.0/ 14.000000 ;
+    for (int k=0; k<6; k++) {
+        c[k] = 1.0/ 6.000000 ;
     }
 
     aJacobian_precond(J, c, 1500.0, *consP);
 
     colPtrs[0] = 0;
     int nJdata_tmp = 0;
-    for (int k=0; k<15; k++) {
-        for (int l=0; l<15; l++) {
+    for (int k=0; k<7; k++) {
+        for (int l=0; l<7; l++) {
             if (k == l) {
                 rowVals[nJdata_tmp] = l; 
-                indx[nJdata_tmp] = 15*k + l;
+                indx[nJdata_tmp] = 7*k + l;
                 nJdata_tmp = nJdata_tmp + 1; 
             } else {
-                if(J[15*k + l] != 0.0) {
+                if(J[7*k + l] != 0.0) {
                     rowVals[nJdata_tmp] = l; 
-                    indx[nJdata_tmp] = 15*k + l;
+                    indx[nJdata_tmp] = 7*k + l;
                     nJdata_tmp = nJdata_tmp + 1; 
                 }
             }
@@ -2253,11 +2017,11 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_SYST_SIMPLIFIED_CSC(int * rowVals, i
 /*CSR format BASE is under choice */
 AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_SYST_SIMPLIFIED_CSR(int * colVals, int * rowPtr, int * consP, int base)
 {
-    double c[14];
-    double J[225];
+    double c[6];
+    double J[49];
 
-    for (int k=0; k<14; k++) {
-        c[k] = 1.0/ 14.000000 ;
+    for (int k=0; k<6; k++) {
+        c[k] = 1.0/ 6.000000 ;
     }
 
     aJacobian_precond(J, c, 1500.0, *consP);
@@ -2265,13 +2029,13 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_SYST_SIMPLIFIED_CSR(int * colVals, i
     if (base == 1) {
         rowPtr[0] = 1;
         int nJdata_tmp = 1;
-        for (int l=0; l<15; l++) {
-            for (int k=0; k<15; k++) {
+        for (int l=0; l<7; l++) {
+            for (int k=0; k<7; k++) {
                 if (k == l) {
                     colVals[nJdata_tmp-1] = l+1; 
                     nJdata_tmp = nJdata_tmp + 1; 
                 } else {
-                    if(J[15*k + l] != 0.0) {
+                    if(J[7*k + l] != 0.0) {
                         colVals[nJdata_tmp-1] = k+1; 
                         nJdata_tmp = nJdata_tmp + 1; 
                     }
@@ -2282,13 +2046,13 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_SYST_SIMPLIFIED_CSR(int * colVals, i
     } else {
         rowPtr[0] = 0;
         int nJdata_tmp = 0;
-        for (int l=0; l<15; l++) {
-            for (int k=0; k<15; k++) {
+        for (int l=0; l<7; l++) {
+            for (int k=0; k<7; k++) {
                 if (k == l) {
                     colVals[nJdata_tmp] = l; 
                     nJdata_tmp = nJdata_tmp + 1; 
                 } else {
-                    if(J[15*k + l] != 0.0) {
+                    if(J[7*k + l] != 0.0) {
                         colVals[nJdata_tmp] = k; 
                         nJdata_tmp = nJdata_tmp + 1; 
                     }
@@ -2306,7 +2070,7 @@ AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_SYST_SIMPLIFIED_CSR(int * colVals, i
 /*compute the reaction Jacobian on CPU */
 void aJacobian(double *  J, double *  sc, double T, int consP)
 {
-    for (int i=0; i<225; i++) {
+    for (int i=0; i<49; i++) {
         J[i] = 0.0;
     }
 }
@@ -2316,7 +2080,7 @@ void aJacobian(double *  J, double *  sc, double T, int consP)
 /*compute an approx to the reaction Jacobian */
 AMREX_GPU_HOST_DEVICE void aJacobian_precond(double *  J, double *  sc, double T, int HP)
 {
-    for (int i=0; i<225; i++) {
+    for (int i=0; i<49; i++) {
         J[i] = 0.0;
     }
 }
@@ -2417,13 +2181,13 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     double refC = 101325 / 8.31446 / T;
 
     /*reaction 1: O + HO2 => OH + O2 */
-    kc[0] = exp((g_RT[2] + g_RT_qss[2]) - (g_RT[3] + g_RT_qss[0]));
+    kc[0] = exp((g_RT[2] + g_RT_qss[2]) - (g_RT[4] + g_RT_qss[0]));
 
     /*reaction 2: H + HO2 => O + H2O */
     kc[1] = exp((g_RT[1] + g_RT_qss[2]) - (g_RT[2] + g_RT_qss[1]));
 
     /*reaction 3: H + H2O2 <=> OH + H2O */
-    kc[2] = exp((g_RT[1] + g_RT_qss[3]) - (g_RT[3] + g_RT_qss[1]));
+    kc[2] = exp((g_RT[1] + g_RT_qss[3]) - (g_RT[4] + g_RT_qss[1]));
 
     /*reaction 4: O + CH => H + CO */
     kc[3] = exp((g_RT[2] + g_RT_qss[5]) - (g_RT[1] + g_RT_qss[7]));
@@ -2432,19 +2196,19 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[4] = exp((g_RT[1] + g_RT_qss[5]) - (g_RT_qss[4] + g_RT[0]));
 
     /*reaction 6: O + CH2 <=> H + HCO */
-    kc[5] = exp((g_RT[2] + g_RT_qss[6]) - (g_RT[1] + g_RT[5]));
+    kc[5] = exp((g_RT[2] + g_RT_qss[6]) - (g_RT[1] + g_RT[13]));
 
     /*reaction 7: H + O2 <=> O + OH */
-    kc[6] = exp((g_RT[1] + g_RT_qss[0]) - (g_RT[2] + g_RT[3]));
+    kc[6] = exp((g_RT[1] + g_RT_qss[0]) - (g_RT[2] + g_RT[4]));
 
     /*reaction 8: H + HO2 <=> 2.000000 OH */
-    kc[7] = exp((g_RT[1] + g_RT_qss[2]) - (2.000000 * g_RT[3]));
+    kc[7] = exp((g_RT[1] + g_RT_qss[2]) - (2.000000 * g_RT[4]));
 
     /*reaction 9: OH + CO <=> H + CO2 */
-    kc[8] = exp((g_RT[3] + g_RT_qss[7]) - (g_RT[1] + g_RT[4]));
+    kc[8] = exp((g_RT[4] + g_RT_qss[7]) - (g_RT[1] + g_RT[12]));
 
     /*reaction 10: OH + CH <=> H + HCO */
-    kc[9] = exp((g_RT[3] + g_RT_qss[5]) - (g_RT[1] + g_RT[5]));
+    kc[9] = exp((g_RT[4] + g_RT_qss[5]) - (g_RT[1] + g_RT[13]));
 
     return;
 }
@@ -3508,6 +3272,375 @@ AMREX_GPU_HOST_DEVICE void GET_T_GIVEN_HY(double *  h, double *  y, double *  t,
     *t = t1;
     *ierr = 0;
     return;
+}
+
+
+void egtransetLENIMC(int* LENIMC ) {
+    *LENIMC = 26;}
+
+
+void egtransetLENRMC(int* LENRMC ) {
+    *LENRMC = 894;}
+
+
+void egtransetNO(int* NO ) {
+    *NO = 4;}
+
+
+void egtransetKK(int* KK ) {
+    *KK = 6;}
+
+
+void egtransetNLITE(int* NLITE ) {
+    *NLITE = 2;}
+
+
+/*Patm in ergs/cm3 */
+void egtransetPATM(double* PATM) {
+    *PATM =   0.1013250000000000E+07;}
+
+
+/*the molecular weights in g/mol */
+void egtransetWT(double* WT ) {
+    WT[0] = 2.01594000E+00;
+    WT[1] = 1.00797000E+00;
+    WT[2] = 1.59994000E+01;
+    WT[3] = 1.70073700E+01;
+    WT[4] = 4.40099500E+01;
+    WT[5] = 2.90185200E+01;
+}
+
+
+/*the lennard-jones potential well depth eps/kb in K */
+void egtransetEPS(double* EPS ) {
+    EPS[0] = 3.80000000E+01;
+    EPS[1] = 1.45000000E+02;
+    EPS[2] = 8.00000000E+01;
+    EPS[3] = 8.00000000E+01;
+    EPS[4] = 2.44000000E+02;
+    EPS[5] = 4.98000000E+02;
+}
+
+
+/*the lennard-jones collision diameter in Angstroms */
+void egtransetSIG(double* SIG ) {
+    SIG[0] = 2.92000000E+00;
+    SIG[1] = 2.05000000E+00;
+    SIG[2] = 2.75000000E+00;
+    SIG[3] = 2.75000000E+00;
+    SIG[4] = 3.76300000E+00;
+    SIG[5] = 3.59000000E+00;
+}
+
+
+/*the dipole moment in Debye */
+void egtransetDIP(double* DIP ) {
+    DIP[0] = 0.00000000E+00;
+    DIP[1] = 0.00000000E+00;
+    DIP[2] = 0.00000000E+00;
+    DIP[3] = 0.00000000E+00;
+    DIP[4] = 0.00000000E+00;
+    DIP[5] = 0.00000000E+00;
+}
+
+
+/*the polarizability in cubic Angstroms */
+void egtransetPOL(double* POL ) {
+    POL[0] = 7.90000000E-01;
+    POL[1] = 0.00000000E+00;
+    POL[2] = 0.00000000E+00;
+    POL[3] = 0.00000000E+00;
+    POL[4] = 2.65000000E+00;
+    POL[5] = 0.00000000E+00;
+}
+
+
+/*the rotational relaxation collision number at 298 K */
+void egtransetZROT(double* ZROT ) {
+    ZROT[0] = 2.80000000E+02;
+    ZROT[1] = 0.00000000E+00;
+    ZROT[2] = 0.00000000E+00;
+    ZROT[3] = 0.00000000E+00;
+    ZROT[4] = 2.10000000E+00;
+    ZROT[5] = 0.00000000E+00;
+}
+
+
+/*0: monoatomic, 1: linear, 2: nonlinear */
+void egtransetNLIN(int* NLIN) {
+    NLIN[0] = 1;
+    NLIN[1] = 0;
+    NLIN[2] = 0;
+    NLIN[3] = 1;
+    NLIN[4] = 1;
+    NLIN[5] = 2;
+}
+
+
+/*Poly fits for the viscosities, dim NO*KK */
+void egtransetCOFETA(double* COFETA) {
+    COFETA[0] = -1.40419527E+01;
+    COFETA[1] = 1.08789225E+00;
+    COFETA[2] = -6.18592115E-02;
+    COFETA[3] = 2.86838304E-03;
+    COFETA[4] = -2.08449616E+01;
+    COFETA[5] = 3.82794146E+00;
+    COFETA[6] = -4.20999003E-01;
+    COFETA[7] = 1.85596636E-02;
+    COFETA[8] = -1.57832266E+01;
+    COFETA[9] = 2.21311180E+00;
+    COFETA[10] = -2.12959301E-01;
+    COFETA[11] = 9.62195191E-03;
+    COFETA[12] = -1.57526788E+01;
+    COFETA[13] = 2.21311180E+00;
+    COFETA[14] = -2.12959301E-01;
+    COFETA[15] = 9.62195191E-03;
+    COFETA[16] = -2.28110345E+01;
+    COFETA[17] = 4.62954710E+00;
+    COFETA[18] = -5.00689001E-01;
+    COFETA[19] = 2.10012969E-02;
+    COFETA[20] = -1.57492286E+01;
+    COFETA[21] = 9.81716009E-01;
+    COFETA[22] = 7.09938181E-02;
+    COFETA[23] = -7.70023966E-03;
+}
+
+
+/*Poly fits for the conductivities, dim NO*KK */
+void egtransetCOFLAM(double* COFLAM) {
+    COFLAM[0] = 4.34729192E+00;
+    COFLAM[1] = 1.55347646E+00;
+    COFLAM[2] = -1.60615552E-01;
+    COFLAM[3] = 9.89934485E-03;
+    COFLAM[4] = -1.29505111E+00;
+    COFLAM[5] = 3.82794146E+00;
+    COFLAM[6] = -4.20999003E-01;
+    COFLAM[7] = 1.85596636E-02;
+    COFLAM[8] = 1.00207105E+00;
+    COFLAM[9] = 2.21311180E+00;
+    COFLAM[10] = -2.12959301E-01;
+    COFLAM[11] = 9.62195191E-03;
+    COFLAM[12] = 9.09561056E+00;
+    COFLAM[13] = -1.12146910E+00;
+    COFLAM[14] = 2.39077996E-01;
+    COFLAM[15] = -9.74338015E-03;
+    COFLAM[16] = -8.74831432E+00;
+    COFLAM[17] = 4.79275291E+00;
+    COFLAM[18] = -4.18685061E-01;
+    COFLAM[19] = 1.35210242E-02;
+    COFLAM[20] = 1.06317650E+01;
+    COFLAM[21] = -3.96201529E+00;
+    COFLAM[22] = 8.65922550E-01;
+    COFLAM[23] = -4.80178076E-02;
+}
+
+
+/*Poly fits for the diffusion coefficients, dim NO*KK*KK */
+void egtransetCOFD(double* COFD) {
+    COFD[0] = -1.04285080E+01;
+    COFD[1] = 2.23477534E+00;
+    COFD[2] = -8.11809423E-02;
+    COFD[3] = 3.77342041E-03;
+    COFD[4] = -1.19370371E+01;
+    COFD[5] = 2.99054752E+00;
+    COFD[6] = -1.79624448E-01;
+    COFD[7] = 8.03970815E-03;
+    COFD[8] = -1.12653981E+01;
+    COFD[9] = 2.43094296E+00;
+    COFD[10] = -1.03798673E-01;
+    COFD[11] = 4.60962717E-03;
+    COFD[12] = -1.12687251E+01;
+    COFD[13] = 2.43094296E+00;
+    COFD[14] = -1.03798673E-01;
+    COFD[15] = 4.60962717E-03;
+    COFD[16] = -1.43978662E+01;
+    COFD[17] = 3.49721576E+00;
+    COFD[18] = -2.45465191E-01;
+    COFD[19] = 1.08948372E-02;
+    COFD[20] = -1.64242337E+01;
+    COFD[21] = 4.26219537E+00;
+    COFD[22] = -3.41524254E-01;
+    COFD[23] = 1.49232070E-02;
+    COFD[24] = -1.19370371E+01;
+    COFD[25] = 2.99054752E+00;
+    COFD[26] = -1.79624448E-01;
+    COFD[27] = 8.03970815E-03;
+    COFD[28] = -1.51395399E+01;
+    COFD[29] = 4.36621619E+00;
+    COFD[30] = -3.53866950E-01;
+    COFD[31] = 1.54097445E-02;
+    COFD[32] = -1.39677477E+01;
+    COFD[33] = 3.71279442E+00;
+    COFD[34] = -2.72718508E-01;
+    COFD[35] = 1.20446550E-02;
+    COFD[36] = -1.39695071E+01;
+    COFD[37] = 3.71279442E+00;
+    COFD[38] = -2.72718508E-01;
+    COFD[39] = 1.20446550E-02;
+    COFD[40] = -1.76943558E+01;
+    COFD[41] = 4.88672714E+00;
+    COFD[42] = -4.14778255E-01;
+    COFD[43] = 1.77823474E-02;
+    COFD[44] = -1.85331662E+01;
+    COFD[45] = 5.04618677E+00;
+    COFD[46] = -4.14801122E-01;
+    COFD[47] = 1.69487185E-02;
+    COFD[48] = -1.12653981E+01;
+    COFD[49] = 2.43094296E+00;
+    COFD[50] = -1.03798673E-01;
+    COFD[51] = 4.60962717E-03;
+    COFD[52] = -1.39677477E+01;
+    COFD[53] = 3.71279442E+00;
+    COFD[54] = -2.72718508E-01;
+    COFD[55] = 1.20446550E-02;
+    COFD[56] = -1.37174845E+01;
+    COFD[57] = 3.11889373E+00;
+    COFD[58] = -1.96402933E-01;
+    COFD[59] = 8.77180880E-03;
+    COFD[60] = -1.37325251E+01;
+    COFD[61] = 3.11889373E+00;
+    COFD[62] = -1.96402933E-01;
+    COFD[63] = 8.77180880E-03;
+    COFD[64] = -1.74119025E+01;
+    COFD[65] = 4.28601449E+00;
+    COFD[66] = -3.44182880E-01;
+    COFD[67] = 1.50201783E-02;
+    COFD[68] = -1.92502106E+01;
+    COFD[69] = 4.94108508E+00;
+    COFD[70] = -4.19008197E-01;
+    COFD[71] = 1.78499457E-02;
+    COFD[72] = -1.12687251E+01;
+    COFD[73] = 2.43094296E+00;
+    COFD[74] = -1.03798673E-01;
+    COFD[75] = 4.60962717E-03;
+    COFD[76] = -1.39695071E+01;
+    COFD[77] = 3.71279442E+00;
+    COFD[78] = -2.72718508E-01;
+    COFD[79] = 1.20446550E-02;
+    COFD[80] = -1.37325251E+01;
+    COFD[81] = 3.11889373E+00;
+    COFD[82] = -1.96402933E-01;
+    COFD[83] = 8.77180880E-03;
+    COFD[84] = -1.37480322E+01;
+    COFD[85] = 3.11889373E+00;
+    COFD[86] = -1.96402933E-01;
+    COFD[87] = 8.77180880E-03;
+    COFD[88] = -1.74341216E+01;
+    COFD[89] = 4.28601449E+00;
+    COFD[90] = -3.44182880E-01;
+    COFD[91] = 1.50201783E-02;
+    COFD[92] = -1.92696867E+01;
+    COFD[93] = 4.94108508E+00;
+    COFD[94] = -4.19008197E-01;
+    COFD[95] = 1.78499457E-02;
+    COFD[96] = -1.43978662E+01;
+    COFD[97] = 3.49721576E+00;
+    COFD[98] = -2.45465191E-01;
+    COFD[99] = 1.08948372E-02;
+    COFD[100] = -1.76943558E+01;
+    COFD[101] = 4.88672714E+00;
+    COFD[102] = -4.14778255E-01;
+    COFD[103] = 1.77823474E-02;
+    COFD[104] = -1.74119025E+01;
+    COFD[105] = 4.28601449E+00;
+    COFD[106] = -3.44182880E-01;
+    COFD[107] = 1.50201783E-02;
+    COFD[108] = -1.74341216E+01;
+    COFD[109] = 4.28601449E+00;
+    COFD[110] = -3.44182880E-01;
+    COFD[111] = 1.50201783E-02;
+    COFD[112] = -2.05810669E+01;
+    COFD[113] = 5.07469434E+00;
+    COFD[114] = -4.25340301E-01;
+    COFD[115] = 1.76800795E-02;
+    COFD[116] = -1.98561573E+01;
+    COFD[117] = 4.57685026E+00;
+    COFD[118] = -3.30016794E-01;
+    COFD[119] = 1.23264865E-02;
+    COFD[120] = -1.64242337E+01;
+    COFD[121] = 4.26219537E+00;
+    COFD[122] = -3.41524254E-01;
+    COFD[123] = 1.49232070E-02;
+    COFD[124] = -1.85331662E+01;
+    COFD[125] = 5.04618677E+00;
+    COFD[126] = -4.14801122E-01;
+    COFD[127] = 1.69487185E-02;
+    COFD[128] = -1.92502106E+01;
+    COFD[129] = 4.94108508E+00;
+    COFD[130] = -4.19008197E-01;
+    COFD[131] = 1.78499457E-02;
+    COFD[132] = -1.92696867E+01;
+    COFD[133] = 4.94108508E+00;
+    COFD[134] = -4.19008197E-01;
+    COFD[135] = 1.78499457E-02;
+    COFD[136] = -1.98561573E+01;
+    COFD[137] = 4.57685026E+00;
+    COFD[138] = -3.30016794E-01;
+    COFD[139] = 1.23264865E-02;
+    COFD[140] = -1.61938051E+01;
+    COFD[141] = 2.80507926E+00;
+    COFD[142] = -5.55394339E-02;
+    COFD[143] = -1.30364179E-03;
+}
+
+
+/*List of specs with small weight, dim NLITE */
+void egtransetKTDIF(int* KTDIF) {
+    KTDIF[0] = 1;
+    KTDIF[1] = 2;
+}
+
+
+/*Poly fits for thermal diff ratios, dim NO*NLITE*KK */
+void egtransetCOFTD(double* COFTD) {
+    COFTD[0] = 0.00000000E+00;
+    COFTD[1] = 0.00000000E+00;
+    COFTD[2] = 0.00000000E+00;
+    COFTD[3] = 0.00000000E+00;
+    COFTD[4] = -1.26715692E-01;
+    COFTD[5] = -1.02530485E-04;
+    COFTD[6] = 5.45604892E-08;
+    COFTD[7] = -8.85181063E-12;
+    COFTD[8] = 3.69825311E-01;
+    COFTD[9] = 9.58927840E-05;
+    COFTD[10] = -4.86954016E-08;
+    COFTD[11] = 8.20765740E-12;
+    COFTD[12] = 3.75475346E-01;
+    COFTD[13] = 9.73577933E-05;
+    COFTD[14] = -4.94393493E-08;
+    COFTD[15] = 8.33305051E-12;
+    COFTD[16] = 2.47129011E-01;
+    COFTD[17] = 4.49395677E-04;
+    COFTD[18] = -2.32030740E-07;
+    COFTD[19] = 3.62578797E-11;
+    COFTD[20] = 8.88011309E-02;
+    COFTD[21] = 6.35611803E-04;
+    COFTD[22] = -3.09074957E-07;
+    COFTD[23] = 4.61052654E-11;
+    COFTD[24] = 1.26715692E-01;
+    COFTD[25] = 1.02530485E-04;
+    COFTD[26] = -5.45604892E-08;
+    COFTD[27] = 8.85181063E-12;
+    COFTD[28] = 0.00000000E+00;
+    COFTD[29] = 0.00000000E+00;
+    COFTD[30] = 0.00000000E+00;
+    COFTD[31] = 0.00000000E+00;
+    COFTD[32] = 1.93107545E-01;
+    COFTD[33] = 5.04123759E-04;
+    COFTD[34] = -2.55796068E-07;
+    COFTD[35] = 3.93758307E-11;
+    COFTD[36] = 1.94560455E-01;
+    COFTD[37] = 5.07916706E-04;
+    COFTD[38] = -2.57720638E-07;
+    COFTD[39] = 3.96720883E-11;
+    COFTD[40] = -3.84966170E-02;
+    COFTD[41] = 8.34794926E-04;
+    COFTD[42] = -3.81031231E-07;
+    COFTD[43] = 5.45531902E-11;
+    COFTD[44] = -1.52598674E-01;
+    COFTD[45] = 8.48164645E-04;
+    COFTD[46] = -3.52118423E-07;
+    COFTD[47] = 4.75234393E-11;
 }
 
 /* Replace this routine with the one generated by the Gauss Jordan solver of DW */
