@@ -6555,12 +6555,11 @@ class CPickler(CMill):
         for s in mechanism.species():
             species.append(s.symbol)
 
-        # NOT DOABLE ANYMORE. QSS ARE READ IN SEPARATELY FROM TRANSPORTED SPECIES
-        # # Check that QSS species are all species used in the given mechanism
-        # for s in self.qss_species:
-        #     if s not in species:
-        #         text = 'species '+s+' is not in the mechanism'
-        #         sys.exit(text)
+        # Check that QSS species are all species used in the given mechanism
+        for s in self.qss_species_list:
+            if s not in species:
+                text = 'species '+s+' is not in the mechanism'
+                sys.exit(text)
 
         # sets up QSS subnetwork to be used for coupling too
         self._getQSSnetworks(mechanism)
