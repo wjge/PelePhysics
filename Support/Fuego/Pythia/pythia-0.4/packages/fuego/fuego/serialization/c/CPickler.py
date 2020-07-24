@@ -150,12 +150,12 @@ class CPickler(CMill):
         print
         print "QSS SPECIES, reorg INDICES, mech INDICES, AND WEIGHT ARE: "
         for qss in self.qss_species:
-            print(qss.symbol, " ", qss.id, " ", qss.mech_id, " ", qss.weight)
+            print qss.symbol, " ", qss.id, " ", qss.mech_id, " ", qss.weight
 
         print
         print "FULL SPECIES LIST WITH TRANSPORTED FIRST AND QSS LAST: "
         for all_species in self.all_species:
-            print(all_species.symbol, " ", all_species.id, " ", all_species.mech_id, " ", all_species.weight)
+            print all_species.symbol, " ", all_species.id, " ", all_species.mech_id, " ", all_species.weight
 
         print
         print "QSS species list =", self.qss_species_list
