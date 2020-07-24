@@ -50,7 +50,7 @@ class CPickler(CMill):
         self.qss_list = []
         self.nSpecies = 0
         self.nQSSspecies = 0
-        self.nAllspecies = 0
+        self.nTRANspecies = 0
         self.reactionIndex = []
         self.lowT = 100.0
         self.highT = 10000.0
@@ -2739,7 +2739,7 @@ class CPickler(CMill):
 
     def _productionRate(self, mechanism):
 
-        nSpecies = len(mechanism.species())
+        nSpecies = len(mechanism.species()) - self.nQSSspecies
         nReactions = len(mechanism.reaction())
 
         itroe      = self.reactionIndex[0:2]
@@ -2803,6 +2803,7 @@ class CPickler(CMill):
         self._write('double qdot, q_f[%d], q_r[%d];' % (nReactions,nReactions))
         self._write('double sc_qss[%d];' % (self.nQSSspecies))
         self._write('/* Fill sc_qss here*/')
+        self._write('comp_qss_sc(q_f, q_r, sc, sc_qss, tc, invT);')
         self._write('comp_qfqr(q_f, q_r, sc, sc_qss, tc, invT);');
 
         self._write()
@@ -6095,7 +6096,7 @@ class CPickler(CMill):
                 if needs_count_base[member] == 0:
 
                     # solve that component now
-                    self.decouple_index[member] = self.decouple_count
+                    self.decouple_index[self.decouple_count] = member
                     # then delete it out of the updating needs list
                     del needs_count_regress[member]
 
@@ -6579,19 +6580,19 @@ class CPickler(CMill):
                             print("MOVE THIS SPECIES TO RHS")
                             print
                             print
-                            rhs_hold.append('-qb['+str(r)+']')
+                            rhs_hold.append('- qr['+str(r)+']')
                         else:
                             print("not reversible => qr = 0")
                             print
                             print
-                        coeff_hold.append('-qf_co['+str(r)+']')
+                        coeff_hold.append('- qf_co['+str(r)+']')
                     # if QSS species is a product
                     elif direction == 1:
                         if reaction.reversible:
-                            coeff_hold.append('-qb_co['+str(r)+']')
+                            coeff_hold.append('- qr_co['+str(r)+']')
                         print("for species ", self.qss_list[i], " in reaction ", r, " is a product")
                         print("MOVE THIS SPECIES TO RHS")
-                        rhs_hold.append('-qf['+str(r)+']')
+                        rhs_hold.append('- qf['+str(r)+']')
                 else:
                     # print("reaction ", r, " only contains QSS species ", self.qss_list[i])
                     print
@@ -6639,19 +6640,19 @@ class CPickler(CMill):
                                 print("MOVE THIS SPECIES TO RHS")
                                 print
                                 print
-                                groupCoeff_hold.append('+qb_co['+str(r)+']')
+                                groupCoeff_hold.append('+ qr_co['+str(r)+']')
                             else:
                                 print("not reversible => qr = 0")
                                 print
                                 print
-                            coeff_hold.append('-qf_co['+str(r)+']')
+                            coeff_hold.append('- qf_co['+str(r)+']')
                         # if QSS species is a product
                         elif direction == 1:
                             if reaction.reversible:
-                                coeff_hold.append('-qb_co['+str(r)+']')
+                                coeff_hold.append('- qr_co['+str(r)+']')
                             print("for species ", self.qss_list[i], " in reaction ", r, " is a product")
                             print("MOVE THIS SPECIES TO RHS")
-                            groupCoeff_hold.append('+qf_co['+str(r)+']')
+                            groupCoeff_hold.append('+ qf_co['+str(r)+']')
                             
                     elif supergroup_flag:
                         print "YES, species "+str(coupled_qss)+" is in a super group"
@@ -6662,30 +6663,30 @@ class CPickler(CMill):
                                 print("MOVE THIS SPECIES TO RHS")
                                 print
                                 print
-                                supergroupCoeff_hold[other_qss].append('+qb_co['+str(r)+']')
+                                supergroupCoeff_hold[other_qss].append('+ qr_co['+str(r)+']')
                             else:
                                 print("not reversible => qr = 0")
                                 print
                                 print
-                            coeff_hold.append('-qf_co['+str(r)+']')
+                            coeff_hold.append('- qf_co['+str(r)+']')
                         # if QSS species is a product
                         elif direction == 1:
                             if reaction.reversible:
-                                coeff_hold.append('-qb_co['+str(r)+']')
+                                coeff_hold.append('- qr_co['+str(r)+']')
                             print("for species ", self.qss_list[i], " in reaction ", r, " is a product")
                             print("MOVE THIS SPECIES TO RHS")
-                            supergroupCoeff_hold[other_qss].append('+qf_co['+str(r)+']')
+                            supergroupCoeff_hold[other_qss].append('+ qf_co['+str(r)+']')
                     else:
                         print "YES, species "+other_qss+" is uni-directionally coupled with "+str(self.qss_list[i])
                         # if QSS species is a reactant
                         if direction == -1:
                             print("for species ", self.qss_list[i], " in reaction ", r, " is a reactant")
-                            coeff_hold.append('-qf_co['+str(r)+']')
+                            coeff_hold.append('- qf_co['+str(r)+']')
                         # if QSS species is a product
                         elif direction == 1:
                             print("for species ", self.qss_list[i], " in reaction ", r, " is a product")
                             print("MOVE THIS SPECIES TO RHS")
-                            rhs_hold.append('-dummy['+str(r)+']')
+                            rhs_hold.append('- qf_co['+str(r)+']*sc_qss['+str(i)+']')
          
                 for other_qss in supergroupCoeff_hold:
                     " ".join(supergroupCoeff_hold[other_qss])
@@ -6700,9 +6701,9 @@ class CPickler(CMill):
                 print
 
                     
-            self.QSS_rhs[self.qss_list[i]] = "".join(rhs_hold)
-            self.QSS_coeff[self.qss_list[i]] = "".join(coeff_hold)
-            self.QSS_groupSp[self.qss_list[i]] = "".join(groupCoeff_hold)
+            self.QSS_rhs[self.qss_list[i]] = " ".join(rhs_hold)
+            self.QSS_coeff[self.qss_list[i]] = " ".join(coeff_hold)
+            self.QSS_groupSp[self.qss_list[i]] = " ".join(groupCoeff_hold)
             self.QSS_supergroupSp[self.qss_list[i]] = supergroupCoeff_hold
 
             print
@@ -6719,7 +6720,151 @@ class CPickler(CMill):
             print
             
         
-                        
+    def _Gauss_pivoting(self, A, B=None):
+
+            print("###")
+            print("IN GAUSS PIVOT")
+            print("###")
+
+            X = [''] * len(A[0])
+            for i in range(len(A[0])):
+                X[i] = 'X' + str(i)
+
+            if B == None:
+                for i in range(len(A[0])):
+                    B[i] = 'B' + str(i)
+            print("--B", B)
+
+            Anum = np.zeros([len(A[0]), len(A[0])])
+            for i in range(len(A[0])):
+                for j in range(len(A[0])):
+                    if A[i][j] != '0':
+                        Anum[i, j] = 1
+            print("--A", A)
+
+            indi, indj = np.nonzero(Anum)
+            #print("--indi, indj", indi, indj)
+
+            n = len(B)
+            print("--", n," matrix")
+            for k in range(n - 1):
+
+                print("   **ROW of pivot ",k)
+
+                pivot = A[k][k]
+                if pivot == 0:
+                    temp = np.array(A[k + 1][:])
+                    A[k + 1][:] = A[k][:]
+                    A[k][:] = temp
+
+                    temp = str(B[k + 1])
+                    B[k + 1] = B[k]
+                    B[k] = temp
+
+                    pivot = A[k][k]
+                print("     pivot ", pivot)
+
+                for i in range(k, len(B) - 1):
+                    num = A[i + 1][k]
+                    print("     **Treating ROW ",i+1, "with numerator ",num)
+                    B = list(B)
+                    print "B starts with: " 
+                    print B
+                    print
+                    if num != '0':
+                        if pivot != '1':
+                            if num != '1':
+                                B[i + 1] =  B[i + 1] + ' - ' + B[int(k)] + ' * ' + num + ' / ' + pivot
+                                B[i + 1] = '(' + B[i + 1] + ')'
+                        else:
+                            if num != '1':
+                                B[i + 1] = B[i + 1] + ' - ' + B[int(k)] + ' * ' + num
+                                B[i + 1] = '(' + B[i + 1] + ')'
+                            else:
+                                B[i + 1] =  B[i + 1] + ' - ' + B[int(k)]
+                                B[i + 1] = '(' + B[i + 1] + ')'
+
+                    print "... and B ends with: " 
+                    print B
+                    print
+                  
+                    indi, indj = np.nonzero(Anum)
+                    #print("--indi, indj", indi, indj)
+
+                    for j in indj[indi == k]:
+                        # Messy writing to correct !!!!
+                        print("        .. dealing with elem on column ", j, " : ", A[i + 1][j])
+                        if A[i + 1][j] != '0':
+                            if num != '0':
+                                if pivot != '1':
+                                    if num != '1':
+                                        A[i + 1][j] = A[i + 1][j] + ' - ' + A[k][j] + ' * ' + num + '/ ' + pivot
+                                        A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                else:
+                                    if num != '1':
+                                        A[i + 1][j] =   A[i + 1][j] + ' - ' + A[k][j] + ' * ' + num
+                                        A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                    else:
+                                        A[i + 1][j] =  A[i + 1][j] + ' - ' + A[k][j]
+                                        A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                        else:
+                            if num != '0':
+                                if pivot != '1':
+                                    if num != '1':
+                                        A[i + 1][j] = ' - ' + A[k][j] + ' * ' + num + ' / ' + pivot
+                                        A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                else:
+                                    if num != '1':
+                                        A[i + 1][j] = ' - ' + A[k][j] + ' * ' + num
+                                        A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                    else:
+                                        A[i + 1][j] = ' - ' + A[k][j]
+                                        A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                        print
+                        print "Updated A is: "
+                        print A
+                        print
+
+            for i in range(len(B)):
+                X = list(X)
+                B[i] = str(B[i])
+
+            n = n - 1
+            if A[n][n] != '1':
+                X[n] =  B[n] + ' / ' + A[n][n] 
+            else:
+                X[n] =  B[n] 
+            print("X(",n,")=",X[n])
+
+            for i in range(1, n + 1):
+                sumprod = ''
+                for j in range(i):
+                    flag = False
+                    if A[n - i][n - j] != '0':
+                        if flag:
+                            sumprod += ' + '
+                        flag = True
+                        if A[n - i][n - j] == '1':
+                            sumprod += str(X[n - j])
+                        else:
+                            sumprod += A[n - i][n - j] + ' * ' + X[n - j]
+                print
+                print "sumprod is: ", sumprod
+
+                if sumprod == '':
+                    if A[n - i][n - i] != '1':
+                        X[n - i] = '(' + B[n - i] + ') / (' + A[n - i][n - i] + ')'
+                    else:
+                        X[n - i] = B[n - i]
+                else:
+                    if A[n - i][n - i] == '1':
+                        X[n - i] = B[n - i] + ' - (' + sumprod + ')'
+                    else:
+                        X[n - i] = '(' + B[n - i] + ' - (' + sumprod + ')) / (' + A[n - i][n - i] + ')'
+                print("X(",n - i,")=",X[n - i])
+                print("\n\n")
+
+            return A, X, B                
                 
         
     # Testing all of my garbage for now
@@ -6806,7 +6951,7 @@ class CPickler(CMill):
 
     def _QSScomponentFunctions(self, mechanism):
 
-        nSpecies = len(mechanism.species())
+        nSpecies = len(mechanism.species()) - self.nQSSspecies
         nReactions = len(mechanism.reaction())
 
         itroe      = self.reactionIndex[0:2]
@@ -6826,10 +6971,11 @@ class CPickler(CMill):
         n3body     = i3body[1]     - i3body[0]
         nsimple    = isimple[1]    - isimple[0]
         nspecial   = ispecial[1]   - ispecial[0]
+
         
         # qss coefficients
         self._write()
-        self._write('void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double * qss_sc, double *  tc, double invT)')
+        self._write('void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc, double invT)')
         self._write('{')
         self._indent()
 
@@ -6841,11 +6987,11 @@ class CPickler(CMill):
             reaction = mechanism.reaction(id=i)
             self._write(self.line('reaction %d: %s' % (reaction.id, reaction.equation())))
             if (len(reaction.ford) > 0):
-                self._write("qf_co[%d] = %s;" % (i, self._QSSsortedPhaseSpace(mechanism, reaction.ford)))
+                self._write("qf_co[%d] = %s;" % (i, self._QSSreturnCoeff(mechanism, reaction.ford)))
             else:
-                self._write("qf_co[%d] = %s;" % (i, self._QSSsortedPhaseSpace(mechanism, reaction.reactants)))
+                self._write("qf_co[%d] = %s;" % (i, self._QSSreturnCoeff(mechanism, reaction.reactants)))
             if reaction.reversible:
-                self._write("qr_co[%d] = %s;" % (i, self._QSSsortedPhaseSpace(mechanism, reaction.products)))
+                self._write("qr_co[%d] = %s;" % (i, self._QSSreturnCoeff(mechanism, reaction.products)))
             else:
                 self._write("qr_co[%d] = 0.0;" % (i))
 
@@ -7082,6 +7228,106 @@ class CPickler(CMill):
         self._outdent()
         self._write('}')
 
+
+        # qss concentrations                                                                                                                                                                                
+        self._write()
+        self._write('void comp_qss_sc(double * qf, double * qr, double * sc, double * sc_qss, double * tc, double * invT)')
+        self._write('{')
+        self._indent()
+
+        self._write()
+        self._write('double qf_co[%d], qr_co[%d];' % (nReactions,nReactions))
+        self._write()
+        self._write('comp_qfqr(qf, qr, sc, sc_qss, tc, invT);')
+        self._write('comp_qss_coeff(qf_co, qr_co, sc, tc, invT);')
+
+        print self.decouple_index
+        print self.needs.keys()
+        print self.group.keys()
+        print self.super_group.keys()
+        
+        for i in self.decouple_index:
+            print self.decouple_index[i]
+
+            symbol = self.decouple_index[i]
+
+            self._write()
+            if symbol in self.needs.keys():
+                denominator = symbol+'_denom'
+                numerator = symbol+'_num'
+
+                self._write(self.line('QSS species '+str(self.qss_list.index(symbol))+': '+symbol))
+                self._write()
+
+                
+                self._write('double %s = epsilon %s;'% (numerator, self.QSS_rhs[symbol]))
+                self._write('double %s = epsilon %s;' % (denominator, self.QSS_coeff[symbol]))
+                self._write()
+                self._write('sc_qss[%s] = %s/%s;' % (self.qss_list.index(symbol), numerator, denominator))
+                self._write()
+                self._write()
+
+            if symbol in self.group.keys():
+
+                Coeff_subMatrix = [['0'] * len(self.group[symbol]) for i in range(len(self.group[symbol]))]
+                RHS_subMatrix = ['0'] * len(self.group[symbol])
+
+                gr_species = self.group[symbol]
+                
+                for index, species in enumerate(gr_species):
+                    print
+                    print species
+                    print index
+                    print
+
+                    self._write(self.line('QSS species '+str(self.qss_list.index(species))+': '+species))
+                    self._write()
+
+                    denominator = species+'_denom'
+                    numerator = species+'_num'
+
+                    self._write('double %s = epsilon %s;'% (numerator, self.QSS_rhs[species]))
+                    self._write('double %s = epsilon %s;' % (denominator, self.QSS_coeff[species]))
+                    self._write('double '+species+'_rhs = '+numerator+'/'+denominator+';')
+                    self._write()
+
+                    
+                    for j in range(len(gr_species)):
+                        if j == index:
+                            Coeff_subMatrix[index][j] = '1'
+                        else:
+                            Coeff_subMatrix[index][j] = str(species)+'_'+str(gr_species[j])
+                            self._write('double '+str(species)+'_'+str(gr_species[j])+' = (epsilon '+self.QSS_groupSp[species]+')/'+denominator+';')
+                            self._write()
+                            
+                    RHS_subMatrix[index] = str(species)+'_rhs'
+                print "A IS "
+                print Coeff_subMatrix
+                print
+                print "B IS "
+                print RHS_subMatrix
+                print
+                A, X, B = self._Gauss_pivoting(Coeff_subMatrix, RHS_subMatrix)
+
+                print "X IS "
+                print X
+
+                for count, species in enumerate(gr_species):
+                    nComponents = len(gr_species) - 1
+                    print
+                    print nComponents
+                    print species
+
+                    self._write('sc_qss['+str(self.qss_list.index(species))+'] = '+X[count]+';')
+                self._write()
+                self._write()
+
+        self._write()
+        self._write('return;')
+        self._outdent()
+        self._write('}')
+
+        
         return
 
 

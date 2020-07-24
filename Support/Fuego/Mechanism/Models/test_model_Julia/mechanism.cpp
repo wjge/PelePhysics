@@ -1712,9 +1712,10 @@ void productionRate(double *  wdot, double *  sc, double T)
     double qdot, q_f[10], q_r[10];
     double sc_qss[8];
     /* Fill sc_qss here*/
+    comp_qss_sc(q_f, q_r, sc, sc_qss, tc, invT);
     comp_qfqr(q_f, q_r, sc, sc_qss, tc, invT);
 
-    for (int i = 0; i < 14; ++i) {
+    for (int i = 0; i < 6; ++i) {
         wdot[i] = 0.0;
     }
 
@@ -1780,7 +1781,7 @@ void comp_k_f(double *  tc, double invT, double *  k_f)
 void comp_Kc(double *  tc, double invT, double *  Kc)
 {
     /*compute the Gibbs free energy */
-    double g_RT[14], g_RT_qss[8];
+    double g_RT[6], g_RT_qss[8];
     gibbs(g_RT, tc);
     gibbs_qss(g_RT_qss, tc);
 
@@ -1857,7 +1858,7 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
 
     /*compute the mixture concentration */
     double mixture = 0.0;
-    for (int i = 0; i < 14; ++i) {
+    for (int i = 0; i < 6; ++i) {
         mixture += sc[i];
     }
 
@@ -1876,54 +1877,54 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
 }
 #endif
 
-void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double * qss_sc, double *  tc, double invT)
+void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc, double invT)
 {
 
     /*reaction 1: O + HO2 => OH + O2 */
-    qf_co[0] = sc[2]*qss_sc[2];
+    qf_co[0] = sc[2];
     qr_co[0] = 0.0;
 
     /*reaction 2: H + HO2 => O + H2O */
-    qf_co[1] = sc[1]*qss_sc[2];
+    qf_co[1] = sc[1];
     qr_co[1] = 0.0;
 
     /*reaction 3: H + H2O2 <=> OH + H2O */
-    qf_co[2] = sc[1]*qss_sc[3];
-    qr_co[2] = sc[3]*qss_sc[1];
+    qf_co[2] = sc[1];
+    qr_co[2] = sc[3];
 
     /*reaction 4: O + CH => H + CO */
-    qf_co[3] = sc[2]*qss_sc[5];
+    qf_co[3] = sc[2];
     qr_co[3] = 0.0;
 
     /*reaction 5: H + CH <=> C + H2 */
-    qf_co[4] = sc[1]*qss_sc[5];
-    qr_co[4] = qss_sc[4]*sc[0];
+    qf_co[4] = sc[1];
+    qr_co[4] = sc[0];
 
     /*reaction 6: O + CH2 <=> H + HCO */
-    qf_co[5] = sc[2]*qss_sc[6];
-    qr_co[5] = sc[1]*sc[5];
+    qf_co[5] = sc[2];
+    qr_co[5] = sc[5];
 
     /*reaction 7: H + O2 <=> O + OH */
-    qf_co[6] = sc[1]*qss_sc[0];
-    qr_co[6] = sc[2]*sc[3];
+    qf_co[6] = sc[1];
+    qr_co[6] = sc[3];
 
     /*reaction 8: H + HO2 <=> 2.000000 OH */
-    qf_co[7] = sc[1]*qss_sc[2];
+    qf_co[7] = sc[1];
     qr_co[7] = pow(sc[3], 2.000000);
 
     /*reaction 9: OH + CO <=> H + CO2 */
-    qf_co[8] = sc[3]*qss_sc[7];
-    qr_co[8] = sc[1]*sc[4];
+    qf_co[8] = sc[3];
+    qr_co[8] = sc[4];
 
     /*reaction 10: OH + CH <=> H + HCO */
-    qf_co[9] = sc[3]*qss_sc[5];
-    qr_co[9] = sc[1]*sc[5];
+    qf_co[9] = sc[3];
+    qr_co[9] = sc[5];
 
     double T = tc[1];
 
     /*compute the mixture concentration */
     double mixture = 0.0;
-    for (int i = 0; i < 14; ++i) {
+    for (int i = 0; i < 6; ++i) {
         mixture += sc[i];
     }
 
@@ -1937,6 +1938,95 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double * qss
         qf_co[i] *= Corr[i] * k_f_save[i];
         qr_co[i] *= Corr[i] * k_f_save[i] / Kc_save[i];
     }
+
+    return;
+}
+
+void comp_qss_sc(double * qf, double * qr, double * sc, double * sc_qss, double * tc, double * invT)
+{
+
+    double qf_co[10], qr_co[10];
+
+    comp_qfqr(qf, qr, sc, sc_qss, tc, invT);
+    comp_qss_coeff(qf_co, qr_co, sc, tc, invT);
+
+    /*QSS species 2: HO2 */
+
+    double HO2_num = epsilon - qr[7];
+    double HO2_denom = epsilon - qf_co[0] - qf_co[1] - qf_co[7];
+
+    sc_qss[2] = HO2_num/HO2_denom;
+
+
+
+    /*QSS species 6: CH2 */
+
+    double CH2_num = epsilon - qr[5];
+    double CH2_denom = epsilon - qf_co[5];
+
+    sc_qss[6] = CH2_num/CH2_denom;
+
+
+
+    /*QSS species 4: C */
+
+    double C_num = epsilon ;
+    double C_denom = epsilon - qr_co[4];
+    double C_rhs = C_num/C_denom;
+
+    double C_CH = (epsilon + qf_co[4])/C_denom;
+
+    /*QSS species 5: CH */
+
+    double CH_num = epsilon - qr[9];
+    double CH_denom = epsilon - qf_co[3] - qf_co[4] - qf_co[9];
+    double CH_rhs = CH_num/CH_denom;
+
+    double CH_C = (epsilon + qr_co[4])/CH_denom;
+
+    sc_qss[4] = C_rhs - (C_CH * (CH_rhs - C_rhs * CH_C) / (1 - C_CH * CH_C));
+    sc_qss[5] = (CH_rhs - C_rhs * CH_C) / (1 - C_CH * CH_C);
+
+
+
+    /*QSS species 0: O2 */
+
+    double O2_num = epsilon - qf_co[0]*sc_qss[0] - qr[6];
+    double O2_denom = epsilon - qf_co[6];
+
+    sc_qss[0] = O2_num/O2_denom;
+
+
+
+    /*QSS species 7: CO */
+
+    double CO_num = epsilon - qf_co[3]*sc_qss[7] - qr[8];
+    double CO_denom = epsilon - qf_co[8];
+
+    sc_qss[7] = CO_num/CO_denom;
+
+
+
+    /*QSS species 1: H2O */
+
+    double H2O_num = epsilon - qf_co[1]*sc_qss[1];
+    double H2O_denom = epsilon - qr_co[2];
+    double H2O_rhs = H2O_num/H2O_denom;
+
+    double H2O_H2O2 = (epsilon + qf_co[2])/H2O_denom;
+
+    /*QSS species 3: H2O2 */
+
+    double H2O2_num = epsilon ;
+    double H2O2_denom = epsilon - qf_co[2];
+    double H2O2_rhs = H2O2_num/H2O2_denom;
+
+    double H2O2_H2O = (epsilon + qr_co[2])/H2O2_denom;
+
+    sc_qss[1] = H2O_rhs - (H2O_H2O2 * (H2O2_rhs - H2O_rhs * H2O2_H2O) / (1 - H2O_H2O2 * H2O2_H2O));
+    sc_qss[3] = (H2O2_rhs - H2O_rhs * H2O2_H2O) / (1 - H2O_H2O2 * H2O2_H2O);
+
+
 
     return;
 }
