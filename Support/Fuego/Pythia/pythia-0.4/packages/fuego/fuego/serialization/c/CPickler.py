@@ -255,8 +255,9 @@ class CPickler(CMill):
         # ORI CPU version
         self._productionRate(mechanism)
         # should be chopped
-        self._test(mechanism)
-        self._QSScomponentFunctions(mechanism)
+        if (self.nQSSspecies > 0):
+            self._test(mechanism)
+            self._QSScomponentFunctions(mechanism)
         # ORI CPU vectorized version
         self._DproductionRatePrecond(mechanism)
         self._DproductionRate(mechanism)
@@ -314,7 +315,10 @@ class CPickler(CMill):
             'void atomicWeight(double *  awt);',
             'void molecularWeight(double *  wt);',
             'AMREX_GPU_HOST_DEVICE void gibbs(double *  species, double *  tc);',
-            'AMREX_GPU_HOST_DEVICE void gibbs_qss(double *  species, double *  tc);',
+             ]
+        if (self.nQSSspecies > 0):
+            self._rep += ['AMREX_GPU_HOST_DEVICE void gibbs_qss(double *  species, double *  tc);',]
+        self._rep += [
             'AMREX_GPU_HOST_DEVICE void helmholtz(double *  species, double *  tc);',
             'AMREX_GPU_HOST_DEVICE void speciesInternalEnergy(double *  species, double *  tc);',
             'AMREX_GPU_HOST_DEVICE void speciesEnthalpy(double *  species, double *  tc);',
@@ -2809,6 +2813,7 @@ class CPickler(CMill):
             for elem, coef in mechanism.species(sp).composition:
                 self._write('ncf[ %d * kd + %d ] = %d; ' % (
                     species.id, mechanism.element(elem).id, coef) + self.line('%s' % elem) )
+            self._write()
                            
         self._write()
                             
@@ -2893,8 +2898,9 @@ class CPickler(CMill):
         self._write()
         self._write('double qdot, q_f[%d], q_r[%d];' % (nReactions,nReactions))
         self._write('double sc_qss[%d];' % (self.nQSSspecies))
-        self._write('/* Fill sc_qss here*/')
-        self._write('comp_qss_sc(q_f, q_r, sc, sc_qss, tc, invT);')
+        if (self.nQSSspecies > 0):
+            self._write('/* Fill sc_qss here*/')
+            self._write('comp_qss_sc(q_f, q_r, sc, sc_qss, tc, invT);')
         self._write('comp_qfqr(q_f, q_r, sc, sc_qss, tc, invT);');
 
         self._write()
@@ -2968,9 +2974,13 @@ class CPickler(CMill):
         self._indent()
 
         self._write(self.line('compute the Gibbs free energy'))
-        self._write('double g_RT[%d], g_RT_qss[%d];' % (self.nSpecies,self.nQSSspecies))
-        self._write('gibbs(g_RT, tc);')
-        self._write('gibbs_qss(g_RT_qss, tc);')
+        if (self.nQSSspecies > 0):
+            self._write('double g_RT[%d], g_RT_qss[%d];' % (self.nSpecies,self.nQSSspecies))
+            self._write('gibbs(g_RT, tc);')
+            self._write('gibbs_qss(g_RT_qss, tc);')
+        else:
+            self._write('double g_RT[%d];' % (self.nSpecies))
+            self._write('gibbs(g_RT, tc);')
 
         self._write()
 
@@ -4174,10 +4184,12 @@ class CPickler(CMill):
 
     def _thermo_GPU(self, mechanism):
         speciesInfo    = self._analyzeThermodynamics(mechanism, 0)
-        QSSspeciesInfo = self._analyzeThermodynamics(mechanism, 1)
+        if (self.nQSSspecies > 0):
+            QSSspeciesInfo = self._analyzeThermodynamics(mechanism, 1)
         
         self._gibbs_GPU(speciesInfo, 0)
-        self._gibbs_GPU(QSSspeciesInfo, 1)
+        if (self.nQSSspecies > 0):
+            self._gibbs_GPU(QSSspeciesInfo, 1)
         self._helmholtz_GPU(speciesInfo)
         self._cv_GPU(speciesInfo)
         self._cp_GPU(speciesInfo)
@@ -4724,6 +4736,7 @@ class CPickler(CMill):
 
 
     def _viscosity(self, mechanism, speciesTransport, do_declarations, NTFit):
+
         #compute single constants in g/cm/s
         kb = 1.3806503e-16
         Na = 6.02214199e23 
@@ -4759,6 +4772,7 @@ class CPickler(CMill):
             spcond = []
             tlog = []
             for n in range(NTFit):
+                #print self.lowT, dt, n
                 t = self.lowT + dt*n
                 #variables
                 #eq. (2)
