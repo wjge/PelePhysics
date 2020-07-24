@@ -1336,20 +1336,26 @@ void CKNCF(int * ncf)
 
     /*H2 */
     ncf[ 0 * kd + 1 ] = 2; /*H */
+
     /*H */
     ncf[ 1 * kd + 1 ] = 1; /*H */
+
     /*O */
     ncf[ 2 * kd + 0 ] = 1; /*O */
+
     /*OH */
     ncf[ 3 * kd + 0 ] = 1; /*O */
     ncf[ 3 * kd + 1 ] = 1; /*H */
+
     /*CO2 */
     ncf[ 4 * kd + 2 ] = 1; /*C */
     ncf[ 4 * kd + 0 ] = 2; /*O */
+
     /*HCO */
     ncf[ 5 * kd + 1 ] = 1; /*H */
     ncf[ 5 * kd + 2 ] = 1; /*C */
     ncf[ 5 * kd + 0 ] = 1; /*O */
+
 
 }
 
@@ -1386,7 +1392,7 @@ void productionRate(double *  wdot, double *  sc, double T)
     double qdot, q_f[10], q_r[10];
     double sc_qss[8];
     /* Fill sc_qss here*/
-    comp_qss_sc(q_f, q_r, sc, sc_qss, tc, invT);
+    comp_qss_sc(sc, sc_qss, tc, invT);
     comp_qfqr(q_f, q_r, sc, sc_qss, tc, invT);
 
     for (int i = 0; i < 6; ++i) {
@@ -1576,11 +1582,11 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
 
     /*reaction 6: O + CH2 <=> H + HCO */
     qf_co[5] = sc[2];
-    qr_co[5] = sc[5];
+    qr_co[5] = sc[1]*sc[5];
 
     /*reaction 7: H + O2 <=> O + OH */
     qf_co[6] = sc[1];
-    qr_co[6] = sc[3];
+    qr_co[6] = sc[2]*sc[3];
 
     /*reaction 8: H + HO2 <=> 2.000000 OH */
     qf_co[7] = sc[1];
@@ -1588,11 +1594,11 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
 
     /*reaction 9: OH + CO <=> H + CO2 */
     qf_co[8] = sc[3];
-    qr_co[8] = sc[4];
+    qr_co[8] = sc[1]*sc[4];
 
     /*reaction 10: OH + CH <=> H + HCO */
     qf_co[9] = sc[3];
-    qr_co[9] = sc[5];
+    qr_co[9] = sc[1]*sc[5];
 
     double T = tc[1];
 
@@ -1616,17 +1622,16 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
     return;
 }
 
-void comp_qss_sc(double * qf, double * qr, double * sc, double * sc_qss, double * tc, double * invT)
+void comp_qss_sc(double * sc, double * sc_qss, double * tc, double * invT)
 {
 
     double qf_co[10], qr_co[10];
 
-    comp_qfqr(qf, qr, sc, sc_qss, tc, invT);
     comp_qss_coeff(qf_co, qr_co, sc, tc, invT);
 
     /*QSS species 2: HO2 */
 
-    double HO2_num = epsilon - qr[7];
+    double HO2_num = epsilon - qr_co[7];
     double HO2_denom = epsilon - qf_co[0] - qf_co[1] - qf_co[7];
 
     sc_qss[2] = HO2_num/HO2_denom;
@@ -1635,7 +1640,7 @@ void comp_qss_sc(double * qf, double * qr, double * sc, double * sc_qss, double 
 
     /*QSS species 6: CH2 */
 
-    double CH2_num = epsilon - qr[5];
+    double CH2_num = epsilon - qr_co[5];
     double CH2_denom = epsilon - qf_co[5];
 
     sc_qss[6] = CH2_num/CH2_denom;
@@ -1652,7 +1657,7 @@ void comp_qss_sc(double * qf, double * qr, double * sc, double * sc_qss, double 
 
     /*QSS species 5: CH */
 
-    double CH_num = epsilon - qr[9];
+    double CH_num = epsilon - qr_co[9];
     double CH_denom = epsilon - qf_co[3] - qf_co[4] - qf_co[9];
     double CH_rhs = CH_num/CH_denom;
 
@@ -1665,7 +1670,7 @@ void comp_qss_sc(double * qf, double * qr, double * sc, double * sc_qss, double 
 
     /*QSS species 0: O2 */
 
-    double O2_num = epsilon - qf_co[0]*sc_qss[0] - qr[6];
+    double O2_num = epsilon - qf_co[0]*sc_qss[0] - qr_co[6];
     double O2_denom = epsilon - qf_co[6];
 
     sc_qss[0] = O2_num/O2_denom;
@@ -1674,7 +1679,7 @@ void comp_qss_sc(double * qf, double * qr, double * sc, double * sc_qss, double 
 
     /*QSS species 7: CO */
 
-    double CO_num = epsilon - qf_co[3]*sc_qss[7] - qr[8];
+    double CO_num = epsilon - qf_co[3]*sc_qss[7] - qr_co[8];
     double CO_denom = epsilon - qf_co[8];
 
     sc_qss[7] = CO_num/CO_denom;

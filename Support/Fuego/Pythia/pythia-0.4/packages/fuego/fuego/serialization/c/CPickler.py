@@ -2900,7 +2900,7 @@ class CPickler(CMill):
         self._write('double sc_qss[%d];' % (self.nQSSspecies))
         if (self.nQSSspecies > 0):
             self._write('/* Fill sc_qss here*/')
-            self._write('comp_qss_sc(q_f, q_r, sc, sc_qss, tc, invT);')
+            self._write('comp_qss_sc(sc, sc_qss, tc, invT);')
         self._write('comp_qfqr(q_f, q_r, sc, sc_qss, tc, invT);');
 
         self._write()
@@ -6696,7 +6696,7 @@ class CPickler(CMill):
                             print("MOVE THIS SPECIES TO RHS")
                             print
                             print
-                            rhs_hold.append('- qr['+str(r)+']')
+                            rhs_hold.append('- qr_co['+str(r)+']')
                         else:
                             print("not reversible => qr = 0")
                             print
@@ -6709,7 +6709,7 @@ class CPickler(CMill):
                             coeff_hold.append('- qr_co['+str(r)+']')
                         print("for species ", self.qss_species_list[i], " in reaction ", r, " is a product")
                         print("MOVE THIS SPECIES TO RHS")
-                        rhs_hold.append('- qf['+str(r)+']')
+                        rhs_hold.append('- qf_co['+str(r)+']')
                 else:
                     # print("reaction ", r, " only contains QSS species ", self.qss_species_list[i])
                     print
@@ -7057,6 +7057,8 @@ class CPickler(CMill):
 
     def _QSSreturnCoeff(self, mechanism, reagents):
 
+        phi = []
+        
         # Simpler way would be 'for symbol in self.nonqss_species_list'
         for symbol, coefficient in sorted(reagents,key=lambda x:mechanism.species(x[0]).id):
             if symbol not in self.qss_species_list:
@@ -7065,8 +7067,8 @@ class CPickler(CMill):
                     conc = "sc[%d]" % self.ordered_idx_map[symbol]
                 else:
                     conc = "pow(sc[%d], %f)" % (self.ordered_idx_map[symbol], float(coefficient))
-                    
-        return conc
+                phi += [conc]     
+        return "*".join(phi)
 
 
     def _QSScomponentFunctions(self, mechanism):
@@ -7352,14 +7354,13 @@ class CPickler(CMill):
 
         # qss concentrations                                                                                                                                                                                
         self._write()
-        self._write('void comp_qss_sc(double * qf, double * qr, double * sc, double * sc_qss, double * tc, double * invT)')
+        self._write('void comp_qss_sc(double * sc, double * sc_qss, double * tc, double * invT)')
         self._write('{')
         self._indent()
 
         self._write()
         self._write('double qf_co[%d], qr_co[%d];' % (nReactions,nReactions))
         self._write()
-        self._write('comp_qfqr(qf, qr, sc, sc_qss, tc, invT);')
         self._write('comp_qss_coeff(qf_co, qr_co, sc, tc, invT);')
 
         print self.decouple_index
