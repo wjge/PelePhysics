@@ -7063,7 +7063,6 @@ class CPickler(CMill):
     def _QSSreturnCoeff(self, mechanism, reagents):
 
         phi = []
-
         for symbol, coefficient in sorted(reagents,key=lambda x:mechanism.species(x[0]).id):
             if symbol not in self.qss_species_list:
                 if (float(coefficient) == 1.0):
@@ -7071,6 +7070,8 @@ class CPickler(CMill):
                 else:
                     conc = "pow(sc[%d], %f)" % (self.ordered_idx_map[symbol], float(coefficient))
                 phi += [conc]     
+            if (len(phi) < 1):
+                phi = ["0.0"]
         return "*".join(phi)
 
 
