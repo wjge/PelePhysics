@@ -4042,6 +4042,11 @@ class CPickler(CMill):
         # compute the reference concentration
         self._write(self.line('reference concentration: P_atm / (RT) in inverse mol/m^3'))
         self._write('double refC = %g / %g / T;' % (atm.value, R.value))
+           
+        if (self.nQSSspecies > 0):
+            self._write('double tc[] = { log(T), T, T*T, T*T*T, T*T*T*T }; /*temperature cache */')
+            self._write('g_RT_qss[%d];' % (self.nQSSspecies))
+            self._write('gibbs_qss(g_RT_qss, tc);')
 
         # compute the equilibrium constants
         for reaction in mechanism.reaction():
