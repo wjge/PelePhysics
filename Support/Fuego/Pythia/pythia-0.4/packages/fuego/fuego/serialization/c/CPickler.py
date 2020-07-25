@@ -7356,6 +7356,7 @@ class CPickler(CMill):
 
         self._write()
         self._write('double  qf_co[%d], qr_co[%d];' % (nReactions,nReactions))
+        self._write('double epsilon = 1e-16')
         self._write()
         self._write('comp_qss_coeff(qf_co, qr_co, sc, tc, invT);')
 
@@ -7378,8 +7379,8 @@ class CPickler(CMill):
                 self._write()
 
                 
-                self._write('double %s = smallnum %s;'% (numerator, self.QSS_rhs[symbol]))
-                self._write('double %s = smallnum %s;' % (denominator, self.QSS_coeff[symbol]))
+                self._write('double %s = epsilon %s;'% (numerator, self.QSS_rhs[symbol]))
+                self._write('double %s = epsilon %s;' % (denominator, self.QSS_coeff[symbol]))
                 self._write()
                 self._write('sc_qss[%s] = %s/%s;' % (self.qss_species_list.index(symbol), numerator, denominator))
                 self._write()
@@ -7404,8 +7405,8 @@ class CPickler(CMill):
                     denominator = species+'_denom'
                     numerator = species+'_num'
 
-                    self._write('double %s = smallnum %s;'% (numerator, self.QSS_rhs[species]))
-                    self._write('double %s = smallnum %s;' % (denominator, self.QSS_coeff[species]))
+                    self._write('double %s = epsilon %s;'% (numerator, self.QSS_rhs[species]))
+                    self._write('double %s = epsilon %s;' % (denominator, self.QSS_coeff[species]))
                     self._write('double '+species+'_rhs = '+numerator+'/'+denominator+';')
                     self._write()
 
@@ -7415,7 +7416,7 @@ class CPickler(CMill):
                             Coeff_subMatrix[index][j] = '1'
                         else:
                             Coeff_subMatrix[index][j] = str(species)+'_'+str(gr_species[j])
-                            self._write('double '+str(species)+'_'+str(gr_species[j])+' = (smallnum '+self.QSS_groupSp[species]+')/'+denominator+';')
+                            self._write('double '+str(species)+'_'+str(gr_species[j])+' = (epsilon '+self.QSS_groupSp[species]+')/'+denominator+';')
                             self._write()
                             
                     RHS_subMatrix[index] = str(species)+'_rhs'
@@ -7465,8 +7466,8 @@ class CPickler(CMill):
                     denominator = species+'_denom'
                     numerator = species+'_num'
 
-                    self._write('double %s = smallnum %s;'% (numerator, self.QSS_rhs[species]))
-                    self._write('double %s = smallnum %s;' % (denominator, self.QSS_coeff[species]))
+                    self._write('double %s = epsilon %s;'% (numerator, self.QSS_rhs[species]))
+                    self._write('double %s = epsilon %s;' % (denominator, self.QSS_coeff[species]))
                     self._write('double '+species+'_rhs = '+numerator+'/'+denominator+';')
                     self._write()
 
@@ -7476,7 +7477,7 @@ class CPickler(CMill):
                             Coeff_subMatrix[index][j] = '1'
                         else:
                             Coeff_subMatrix[index][j] = str(species)+'_'+str(supergr_species[j])
-                            self._write('double '+str(species)+'_'+str(supergr_species[j])+' = (smallnum '+self.QSS_supergroupSp[species][supergr_species[j]]+')/'+denominator+';')
+                            self._write('double '+str(species)+'_'+str(supergr_species[j])+' = (epsilon '+self.QSS_supergroupSp[species][supergr_species[j]]+')/'+denominator+';')
                             self._write()
                             
                     RHS_subMatrix[index] = str(species)+'_rhs'

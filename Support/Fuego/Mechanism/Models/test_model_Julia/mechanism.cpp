@@ -1625,7 +1625,8 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
 void comp_qss_sc(double * sc, double * sc_qss, double * tc, double * invT)
 {
 
-    double qf_co[10], qr_co[10];
+    double  qf_co[10], qr_co[10];
+    double epsilon = 1e-16
 
     comp_qss_coeff(qf_co, qr_co, sc, tc, invT);
 
