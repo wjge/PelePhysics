@@ -7364,7 +7364,7 @@ class CPickler(CMill):
 
         self._write()
         self._write('double  qf_co[%d], qr_co[%d];' % (nReactions,nReactions))
-        self._write('double epsilon = 1e-16')
+        self._write('double epsilon = 1e-16;')
         self._write()
         self._write('comp_qss_coeff(qf_co, qr_co, sc, tc, invT);')
 
