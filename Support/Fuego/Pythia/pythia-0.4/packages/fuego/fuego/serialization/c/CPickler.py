@@ -4045,7 +4045,7 @@ class CPickler(CMill):
            
         if (self.nQSSspecies > 0):
             self._write('double tc[] = { log(T), T, T*T, T*T*T, T*T*T*T }; /*temperature cache */')
-            self._write('g_RT_qss[%d];' % (self.nQSSspecies))
+            self._write('double g_RT_qss[%d];' % (self.nQSSspecies))
             self._write('gibbs_qss(g_RT_qss, tc);')
 
         # compute the equilibrium constants
