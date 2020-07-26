@@ -77,9 +77,8 @@ class CPickler(CMill):
         self.reactionIndex = []
         self.lowT = 100.0
         self.highT = 10000.0
-
-        # idk if these should be put elsewhere (or if this is even the best way to do this)
-        self.QSS_mech_index = {}
+        self.qssReactions = []
+        self.nqssReactions = 0
         return
 
 
@@ -3037,7 +3036,8 @@ class CPickler(CMill):
 
         nclassd = nReactions - nspecial
         nCorr   = n3body + ntroe + nsri + nlindemann
-
+       
+        
         for i in range(nclassd):
             self._write()
             reaction = mechanism.reaction(id=i)
@@ -6068,13 +6068,23 @@ class CPickler(CMill):
             reactant_list = []
             product_list = []
             reaction_number = i
+
+            qss_reaction = False
+        
+    
             # get a list of species involved in the reactants and products
             for symbol, coefficient in r.reactants:
                 if symbol in self.qss_species_list:
+                    qss_reaction = True
                     reactant_list.append(symbol)
             for	symbol,	coeffecient in r.products:
                 if symbol in self.qss_species_list:
+                    qss_reaction = True
                     product_list.append(symbol)
+
+            if qss_reaction:
+                self.qssReactions.append(reaction_number)
+        
             # if qss species s is in reaction number i, 
             # denote they are linked in the Species-Reaction network
             # with negative if s is a reactant(consumed) and positive if s is a product(produced)
@@ -6083,6 +6093,10 @@ class CPickler(CMill):
             for s in product_list:
                 self.QSS_SRnet[mechanism.qss_species(s).id][reaction_number] = 1
         
+        self.nqssReactions = len(self.qssReactions)
+        
+
+                
     def _setQSSneeds(self, mechanism):
 
         self.needs = OrderedDict()
@@ -7093,16 +7107,70 @@ class CPickler(CMill):
         isimple    = self.reactionIndex[4:6]
         ispecial   = self.reactionIndex[5:7]
 
+        print
+        print
+        print "itroe is: ", itroe
+        print
+        print
+
+        ntroe_qss = 0
+        nsri_qss = 0
+        nlindemann_qss = 0
+        n3body_qss = 0
+        nsimple_qss = 0
+        nspecial_qss = 0
+
+        itroe_qss = [0,0]
+        isri_qss = [0,0]
+        ilindemann_qss = [0,0]
+        i3body_qss = [0,0]
+        isimple_qss = [0,0]
+        ispecial_qss = [0,0]
+        
+        for reaction in self.qssReactions:
+            if reaction >= itroe[0] and reaction < itroe[1]:
+                ntroe_qss += 1
+                if not itroe_qss:
+                    itroe_qss[0] = self.qssReactions.index(reaction)
+                itroe_qss[1] = self.qssReactions.index(reaction)
+            elif reaction >= isri[0] and reaction < isri[1]:
+                nsri_qss += 1
+                if not isri_qss:
+                    isri_qss[0] = self.qssReactions.index(reaction)
+                isri_qss[1] = self.qssReactions.index(reaction)
+            elif reaction >= ilindemann[0] and reaction < ilindemann[1]:
+                nlindemann_qss += 1
+                if not ilindemann_qss:
+                    ilindemann_qss[0] = self.qssReactions.index(reaction)
+                ilindemann_qss[1] = self.qssReactions.index(reaction)
+            elif reaction >= i3body[0] and reaction < i3body[1]:
+                n3body_qss += 1
+                if not i3body_qss:
+                    i3body_qss[0] = self.qssReactions.index(reaction)
+                i3body_qss[1] = self.qssReactions.index(reaction)
+            elif reaction >= isimple[0] and reaction < isimple[1]:
+                nsimple_qss += 1
+                if not isimple_qss:
+                    isimple_qss[0] = self.qssReactions.index(reaction)
+                isimple_qss[1] = self.qssReactions.index(reaction)
+            elif reaction >= ispecial[0] and reaction < ispecial[1]:
+                nspecial_qss += 1
+                if not ispecial_qss:
+                    ispecial_qss[0] = self.qssReactions.index(reaction)
+                ispecial_qss[1] = self.qssReactions.index(reaction)
+
+
+                
         if len(self.reactionIndex) != 7:
             print '\n\nCheck this!!!\n'
             sys.exit(1)
         
-        ntroe      = itroe[1]      - itroe[0]
-        nsri       = isri[1]       - isri[0]
-        nlindemann = ilindemann[1] - ilindemann[0]
-        n3body     = i3body[1]     - i3body[0]
-        nsimple    = isimple[1]    - isimple[0]
-        nspecial   = ispecial[1]   - ispecial[0]
+        # ntroe      = itroe[1]      - itroe[0]
+        # nsri       = isri[1]       - isri[0]
+        # nlindemann = ilindemann[1] - ilindemann[0]
+        # n3body     = i3body[1]     - i3body[0]
+        # nsimple    = isimple[1]    - isimple[0]
+        # nspecial   = ispecial[1]   - ispecial[0]
 
         
         # qss coefficients
@@ -7111,12 +7179,12 @@ class CPickler(CMill):
         self._write('{')
         self._indent()
 
-        nclassd = nReactions - nspecial
-        nCorr   = n3body + ntroe + nsri + nlindemann
+        nclassd_qss = self.nqssReactions - nspecial_qss
+        nCorr_qss   = n3body_qss + ntroe_qss + nsri_qss + nlindemann_qss
 
-        for i in range(nclassd):
+        for i in range(nclassd_qss):
             self._write()
-            reaction = mechanism.reaction(id=i)
+            reaction = mechanism.reaction(id=self.qssReactions[i])
             self._write(self.line('reaction %d: %s' % (reaction.id, reaction.equation())))
             if (len(reaction.ford) > 0):
                 self._write("qf_co[%d] = %s;" % (i, self._QSSreturnCoeff(mechanism, reaction.ford)))
@@ -7139,23 +7207,23 @@ class CPickler(CMill):
         self._write('}')
 
         self._write()
-        self._write("double Corr[%d];" % nclassd)
-        self._write('for (int i = 0; i < %d; ++i) {' % nclassd)
+        self._write("double Corr[%d];" % nclassd_qss)
+        self._write('for (int i = 0; i < %d; ++i) {' % nclassd_qss)
         self._indent()
         self._write('Corr[i] = 1.0;')
         self._outdent()
         self._write('}')
 
-        if ntroe > 0:
+        if ntroe_qss > 0:
             self._write()
             self._write(self.line(" troe"))
             self._write("{")
             self._indent()
-            self._write("double alpha[%d];" % ntroe)
+            self._write("double alpha[%d];" % ntroe_qss)
             alpha_d = {}
-            for i in range(itroe[0],itroe[1]):
-                ii = i - itroe[0]
-                reaction = mechanism.reaction(id=i)
+            for i in range(itroe_qss[0],itroe_qss[1]):
+                ii = i - itroe_qss[0]
+                reaction = mechanism.reaction(id=self.qssReactions[i])
                 if reaction.thirdBody:
                     alpha = self._enhancement(mechanism, reaction)
                     if alpha in alpha_d:
@@ -7164,7 +7232,7 @@ class CPickler(CMill):
                         self._write("alpha[%d] = %s;" %(ii,alpha))
                         alpha_d[alpha] = "alpha[%d]" % ii
 
-            if ntroe >= 4:
+            if ntroe_qss >= 4:
                 self._outdent()
                 self._outdent()
                 self._write('#ifdef __INTEL_COMPILER')
@@ -7176,11 +7244,11 @@ class CPickler(CMill):
                 self._write('#endif')
                 self._indent()
                 self._indent()
-            self._write("for (int i=%d; i<%d; i++)" %(itroe[0],itroe[1]))
+            self._write("for (int i=%d; i<%d; i++)" %(itroe_qss[0],itroe_qss[1]))
             self._write("{")
             self._indent()
             self._write("double redP, F, logPred, logFcent, troe_c, troe_n, troe, F_troe;")
-            self._write("redP = alpha[i-%d] / k_f_save[i] * phase_units[i] * low_A[i] * exp(low_beta[i] * tc[0] - activation_units[i] * low_Ea[i] *invT);" % itroe[0])
+            self._write("redP = alpha[i-%d] / k_f_save[i] * phase_units[i] * low_A[i] * exp(low_beta[i] * tc[0] - activation_units[i] * low_Ea[i] *invT);" % itroe_qss[0])
             self._write("F = redP / (1.0 + redP);")
             self._write("logPred = log10(redP);")
             self._write('logFcent = log10(')
@@ -7198,17 +7266,17 @@ class CPickler(CMill):
             self._outdent()
             self._write("}")
 
-        if nsri > 0:
+        if nsri_qss > 0:
             self._write()
             self._write(self.line(" SRI"))
             self._write("{")
             self._indent()
-            self._write("double alpha[%d];" % nsri)
+            self._write("double alpha[%d];" % nsri_qss)
             self._write("double redP, F, X, F_sri;")
             alpha_d = {}
-            for i in range(isri[0],isri[1]):
-                ii = i - isri[0]
-                reaction = mechanism.reaction(id=i)
+            for i in range(isri_qss[0],isri_qss[1]):
+                ii = i - isri_qss[0]
+                reaction = mechanism.reaction(id=self.qssReactions[i])
                 if reaction.thirdBody:
                     alpha = self._enhancement(mechanism, reaction)
                     if alpha in alpha_d:
@@ -7217,7 +7285,7 @@ class CPickler(CMill):
                         self._write("alpha[%d] = %s;" %(ii,alpha))
                         alpha_d[alpha] = "alpha[%d]" % ii
 
-            if nsri >= 4:
+            if nsri_qss >= 4:
                 self._outdent()
                 self._outdent()
                 self._write('#ifdef __INTEL_COMPILER')
@@ -7229,10 +7297,10 @@ class CPickler(CMill):
                 self._write('#endif')
                 self._indent()
                 self._indent()
-            self._write("for (int i=%d; i<%d; i++)" %(isri[0],isri[1]))
+            self._write("for (int i=%d; i<%d; i++)" %(isri_qss[0],isri_qss[1]))
             self._write("{")
             self._indent()
-            self._write("redP = alpha[i-%d] / k_f_save[i] * phase_units[i] * low_A[i] * exp(low_beta[i] * tc[0] - activation_units[i] * low_Ea[i] *invT);" % itroe[0])
+            self._write("redP = alpha[i-%d] / k_f_save[i] * phase_units[i] * low_A[i] * exp(low_beta[i] * tc[0] - activation_units[i] * low_Ea[i] *invT);" % itroe_qss[0])
             self._write("F = redP / (1.0 + redP);")
             self._write("logPred = log10(redP);")
             self._write("X = 1.0 / (1.0 + logPred*logPred);")
@@ -7246,19 +7314,19 @@ class CPickler(CMill):
             self._outdent()
             self._write("}")
 
-        if nlindemann > 0:
+        if nlindemann_qss > 0:
             self._write()
             self._write(self.line(" Lindemann"))
             self._write("{")
             self._indent()
             if nlindemann > 1:
-                self._write("double alpha[%d];" % nlindemann)
+                self._write("double alpha[%d];" % nlindemann_qss)
             else:
                 self._write("double alpha;")
 
-            for i in range(ilindemann[0],ilindemann[1]):
-                ii = i - ilindemann[0]
-                reaction = mechanism.reaction(id=i)
+            for i in range(ilindemann_qss[0],ilindemann_qss[1]):
+                ii = i - ilindemann_qss[0]
+                reaction = mechanism.reaction(id=self.qssReactions[i])
                 if reaction.thirdBody:
                     alpha = self._enhancement(mechanism, reaction)
                     if nlindemann > 1:
@@ -7266,12 +7334,12 @@ class CPickler(CMill):
                     else:
                         self._write("alpha = %s;" %(alpha))
 
-            if nlindemann == 1:
+            if nlindemann_qss == 1:
                 self._write("double redP = alpha / k_f_save[%d] * phase_units[%d] * low_A[%d] * exp(low_beta[%d] * tc[0] - activation_units[%d] * low_Ea[%d] * invT);" 
-                            % (ilindemann[0],ilindemann[0],ilindemann[0],ilindemann[0],ilindemann[0],ilindemann[0]))
-                self._write("Corr[%d] = redP / (1. + redP);" % ilindemann[0])
+                            % (ilindemann_qss[0],ilindemann_qss[0],ilindemann_qss[0],ilindemann_qss[0],ilindemann_qss[0],ilindemann_qss[0]))
+                self._write("Corr[%d] = redP / (1. + redP);" % ilindemann_qss[0])
             else:
-                if nlindemann >= 4:
+                if nlindemann_qss >= 4:
                     self._outdent()
                     self._write('#ifdef __INTEL_COMPILER')
                     self._indent()
@@ -7279,11 +7347,11 @@ class CPickler(CMill):
                     self._outdent()
                     self._write('#endif')
                     self._indent()
-                self._write("for (int i=%d; i<%d; i++)" % (ilindemann[0], ilindemann[1]))
+                self._write("for (int i=%d; i<%d; i++)" % (ilindemann_qss[0], ilindemann_qss[1]))
                 self._write("{")
                 self._indent()
                 self._write("double redP = alpha[i-%d] / k_f_save[i] * phase_units[i] * low_A[i] * exp(low_beta[i] * tc[0] - activation_units[i] * low_Ea[i] * invT);"
-                            % ilindemann[0])
+                            % ilindemann_qss[0])
                 self._write("Corr[i] = redP / (1. + redP);")
                 self._outdent()
                 self._write('}')
@@ -7291,15 +7359,15 @@ class CPickler(CMill):
             self._outdent()
             self._write("}")
 
-        if n3body > 0:
+        if n3body_qss > 0:
             self._write()
             self._write(self.line(" simple three-body correction"))
             self._write("{")
             self._indent()
             self._write("double alpha;")
             alpha_save = ""
-            for i in range(i3body[0],i3body[1]):
-                reaction = mechanism.reaction(id=i)
+            for i in range(i3body_qss[0],i3body_qss[1]):
+                reaction = mechanism.reaction(id=self.qssReactions[i])
                 if reaction.thirdBody:
                     alpha = self._enhancement(mechanism, reaction)
                     if alpha != alpha_save:
@@ -7310,7 +7378,7 @@ class CPickler(CMill):
             self._write("}")
 
         self._write()
-        self._write("for (int i=0; i<%d; i++)" % nclassd)
+        self._write("for (int i=0; i<%d; i++)" % nclassd_qss)
         self._write("{")
         self._indent()
         self._write("qf_co[i] *= Corr[i] * k_f_save[i];")
@@ -7318,16 +7386,16 @@ class CPickler(CMill):
         self._outdent()
         self._write("}")
         
-        if nspecial > 0:
+        if nspecial_qss > 0:
 
-            print "\n\n ***** WARNING: %d unclassified reactions\n" % nspecial
+            print "\n\n ***** WARNING: %d unclassified reactions\n" % nspecial_qss
 
             self._write()
             self._write(self.line('unclassified reactions'))
             self._write('{')
             self._indent()
 
-            self._write(self.line("reactions: %d to %d" % (ispecial[0]+1,ispecial[1])))
+            self._write(self.line("reactions: %d to %d" % (ispecial_qss[0]+1,ispecial_qss[1])))
 
             #self._write('double Kc;                      ' + self.line('equilibrium constant'))
             self._write('double k_f;                     ' + self.line('forward reaction rate'))
@@ -7339,9 +7407,9 @@ class CPickler(CMill):
             self._write('double phi_r;                   ' + self.line('reverse phase space factor'))
             self._write('double alpha;                   ' + self.line('enhancement'))
 
-            for i in range(ispecial[0],ispecial[1]):
+            for i in range(ispecial_qss[0],ispecial_qss[1]):
                 self._write()
-                reaction = mechanism.reaction(id=i)
+                reaction = mechanism.reaction(id=self.qssReactions[i])
                 self._write(self.line('reaction %d: %s' % (reaction.id, reaction.equation())))
 
                 # compute the rates
@@ -7349,8 +7417,8 @@ class CPickler(CMill):
                 self._reverseRate(mechanism, reaction)
 
                 # store the progress rate
-                self._write("qf[%d] = q_f;" % i)
-                self._write("qr[%d] = q_r;" % i)
+                self._write("qf_co[%d] = q_f;" % i)
+                self._write("qr_co[%d] = q_r;" % i)
 
             self._outdent()
             self._write('}')
@@ -7368,7 +7436,7 @@ class CPickler(CMill):
         self._indent()
 
         self._write()
-        self._write('double  qf_co[%d], qr_co[%d];' % (nReactions,nReactions))
+        self._write('double  qf_co[%d], qr_co[%d];' % (self.nqssReactions,self.nqssReactions))
         self._write('double epsilon = 1e-16;')
         self._write()
         self._write('comp_qss_coeff(qf_co, qr_co, sc, tc, invT);')

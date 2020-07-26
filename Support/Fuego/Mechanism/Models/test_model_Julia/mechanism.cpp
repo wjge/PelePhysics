@@ -1622,11 +1622,11 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
     return;
 }
 
-void comp_qss_sc(double * sc, double * sc_qss, double * tc, double * invT)
+void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 {
 
     double  qf_co[10], qr_co[10];
-    double epsilon = 1e-16
+    double epsilon = 1e-16;
 
     comp_qss_coeff(qf_co, qr_co, sc, tc, invT);
 
@@ -2185,6 +2185,9 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
 {
     /*reference concentration: P_atm / (RT) in inverse mol/m^3 */
     double refC = 101325 / 8.31446 / T;
+    double tc[] = { log(T), T, T*T, T*T*T, T*T*T*T }; /*temperature cache */
+    double g_RT_qss[8];
+    gibbs_qss(g_RT_qss, tc);
 
     /*reaction 1: O + HO2 => OH + O2 */
     kc[0] = exp((g_RT[2] + g_RT_qss[2]) - (g_RT[4] + g_RT_qss[0]));
