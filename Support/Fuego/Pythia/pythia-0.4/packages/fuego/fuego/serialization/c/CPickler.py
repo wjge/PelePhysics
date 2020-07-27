@@ -6207,8 +6207,8 @@ class CPickler(CMill):
                         potential_super_group.append(needs)
                         self.super_group['super_group_'+str(super_group_count)] = potential_super_group
 
-                        alread_accounted_for.append((member,needs))
-                        supergroup_count += 1
+                        already_accounted_for.append((member,needs))
+                        super_group_count += 1
 
         print
         print("The super groups are: ", self.super_group)
@@ -6262,6 +6262,12 @@ class CPickler(CMill):
     # group member is needed by species -> group is needed by species
     def _updateGroupNeeds(self, mechanism):
 
+        print
+        print "NEEDS ARE: ", self.needs_running
+        print "IS NEEDED ARE: ", self.is_needed_running
+        print
+        print
+        
         for group_key in self.group.keys():
             
             update_needs = []
@@ -6276,11 +6282,13 @@ class CPickler(CMill):
             
             other_groups = self.group.keys()
             other_groups.remove(group_key)
-            
-            # print("other groups are: ", other_groups)
-            # print("we are in group: ", group_key)
-            # print(self.group[group_key])
+            print
+            print("other groups are: ", other_groups)
+            print("we are in group: ", group_key)
+            print(self.group[group_key])
 
+            print
+            print
             # for each species in the current group
             for spec in self.group[group_key]:
                 print("for group member: ",spec)
@@ -6295,11 +6303,16 @@ class CPickler(CMill):
                             print("this is in a different group")
                             not_in_group = False
                             update_needs.append(other_group)
+                            print "UPDATE_NEEDS IS: ", update_needs
                             update_needs_count += 1
-                    # alternatively, if this is just a solo need that's not in another group, update the group needs with just that need. 
-                    if not_in_group and need not in update_needs:
+                        elif other_group in update_needs and any(member == need for member in self.group[other_group]):
+                            print "This group was already put in the list due to the fact that another species in the group is needed by the current species."
+                            not_in_group = False
+                    # alternatively, if this is just a solo need that's not in another group, update the group needs with just that need.
+                    if not_in_group and need not in update_needs and not any():
                         print("Need ", need, " was not in a group")
                         update_needs.append(need)
+                        print "UPDATE_NEEDS IS: ", update_needs
                         update_needs_count += 1
                 # look at any additional species (outside of the group) that depend on the current group member
                 for needed in list(set(self.is_needed_running[spec]) - set(self.group[group_key])):
@@ -6310,16 +6323,30 @@ class CPickler(CMill):
                         if other_group not in update_is_needed and any(member == needed for member in self.group[other_group]):
                             not_in_group = False
                             update_is_needed.append(other_group)
+                            print "UPDATE_IS_NEEDED IS: ", update_is_needed
                             update_needed_count += 1
+                        elif other_group in update_is_needed and any(member == needed for member in self.group[other_group]):
+                            print "This group was already put in the list due to the fact that another species in the group is needed by the current species."
+                            not_in_group = False
                     # if the species is not in another group, then that lone species just depends on the current group. 
                     if not_in_group and needed not in update_is_needed:
                         update_is_needed.append(needed)
+                        print "UPDATE_IS_NEEDED IS: ", update_is_needed
                         update_needed_count += 1
 
-                del self.needs_running[spec]
-                del self.needs_count_running[spec]
-                del self.is_needed_running[spec]
+                # del self.needs_running[spec]
+                # del self.needs_count_running[spec]
+                # del self.is_needed_running[spec]
 
+                print
+                print "NEEDS ARE: ", self.needs_running
+                print "IS NEEDED ARE: ", self.is_needed_running
+                print
+                print
+
+        
+                    
+                
             group_needs[group_key] = update_needs
             group_needs_count[group_key] = update_needs_count
             group_is_needed[group_key] = update_is_needed
@@ -6330,12 +6357,21 @@ class CPickler(CMill):
             self.is_needed_running.update(group_is_needed)
             self.is_needed_count_running.update(group_is_needed_count)
 
+        for group in self.group.keys():
+            for spec in self.group[group]:
+                if spec in self.needs_running:
+                    del self.needs_running[spec]
+                    del self.needs_count_running[spec]
+                    del self.is_needed_running[spec]
+            
         print
+        print "This is the final needs running and is_needed running: "
         print(self.needs_running)
         print(self.needs_count_running)
         print(self.is_needed_running)
         print(self.is_needed_count_running)
-
+        print
+        print
         
     # Update solo species dependendent on group members with group names:
     # species needs member -> species needs group
@@ -6375,6 +6411,9 @@ class CPickler(CMill):
 
                         update_needs.append(group)
                         update_needs_count += 1
+                    elif group in update_needs and any(member == need for member in self.group[group]):
+                        print "This group was already put in the list due to the fact that another species in the group is needed by the current species."
+                        not_in_group = False
                 if not_in_group and need not in update_needs:
 
                     update_needs.append(need)
@@ -6388,6 +6427,10 @@ class CPickler(CMill):
 
                         update_is_needed.append(group)
                         update_needed_count +=1
+                    if group in update_is_needed and any(member == needed for member in self.group[group]):
+                        print "This group was already put in the list due to the fact that another species in the group is needed by the current species."
+                        not_in_group = False
+                        
 
                 if not_in_group and needed not in update_is_needed:
 
@@ -6403,7 +6446,8 @@ class CPickler(CMill):
         self.needs_count_running.update(solo_needs_count)
         self.is_needed_running.update(solo_is_needed)
         self.is_needed_count_running.update(solo_is_needed_count)
-
+       
+        
         print
         print(self.needs_running)
         print(self.needs_count_running)
@@ -6456,6 +6500,9 @@ class CPickler(CMill):
                             not_in_super_group = False
                             update_needs.append(other_super_group)
                             update_needs_count += 1
+                        elif other_super_group in update_needs and any(member == need for member in self.super_group[other_super_group]):
+                            print "This supergroup has already been accounted for by another component's needs"
+                            not_in_super_group = False
                     # alternatively, if this is just a solo need that's not in another group, update the group needs with just that need. 
                     if not_in_super_group and need not in update_needs:
                         print("Need ", need, " was not in a super group")
@@ -6471,14 +6518,14 @@ class CPickler(CMill):
                             not_in_super_group = False
                             update_is_needed.append(other_super_group)
                             update_needed_count += 1
+                        elif other_super_group in update_is_needed and any(member == need for member in self.super_group[other_super_group]):
+                            print "This supergroup has already been accounted for by another component's needs"
+                            not_in_super_group = False
                     # if the species is not in another group, then that lone species just depends on the current group. 
                     if not_in_super_group and needed not in update_is_needed:
                         update_is_needed.append(needed)
                         update_needed_count += 1
 
-                del self.needs_running[spec]
-                del self.needs_count_running[spec]
-                del self.is_needed_running[spec]
 
             super_group_needs[super_group_key] = update_needs
             super_group_needs_count[super_group_key] = update_needs_count
@@ -6490,7 +6537,17 @@ class CPickler(CMill):
             self.is_needed_running.update(super_group_is_needed)
             self.is_needed_count_running.update(super_group_is_needed_count)
 
+        
+        for super_group in self.super_group.keys():
+            for spec in self.super_group[super_group]:
+                if spec in self.needs_running:
+                    del self.needs_running[spec]
+                    del self.needs_count_running[spec]
+                    del self.is_needed_running[spec]
+
+            
         print
+        print "AFTER DEALING WITH SUPER GROUPS:"
         print(self.needs_running)
         print(self.needs_count_running)
         print(self.is_needed_running)
@@ -6534,6 +6591,9 @@ class CPickler(CMill):
 
                         update_needs.append(super_group)
                         update_needs_count += 1
+                    elif super_group in update_needs and any(member == need for member in self.super_group[super_group]):
+                        print "Already accounted for by other group component's needs."
+                        not_in_super_group = False
                 if not_in_super_group and need not in update_needs:
 
                     update_needs.append(need)
@@ -6548,6 +6608,10 @@ class CPickler(CMill):
                         update_is_needed.append(super_group)
                         update_needed_count +=1
 
+                    elif super_group in update_is_needed and any(member == need for member in self.super_group[super_group]):
+                        print "Already accounted for by other group component's needs."
+                        not_in_super_group = False
+        
                 if not_in_super_group and needed not in update_is_needed:
 
                     update_is_needed.append(needed)
@@ -6773,7 +6837,7 @@ class CPickler(CMill):
                             
                         
                         
-                    if group_flag:
+                    if group_flag and not supergroup_flag:
                         print "YES, species "+str(coupled_qss)+" is in a group"
                         # if QSS species is a reactant
                         if direction == -1:
@@ -6828,10 +6892,12 @@ class CPickler(CMill):
                         elif direction == 1:
                             print("for species ", self.qss_species_list[i], " in reaction ", r, " is a product")
                             print("MOVE THIS SPECIES TO RHS")
-                            rhs_hold.append('- qf_co['+str(r)+']*sc_qss['+str(i)+']')
-         
+                            rhs_hold.append('- qf_co['+str(r)+']*sc_qss['+str(self.qss_species_list.index(other_qss))+']')
+
+                            
                 for other_qss in supergroupCoeff_hold:
                     " ".join(supergroupCoeff_hold[other_qss])
+            
 
                 print
                 print "#####################################################################################################"
@@ -6839,17 +6905,28 @@ class CPickler(CMill):
                 print "rhs_hold is ", rhs_hold
                 print "coeff_hold is ", coeff_hold
                 print "groupCoeff_hold is ", groupCoeff_hold
+                print "supergroupCoeff_hold is ", supergroupCoeff_hold
                 print "######################################################################################################"
                 print
+      
 
-                    
             self.QSS_rhs[self.qss_species_list[i]] = " ".join(rhs_hold)
             self.QSS_coeff[self.qss_species_list[i]] = " ".join(coeff_hold)
-            self.QSS_groupSp[self.qss_species_list[i]] = " ".join(groupCoeff_hold)
-            self.QSS_supergroupSp[self.qss_species_list[i]] = supergroupCoeff_hold
+
+            for group in self.group.keys():
+                if any(component == self.qss_species_list[i] for component in self.group[group]):
+                    self.QSS_groupSp[self.qss_species_list[i]] = " ".join(groupCoeff_hold)
+
+            for super_group in self.super_group.keys():
+                for component in self.super_group[super_group]:
+                    if component in self.group.keys():
+                        if any(species == self.qss_species_list[i] for species in self.group[component]):
+                            self.QSS_supergroupSp[self.qss_species_list[i]] = supergroupCoeff_hold
+                    elif component == self.qss_species_list[i]:
+                        self.QSS_supergroupSp[self.qss_species_list[i]] = supergroupCoeff_hold
 
             print
-            print "HERE IS EEEEVERYTHING: "
+            print "HERE IS EVERYTHING: "
             print
             print "RHS: ", self.QSS_rhs
             print
@@ -6860,6 +6937,25 @@ class CPickler(CMill):
             print "SUPERGROUP COEFFICIENTS: ", self.QSS_supergroupSp
             print
             print
+
+        for species in self.QSS_supergroupSp.keys():
+            for coeff in self.QSS_supergroupSp[species].keys():
+                self.QSS_supergroupSp[species][coeff] =" ".join(self.QSS_supergroupSp[species][coeff])
+
+        
+        for symbol in self.super_group.keys():
+            supergr_species = []
+            for component in self.super_group[symbol]:
+                if component in self.group.keys():
+                    supergr_species.extend(self.group[component])
+                else:
+                    supergr_species.extend(component)
+
+            supergr_species = list(set(supergr_species))
+            for s1 in supergr_species:
+                for s2 in supergr_species:
+                    if s2 != s1 and not self.QSS_supergroupSp[s1][s2]:
+                        self.QSS_supergroupSp[s1][s2] = str(0.0)
             
         
     def _Gauss_pivoting(self, A, B=None):
@@ -6987,22 +7083,27 @@ class CPickler(CMill):
                             sumprod += ' + '
                         flag = True
                         if A[n - i][n - j] == '1':
-                            sumprod += str(X[n - j])
+                            sumprod += ' (' + str(X[n - j]) + ')'
+                        elif j != 0:
+                            sumprod += ' - ' + A[n - i][n - j] + ' * ' + '(' + X[n - j] + ')'
                         else:
-                            sumprod += A[n - i][n - j] + ' * ' + X[n - j]
+                            sumprod +=  A[n - i][n - j] + ' * ' + '(' + X[n - j] + ')'
+        
                 print
                 print "sumprod is: ", sumprod
+                print
+                print
 
                 if sumprod == '':
                     if A[n - i][n - i] != '1':
-                        X[n - i] = '(' + B[n - i] + ') / (' + A[n - i][n - i] + ')'
+                        X[n - i] = '(' + B[n - i] + ') / ' + A[n - i][n - i]
                     else:
                         X[n - i] = B[n - i]
                 else:
                     if A[n - i][n - i] == '1':
                         X[n - i] = B[n - i] + ' - (' + sumprod + ')'
                     else:
-                        X[n - i] = '(' + B[n - i] + ' - (' + sumprod + ')) / (' + A[n - i][n - i] + ')'
+                        X[n - i] = '(' + B[n - i] + ' - (' + sumprod + ')) / ' + A[n - i][n - i]
                 print("X(",n - i,")=",X[n - i])
                 print("\n\n")
 
@@ -7126,38 +7227,54 @@ class CPickler(CMill):
         i3body_qss = [0,0]
         isimple_qss = [0,0]
         ispecial_qss = [0,0]
+
+        troe_first = True
+        sri_first = True
+        lindemann_first = True
+        threebody_first = True
+        simple_first = True
+        special_first = True
         
         for reaction in self.qssReactions:
-            if reaction >= itroe[0] and reaction < itroe[1]:
+            test = reaction - 1
+            if test >= itroe[0] and test <= itroe[1]-1:
                 ntroe_qss += 1
-                if not itroe_qss:
+                if troe_first:
+                    print "reaction ", reaction, " goes in here "
                     itroe_qss[0] = self.qssReactions.index(reaction)
-                itroe_qss[1] = self.qssReactions.index(reaction)
-            elif reaction >= isri[0] and reaction < isri[1]:
+                    troe_first = False
+                itroe_qss[1] = self.qssReactions.index(reaction)+1
+            if test >= isri[0] and test <= isri[1]-1:
                 nsri_qss += 1
-                if not isri_qss:
+                if sri_first:
                     isri_qss[0] = self.qssReactions.index(reaction)
-                isri_qss[1] = self.qssReactions.index(reaction)
-            elif reaction >= ilindemann[0] and reaction < ilindemann[1]:
+                    sri_first = False
+                isri_qss[1] = self.qssReactions.index(reaction)+1
+            if test >= ilindemann[0] and test <= ilindemann[1]-1:
                 nlindemann_qss += 1
-                if not ilindemann_qss:
+                if lindemann_first:
                     ilindemann_qss[0] = self.qssReactions.index(reaction)
-                ilindemann_qss[1] = self.qssReactions.index(reaction)
-            elif reaction >= i3body[0] and reaction < i3body[1]:
+                    lindemann_first = False
+                ilindemann_qss[1] = self.qssReactions.index(reaction)+1
+            if test >= i3body[0] and test <= i3body[1]-1:
+                print "reaction ", reaction, " goes in 3body"
                 n3body_qss += 1
-                if not i3body_qss:
+                if threebody_first:
                     i3body_qss[0] = self.qssReactions.index(reaction)
-                i3body_qss[1] = self.qssReactions.index(reaction)
-            elif reaction >= isimple[0] and reaction < isimple[1]:
+                    threebody_first = False
+                i3body_qss[1] = self.qssReactions.index(reaction)+1
+            if test >= isimple[0] and test <= isimple[1]-1:
                 nsimple_qss += 1
-                if not isimple_qss:
+                if simple_first:
                     isimple_qss[0] = self.qssReactions.index(reaction)
-                isimple_qss[1] = self.qssReactions.index(reaction)
-            elif reaction >= ispecial[0] and reaction < ispecial[1]:
+                    simple_first = False
+                isimple_qss[1] = self.qssReactions.index(reaction)+1
+            if test >= ispecial[0] and test <= ispecial[1]-1:
                 nspecial_qss += 1
-                if not ispecial_qss:
+                if special_first:
                     ispecial_qss[0] = self.qssReactions.index(reaction)
-                ispecial_qss[1] = self.qssReactions.index(reaction)
+                    special_first = False
+                ispecial_qss[1] = self.qssReactions.index(reaction)+1
 
 
                 
@@ -7181,7 +7298,7 @@ class CPickler(CMill):
 
         nclassd_qss = self.nqssReactions - nspecial_qss
         nCorr_qss   = n3body_qss + ntroe_qss + nsri_qss + nlindemann_qss
-
+        
         for i in range(nclassd_qss):
             self._write()
             reaction = mechanism.reaction(id=self.qssReactions[i])
@@ -7319,7 +7436,7 @@ class CPickler(CMill):
             self._write(self.line(" Lindemann"))
             self._write("{")
             self._indent()
-            if nlindemann > 1:
+            if nlindemann_qss > 1:
                 self._write("double alpha[%d];" % nlindemann_qss)
             else:
                 self._write("double alpha;")
@@ -7329,7 +7446,7 @@ class CPickler(CMill):
                 reaction = mechanism.reaction(id=self.qssReactions[i])
                 if reaction.thirdBody:
                     alpha = self._enhancement(mechanism, reaction)
-                    if nlindemann > 1:
+                    if nlindemann_qss > 1:
                         self._write("alpha[%d] = %s;" %(ii,alpha))
                     else:
                         self._write("alpha = %s;" %(alpha))
@@ -7526,20 +7643,19 @@ class CPickler(CMill):
             if symbol in self.super_group.keys():
 
                 supergr_species = []
-                
-                if symbol in self.group.keys():
-                    supergr_species.extend(self.group[symbol])
-                else:
-                    supergr_species.extend(symbol)
 
+                for component in self.super_group[symbol]:
+                    if component in self.group.keys():
+                        supergr_species.extend(self.group[component])
+                    else:
+                        supergr_species.extend(component)
+
+                supergr_species = list(set(supergr_species))
                 Coeff_subMatrix = [['0'] * len(supergr_species) for i in range(len(supergr_species))]
                 RHS_subMatrix = ['0'] * len(supergr_species)
 
+
                 for index, species in enumerate(supergr_species):
-                    print
-                    print species
-                    print index
-                    print
 
                     self._write(self.line('QSS species '+str(self.qss_species_list.index(species))+': '+species))
                     self._write()
