@@ -77,8 +77,31 @@ class CPickler(CMill):
         self.reactionIndex = []
         self.lowT = 100.0
         self.highT = 10000.0
+        ##QSS
         self.qssReactions = []
         self.nqssReactions = 0
+
+        # QSS specific #
+        #############
+        # sp-sp network
+        self.QSS_SSnet = []  
+        # sp-reac network
+        self.QSS_SRnet = []
+        # sp coupling network
+        self.QSS_SCnet = []
+        # sp-sp network indices i of non zero elem
+        self.QSS_SS_Si = []
+        # sp-sp network indices j of non zero elem
+        self.QSS_SS_Sj = []
+        # sp-reac network indices i of non zero elem
+        self.QSS_SR_Si = []  
+        # sp-reac network indices j of non zero elem
+        self.QSS_SR_Rj = [] 
+        # sp coupling network indices i of non zero elem
+        self.QSS_SC_Si = []
+        # sp coupling network indices j of non zero elem
+        self.QSS_SC_Sj = []
+
         return
 
 
@@ -143,7 +166,7 @@ class CPickler(CMill):
         self.QSS_SCnet = np.zeros([self.nQSSspecies, self.nQSSspecies], 'd')
 
         # print some info
-        print "TRANSPORTED SPECIES, reorg INDICES, mech INDICES AND WEIGHT ARE: "
+        print "\n\nTRANSPORTED SPECIES, reorg INDICES, mech INDICES AND WEIGHT ARE: "
         for species in self.nonqss_species:
             print species.symbol, " ", species.id, " ", species.mech_id, " ", species.weight
         print
@@ -155,12 +178,6 @@ class CPickler(CMill):
         print "FULL SPECIES LIST WITH TRANSPORTED FIRST AND QSS LAST: "
         for all_species in self.all_species:
             print all_species.symbol, " ", all_species.id, " ", all_species.mech_id, " ", all_species.weight
-
-        print
-        print "QSS species list =", self.qss_species_list
-        print
-        print "ordered_idx_map ?", self.ordered_idx_map
-        print "mech_idx_map ?", self.mech_idx_map
 
         return
 
@@ -175,8 +192,6 @@ class CPickler(CMill):
         self._setSpecies(mechanism)
         self.reactionIndex = mechanism._sort_reactions()
 
-        # self._test2(mechanism)
-            
         #chemistry_file.H
         self._includes(True)
         self._header_QSS(mechanism)
@@ -255,8 +270,7 @@ class CPickler(CMill):
         self._productionRate(mechanism)
         # should be chopped
         if (self.nQSSspecies > 0):
-            self._test(mechanism)
-            self._QSScomponentFunctions(mechanism)
+            self._QSS(mechanism)
         # ORI CPU vectorized version
         self._DproductionRatePrecond(mechanism)
         self._DproductionRate(mechanism)
@@ -4078,9 +4092,9 @@ class CPickler(CMill):
                 factor = "%f * " % coefficient
 
             if symbol in self.qss_species_list:
-                terms.append("%sg_RT_qss[%d]" % (factor, mechanism.qss_species(symbol).id))
+                terms.append("%sg_RT_qss[%d]" % (factor, self.ordered_idx_map[symbol] - self.nSpecies))
             else:
-                terms.append("%sg_RT[%d]" % (factor, mechanism.species(symbol).id))
+                terms.append("%sg_RT[%d]" % (factor, self.ordered_idx_map[symbol]))
 
             dim -= coefficient
         dG += '(' + ' + '.join(terms) + ')'
@@ -4094,9 +4108,9 @@ class CPickler(CMill):
                 factor = "%f * " % coefficient
 
             if symbol in self.qss_species_list:
-                terms.append("%sg_RT_qss[%d]" % (factor, mechanism.qss_species(symbol).id))
+                terms.append("%sg_RT_qss[%d]" % (factor, self.ordered_idx_map[symbol] - self.nSpecies))
             else:
-                terms.append("%sg_RT[%d]" % (factor, mechanism.species(symbol).id))
+                terms.append("%sg_RT[%d]" % (factor, self.ordered_idx_map[symbol]))
 
             dim += coefficient
         dG += ' - (' + ' + '.join(terms) + ')'
@@ -6043,8 +6057,8 @@ class CPickler(CMill):
     #####################
     #QSS production rate
     #####################
+    # create the species-species network
     def _createSSnet(self, mechanism):
-
         # for each reaction in the mechanism
         for r in mechanism.reaction():
             slist = []
@@ -6056,11 +6070,15 @@ class CPickler(CMill):
                 if symbol in self.qss_species_list:
                     slist.append(symbol)
             # if species s1 and species s2 are in the same reaction,
-            # denote they are linked in the Species-Species network
+            # denote they are linked in the species-species network
             for s1 in slist:
                 for s2 in slist:
-                    self.QSS_SSnet[mechanism.qss_species(s1).id][mechanism.qss_species(s2).id] = 1
+                    # we should not use the original indices, but the reordered one
+                    #self.QSS_SSnet[mechanism.qss_species(s1).id][mechanism.qss_species(s2).id] = 1
+                    self.QSS_SSnet[self.ordered_idx_map[s1] - self.nSpecies][self.ordered_idx_map[s2] - self.nSpecies] = 1
 
+
+    # create the species-reac network
     def _createSRnet(self, mechanism):
 
         # for each reaction in the mechanism
@@ -6070,7 +6088,6 @@ class CPickler(CMill):
             reaction_number = i
 
             qss_reaction = False
-        
     
             # get a list of species involved in the reactants and products
             for symbol, coefficient in r.reactants:
@@ -6089,20 +6106,22 @@ class CPickler(CMill):
             # denote they are linked in the Species-Reaction network
             # with negative if s is a reactant(consumed) and positive if s is a product(produced)
             for	s in reactant_list:
-                self.QSS_SRnet[mechanism.qss_species(s).id][reaction_number] = -1
+                # same deal
+                #self.QSS_SRnet[mechanism.qss_species(s).id][reaction_number] = -1
+                self.QSS_SRnet[self.ordered_idx_map[s] - self.nSpecies][reaction_number] = -1
             for s in product_list:
-                self.QSS_SRnet[mechanism.qss_species(s).id][reaction_number] = 1
+                #self.QSS_SRnet[mechanism.qss_species(s).id][reaction_number] = 1
+                self.QSS_SRnet[self.ordered_idx_map[s] - self.nSpecies][reaction_number] = 1
         
         self.nqssReactions = len(self.qssReactions)
-        
 
                 
     def _setQSSneeds(self, mechanism):
 
-        self.needs = OrderedDict()
+        self.needs       = OrderedDict()
         self.needs_count = OrderedDict()
 
-        self.needs_running = OrderedDict()
+        self.needs_running       = OrderedDict()
         self.needs_count_running = OrderedDict()
         
         for i in range(self.nQSSspecies):
@@ -6119,9 +6138,10 @@ class CPickler(CMill):
         self.needs_count_running = self.needs_count.copy()
 
         print
-        print "NEEDS: "
+        print "NEEDS (one per QSS spec): "
         print(self.needs)
-        print(self.needs_count)
+        #print(self.needs_count)
+
 
     def _setQSSisneeded(self, mechanism):
 
@@ -6145,9 +6165,10 @@ class CPickler(CMill):
         self.is_needed_count_running = self.is_needed_count.copy()
 
         print
-        print "IS NEEDED: "
+        print "IS NEEDED (one per QSS spec): "
         print(self.is_needed)
-        print(self.is_needed_count)
+        #print(self.is_needed_count)
+
 
     # get two-way dependencies accounted for: (s1 needs s2) and (s2 needs s1) = group
     def _getQSSgroups(self, mechanism):
@@ -6155,66 +6176,68 @@ class CPickler(CMill):
         self.group = OrderedDict()
         already_accounted_for = []
         group_count = 0
-        # print(self.needs)
-        # print(self.is_needed)
-        # print
+        
+        print("\n\nDetermining 2 way coupling now...")
+        print("---------------------------------")
 
         # for each species spec that has needs
-        for spec in self.needs.keys():
-            print("dealing with species: ", spec)
-            print
+        for i in range(self.nQSSspecies):
+            spec = self.qss_species_list[i]
+            print("- dealing with species: "+ spec)
             # for each of the needs of that species spec, we could have a potential group
             for needs in self.needs[spec]:
-                print(needs)
-                print(self.is_needed[spec])
-                print
+                print("... Needs: "+ needs)
                 potential_group = []
                 potential_group.append(spec)
                 # check that this group was not already found through a search with the other species involved
                 if (needs,spec) not in already_accounted_for:
                     # if species spec is also needed by the current needs, then we have a group
                     if any(species == needs for species in self.is_needed[spec]):
-                        print("here!")
-                        print("species "+spec+" and "+needs+" depend on eachother")
+                        print("        found 2 way coupling ! Species "+spec+" and "+needs+" depend on eachother")
                         potential_group.append(needs)
                         self.group['group_'+str(group_count)] = potential_group
-
-                        # Add this group to a list so that it doesn't get counted again in the event that the needs species is also a spec in the needs key list
+                        # Add this group to a list so that it doesn't get counted again 
+                        # in the event that the needs species is also a spec in the needs key list
                         already_accounted_for.append((spec,needs))
                         group_count += 1
-                    print(potential_group)
-                    print "\n\n"
-        print(self.group)
+
+        print "** 2-way coupling groups are: ", self.group
 
         self._updateGroupNeeds(mechanism)
         self._updateGroupDependencies(mechanism)
 
-    # get intergroup dependencies accounted for: (this needs that) and (that needs this) = supergroup, where this and that can be individual species or groups
+    # get intergroup dependencies accounted for: (this needs that) and (that needs this) = supergroup, 
+    # where this and that can be individual species or groups
     def _getQSSsupergroups(self, mechanism):
 
         self.super_group = OrderedDict()
         already_accounted_for = []
         super_group_count = 0
 
+        print("\n\nDetermining Super-group coupling...")
+        print("---------------------------------")
+
         for member in self.needs_running.keys():
+            print("- dealing with group: "+ member)
             for needs in self.needs_running[member]:
+                print("... Needs: "+ needs)
                 potential_super_group = []
                 potential_super_group.append(member)
-
+                # check that this super-group was not already found through a search with the other member involved
                 if(needs,member) not in already_accounted_for:
-
                     if any(components == needs for components in self.is_needed_running[member]):
+                        print("        found 2 way coupling ! Group "+member+" and "+needs+" depend on eachother")
                         potential_super_group.append(needs)
                         self.super_group['super_group_'+str(super_group_count)] = potential_super_group
-
+                        # Add this supergroup to a list so that it doesn't get counted again 
                         already_accounted_for.append((member,needs))
                         super_group_count += 1
 
-        print
-        print("The super groups are: ", self.super_group)
+        print "** 2-way coupling supergroups are: ", self.super_group
 
         self._updateSupergroupNeeds(mechanism)
         self._updateSupergroupDependencies(mechanism)
+
 
     # Sort order that QSS species need to be computed based on dependencies
     def _sortQSScomputation(self, mechanism):
@@ -6224,51 +6247,45 @@ class CPickler(CMill):
 
         # look at how many dependencies each component has
         needs_count_regress = self.needs_count_running.copy()
-        print
-        print(needs_count_regress)
 
-        # There should always be a component present that loses all dependencies as you update the computation
+        # There should always be a component present that loses
+        # all dependencies as you update the computation
         while 0 in needs_count_regress.values():
             needs_count_base = needs_count_regress.copy()
-
             # for each component (species, group, sup group, etc.) that needs things... 
             for member in needs_count_base:
-
                 # if that component doesn't need anything
                 if needs_count_base[member] == 0:
-
+                    print "-Dealing with member ", member
                     # solve that component now
                     self.decouple_index[self.decouple_count] = member
                     # then delete it out of the updating needs list
                     del needs_count_regress[member]
-
                     # for anything needed by that component
                     for needed in self.is_needed_running[member]:
                         # decrease that thing's dependency since it has now been taken care of
                         needs_count_regress[needed] -= 1
-                        
                     self.decouple_count += 1
                     
-        # If your decouple count doesn't match the number of components with needs, then the system is more complicated than what these functions can handle currently
+        # If your decouple count doesn't match the number of components with needs, 
+        # then the system is more complicated than what these functions can handle currently
         if len(self.decouple_index) != len(self.needs_running):
             print("WARNING: Some components may not have been taken into account")
 
-        print
-        print "ORDER OF EXECUTION FOR QSS CONCENTRATION CALCULATIONS: "
+        print "** order of execution for qss concentration calculations: "
         print(self.decouple_index)
+
 
     # Update group member needs with group names:
     # group member needs species -> group needs species
     # group member is needed by species -> group is needed by species
     def _updateGroupNeeds(self, mechanism):
 
-        print
-        print "NEEDS ARE: ", self.needs_running
-        print "IS NEEDED ARE: ", self.is_needed_running
-        print
-        print
+        print("\n\nUpdating group needs...")
+        print("---------------------------------")
         
         for group_key in self.group.keys():
+            print("-Dealing with group "+ group_key)
             
             update_needs = []
             update_is_needed = []
@@ -6282,70 +6299,59 @@ class CPickler(CMill):
             
             other_groups = self.group.keys()
             other_groups.remove(group_key)
-            print
-            print("other groups are: ", other_groups)
-            print("we are in group: ", group_key)
-            print(self.group[group_key])
+            print "  (other groups are: ", other_groups,")"
 
-            print
-            print
             # for each species in the current group
             for spec in self.group[group_key]:
-                print("for group member: ",spec)
+                print("... for group member: "+spec)
                 # look at any additional needs that are not already accounted for with the group
                 for need in list(set(self.needs_running[spec]) - set(self.group[group_key])):
-                    print("need is ", need)
+                    print("        An additional not-in-group need is "+ need)
                     not_in_group = True
                     # check the other groups to see if the need can be found in one of them
                     for other_group in other_groups:
-                        # if the other group is not already accounted for and it contains the need we're looking for, update the group needs with that group that contains the need
+                        # if the other group is not already accounted for 
+                        # and it contains the spec need we're looking for, 
+                        # update the group needs with that group that contains the spec need
                         if other_group not in update_needs and any(member == need for member in self.group[other_group]):
-                            print("this is in a different group")
+                            print("        it is found in a different group. Adding it.")
                             not_in_group = False
                             update_needs.append(other_group)
-                            print "UPDATE_NEEDS IS: ", update_needs
                             update_needs_count += 1
                         elif other_group in update_needs and any(member == need for member in self.group[other_group]):
-                            print "This group was already put in the list due to the fact that another species in the group is needed by the current species."
+                            print "        it is foud in a group that was already put in the list due to the fact that another species in the group is needed by the current species."
                             not_in_group = False
-                    # alternatively, if this is just a solo need that's not in another group, update the group needs with just that need.
+                    # alternatively, if this is just a solo need that's not in another group, 
+                    # update the group needs with just that need.
                     if not_in_group and need not in update_needs and not any():
-                        print("Need ", need, " was not in a group")
+                        print("        this need was not found in a group ! Adding the spec directly")
                         update_needs.append(need)
-                        print "UPDATE_NEEDS IS: ", update_needs
                         update_needs_count += 1
                 # look at any additional species (outside of the group) that depend on the current group member
                 for needed in list(set(self.is_needed_running[spec]) - set(self.group[group_key])):
+                    print("        An additional not-in-group is-needed is "+ needed)
                     not_in_group = True
                     # for the other groups
                     for other_group in other_groups:
                         # if the other group hasn't alredy been accounted for and the species is in that group, then that other group depends on a species in the current group
                         if other_group not in update_is_needed and any(member == needed for member in self.group[other_group]):
+                            print("        it is found in a different group. Adding it.")
                             not_in_group = False
                             update_is_needed.append(other_group)
-                            print "UPDATE_IS_NEEDED IS: ", update_is_needed
                             update_needed_count += 1
                         elif other_group in update_is_needed and any(member == needed for member in self.group[other_group]):
-                            print "This group was already put in the list due to the fact that another species in the group is needed by the current species."
+                            print "        it is foud in a group that was already put in the list due to the fact that another species in the group is needed by the current species."
                             not_in_group = False
                     # if the species is not in another group, then that lone species just depends on the current group. 
                     if not_in_group and needed not in update_is_needed:
+                        print("        this is-needed was not found in a group ! Adding the spec directly")
                         update_is_needed.append(needed)
-                        print "UPDATE_IS_NEEDED IS: ", update_is_needed
                         update_needed_count += 1
 
                 # del self.needs_running[spec]
                 # del self.needs_count_running[spec]
                 # del self.is_needed_running[spec]
 
-                print
-                print "NEEDS ARE: ", self.needs_running
-                print "IS NEEDED ARE: ", self.is_needed_running
-                print
-                print
-
-        
-                    
                 
             group_needs[group_key] = update_needs
             group_needs_count[group_key] = update_needs_count
@@ -6357,6 +6363,9 @@ class CPickler(CMill):
             self.is_needed_running.update(group_is_needed)
             self.is_needed_count_running.update(group_is_needed_count)
 
+            print "So, ", group_key," needs ",update_needs
+            print "So, ", group_key," is-needed is ",update_is_needed
+
         for group in self.group.keys():
             for spec in self.group[group]:
                 if spec in self.needs_running:
@@ -6364,19 +6373,18 @@ class CPickler(CMill):
                     del self.needs_count_running[spec]
                     del self.is_needed_running[spec]
             
-        print
-        print "This is the final needs running and is_needed running: "
+        print "** This is the final needs running and is_needed running: "
         print(self.needs_running)
-        print(self.needs_count_running)
         print(self.is_needed_running)
-        print(self.is_needed_count_running)
-        print
-        print
         
+
     # Update solo species dependendent on group members with group names:
     # species needs member -> species needs group
     # species is needed by group member -> species is needed by group
     def _updateGroupDependencies(self, mechanism):
+
+        print("\n\nUpdating group dependencies...")
+        print("---------------------------------")
 
         solo_needs = self.needs_running.copy()
         solo_needs_count = self.needs_count_running.copy()
@@ -6389,51 +6397,44 @@ class CPickler(CMill):
             del solo_needs_count[group]
             del solo_is_needed[group]
             del solo_is_needed_count[group]
-
-        print
-        print(solo_needs)
-        print(solo_is_needed)
         
         for solo in solo_needs.keys():
-            
+            print("-Dealing with solo species "+ solo)
             update_needs = []
             update_is_needed = []
             update_needs_count = 0
             update_needed_count = 0
-
             for need in solo_needs[solo]:
-                print(need)
+                print("... who needs: "+need)
                 not_in_group = True
                 for group in self.group.keys():
                     if group not in update_needs and any(member == need for member in self.group[group]):
-                        print("Species ", need, " is in group: ", group)
+                        print "        this species is in group: ", group
                         not_in_group = False
-
                         update_needs.append(group)
                         update_needs_count += 1
                     elif group in update_needs and any(member == need for member in self.group[group]):
-                        print "This group was already put in the list due to the fact that another species in the group is needed by the current species."
+                        print "        this group was already put in the list due to the fact that another species in the group is needed by the current species."
                         not_in_group = False
                 if not_in_group and need not in update_needs:
-
+                    print("        this need was not found in a group ! Adding the spec directly")
                     update_needs.append(need)
                     update_needs_count += 1
 
             for needed in solo_is_needed[solo]:
+                print("... who is-needed needs are: "+needed)
                 not_in_group = True
                 for group in self.group.keys():
                     if group not in update_is_needed and any(member == needed for member in self.group[group]):
+                        print "        this species is in group: ", group
                         not_in_group = False
-
                         update_is_needed.append(group)
                         update_needed_count +=1
                     if group in update_is_needed and any(member == needed for member in self.group[group]):
-                        print "This group was already put in the list due to the fact that another species in the group is needed by the current species."
+                        print "        this group was already put in the list due to the fact that another species in the group is needed by the current species."
                         not_in_group = False
-                        
-
                 if not_in_group and needed not in update_is_needed:
-
+                    print("        this is-needed need was not found in a group ! Adding the spec directly")
                     update_is_needed.append(needed)
                     update_needed_count += 1
 
@@ -6447,12 +6448,9 @@ class CPickler(CMill):
         self.is_needed_running.update(solo_is_needed)
         self.is_needed_count_running.update(solo_is_needed_count)
        
-        
-        print
+        print "** This is the final needs running and is_needed running: "
         print(self.needs_running)
-        print(self.needs_count_running)
         print(self.is_needed_running)
-        print(self.is_needed_count_running)
 
 
     ###############################################################
@@ -6465,9 +6463,13 @@ class CPickler(CMill):
         
                         
     def _updateSupergroupNeeds(self, mechanism):
+
+        print("\n\nUpdating super-group needs...")
+        print("---------------------------------")
         
         for super_group_key in self.super_group.keys():
-            
+            print("-Dealing with supergroup "+ super_group_key)
+
             update_needs = []
             update_is_needed = []
             update_needs_count = 0
@@ -6480,49 +6482,54 @@ class CPickler(CMill):
             
             other_super_groups = self.super_group.keys()
             other_super_groups.remove(super_group_key)
+            print "  (other supergroups are: ", other_super_groups,")"
             
-            # print("other super groups are: ", other_super_groups)
-            # print("we are in supergroup: ", super_group_key)
-            # print(self.supergroup[super_group_key])
-
             # for each species in the current group
             for spec in self.super_group[super_group_key]:
-                print("for super group member: ",spec)
+                print("... for supergroup member: "+spec)
                 # look at any additional needs that are not already accounted for with the group
                 for need in list(set(self.needs_running[spec]) - set(self.super_group[super_group_key])):
-                    print("need is ", need)
+                    print("        An additional not-in-supergroup need is "+ need)
                     not_in_super_group = True
                     # check the other groups to see if the need can be found in one of them
                     for other_super_group in other_super_groups:
-                        # if the other group is not already accounted for and it contains the need we're looking for, update the group needs with that group that contains the need
+                        # if the other group is not already accounted for and 
+                        # it contains the need we're looking for, update the group needs 
+                        # with that group that contains the need
                         if other_super_group not in update_needs and any(member == need for member in self.super_group[other_super_group]):
-                            print("this is in a different super group")
+                            print("        it is found in a different super group. Adding it.")
                             not_in_super_group = False
                             update_needs.append(other_super_group)
                             update_needs_count += 1
                         elif other_super_group in update_needs and any(member == need for member in self.super_group[other_super_group]):
-                            print "This supergroup has already been accounted for by another component's needs"
+                            print "        this supergroup has already been accounted for by another component's needs"
                             not_in_super_group = False
-                    # alternatively, if this is just a solo need that's not in another group, update the group needs with just that need. 
+                    # alternatively, if this is just a solo need that's not in another group, 
+                    # update the group needs with just that need. 
                     if not_in_super_group and need not in update_needs:
-                        print("Need ", need, " was not in a super group")
+                        print("        this need was not found in a supergroup ! Adding the group directly")
                         update_needs.append(need)
                         update_needs_count += 1
                 # look at any additional species (outside of the group) that depend on the current group member
                 for needed in list(set(self.is_needed_running[spec]) - set(self.super_group[super_group_key])):
+                    print("        An additional not-in-supergroup is-needed is "+ needed)
                     not_in_super_group = True
                     # for the other groups
                     for other_super_group in other_super_groups:
-                        # if the other group hasn't alredy been accounted for and the species is in that group, then that other group depends on a species in the current group
+                        # if the other group hasn't alredy been accounted for 
+                        # and the species is in that group, then that other group depends 
+                        # on a species in the current group
                         if other_super_group not in update_is_needed and any(member == needed for member in self.super_group[other_super_group]):
+                            print("        it is found in a different super group. Adding it.")
                             not_in_super_group = False
                             update_is_needed.append(other_super_group)
                             update_needed_count += 1
                         elif other_super_group in update_is_needed and any(member == need for member in self.super_group[other_super_group]):
-                            print "This supergroup has already been accounted for by another component's needs"
+                            print "        this supergroup has already been accounted for by another component's needs"
                             not_in_super_group = False
                     # if the species is not in another group, then that lone species just depends on the current group. 
                     if not_in_super_group and needed not in update_is_needed:
+                        print("        this is-needed was not found in a supergroup ! Adding the group directly")
                         update_is_needed.append(needed)
                         update_needed_count += 1
 
@@ -6537,6 +6544,8 @@ class CPickler(CMill):
             self.is_needed_running.update(super_group_is_needed)
             self.is_needed_count_running.update(super_group_is_needed_count)
 
+            print "So, ", super_group_key," needs ",update_needs
+            print "So, ", super_group_key," is-needed is ",update_is_needed
         
         for super_group in self.super_group.keys():
             for spec in self.super_group[super_group]:
@@ -6545,18 +6554,18 @@ class CPickler(CMill):
                     del self.needs_count_running[spec]
                     del self.is_needed_running[spec]
 
-            
-        print
-        print "AFTER DEALING WITH SUPER GROUPS:"
+        print "** This is the final needs running and is_needed running: "
         print(self.needs_running)
-        print(self.needs_count_running)
         print(self.is_needed_running)
-        print(self.is_needed_count_running)
+
 
     # Update solo species dependendent on group members with group names:
     # species needs member -> species needs group
     # species is needed by group member -> species is needed by group
     def _updateSupergroupDependencies(self, mechanism):
+
+        print("\n\nUpdating super-group dependencies...")
+        print("---------------------------------")
 
         super_solo_needs = self.needs_running.copy()
         super_solo_needs_count = self.needs_count_running.copy()
@@ -6569,51 +6578,44 @@ class CPickler(CMill):
             del super_solo_needs_count[super_group]
             del super_solo_is_needed[super_group]
             del super_solo_is_needed_count[super_group]
-
-        print
-        print(super_solo_needs)
-        print(super_solo_is_needed)
         
         for solo in super_solo_needs.keys():
-            
+            print("-Dealing with solo group "+ solo)
             update_needs = []
             update_is_needed = []
             update_needs_count = 0
             update_needed_count = 0
-
             for need in super_solo_needs[solo]:
-                print(need)
+                print("... who needs: "+need)
                 not_in_super_group = True
                 for super_group in self.super_group.keys():
                     if super_group not in update_needs and any(member == need for member in self.super_group[super_group]):
-                        print("Species ", need, " is in super group: ", super_group)
+                        print "        this group is in super_group: ", super_group
                         not_in_super_group = False
 
                         update_needs.append(super_group)
                         update_needs_count += 1
                     elif super_group in update_needs and any(member == need for member in self.super_group[super_group]):
-                        print "Already accounted for by other group component's needs."
+                        print "        this super-group is already accounted for by other group component's needs."
                         not_in_super_group = False
                 if not_in_super_group and need not in update_needs:
-
+                    print("        this need was not found in a super-group ! Adding the need (group) directly")
                     update_needs.append(need)
                     update_needs_count += 1
-
             for needed in super_solo_is_needed[solo]:
+                print("... who is-needed needs are: "+needed)
                 not_in_super_group = True
                 for super_group in self.super_group.keys():
                     if super_group not in update_is_needed and any(member == needed for member in self.super_group[super_group]):
+                        print "        this group is in super_group: ", super_group
                         not_in_super_group = False
-
                         update_is_needed.append(super_group)
                         update_needed_count +=1
-
                     elif super_group in update_is_needed and any(member == need for member in self.super_group[super_group]):
-                        print "Already accounted for by other group component's needs."
+                        print "        this super-group is already accounted for by other group component's needs."
                         not_in_super_group = False
-        
                 if not_in_super_group and needed not in update_is_needed:
-
+                    print("        this is-needed was not found in a super-group ! Adding the group directly")
                     update_is_needed.append(needed)
                     update_needed_count += 1
 
@@ -6627,32 +6629,23 @@ class CPickler(CMill):
         self.is_needed_running.update(super_solo_is_needed)
         self.is_needed_count_running.update(super_solo_is_needed_count)
 
-        print
+        print "** This is the final needs running and is_needed running: "
         print(self.needs_running)
-        print(self.needs_count_running)
         print(self.is_needed_running)
-        print(self.is_needed_count_running)
                         
     ###################################################################
     #
     ###################################################################
         
-    # Check that the QSS given are actually valid options
+    # Check that the QSS given are actually "valid" options
     # Exit if species is not valid
     def _QSSvalidation(self, mechanism):
 
-        species = []
-        for s in mechanism.species():
-            species.append(s.symbol)
-
         # Check that QSS species are all species used in the given mechanism
         for s in self.qss_species_list:
-            if s not in species:
+            if s not in self.all_species_list:
                 text = 'species '+s+' is not in the mechanism'
                 sys.exit(text)
-
-        # sets up QSS subnetwork to be used for coupling too
-        self._getQSSnetworks(mechanism)
 
         # Check that QSS species are consumed/produced at least once to ensure theoretically valid QSS option
         # (There is more to it than that, but this is a quick catch based on that aspect)
@@ -6682,19 +6675,14 @@ class CPickler(CMill):
         self._createSSnet(mechanism)
         self._createSRnet(mechanism)
 
-        # Get non-zero indices to be used for coupling
+        # Get non-zero indices of networks to be used for coupling
         self.QSS_SS_Si, self.QSS_SS_Sj = np.nonzero(self.QSS_SSnet)
         self.QSS_SR_Si, self.QSS_SR_Rj = np.nonzero(self.QSS_SRnet)
 
         print("\n\n SS network for QSS: ")
         print(self.QSS_SSnet)
-        print("SR network for QSS: ")
+        print(" SR network for QSS: ")
         print(self.QSS_SRnet)
-
-        # print(self.QSS_SS_Si)
-        # print(self.QSS_SS_Sj)
-        # print(self.QSS_SR_Si)
-        # print(self.QSS_SR_Rj)
 
         
     # Determine from QSS_SSnet which QSS species depend on each other specifically
@@ -6705,7 +6693,6 @@ class CPickler(CMill):
         for i in range(self.nQSSspecies):
             for j in self.QSS_SS_Sj[self.QSS_SS_Si == i]:
                 if j != i:
-                    # print("looking for coupling with species ", j, "(", self.qss_species_list[j], ")")
                     count = 0
                     for r in self.QSS_SR_Rj[self.QSS_SR_Si == j]:
                         reaction = mechanism.reaction(id=r)
@@ -6729,11 +6716,15 @@ class CPickler(CMill):
                         self.QSS_SCnet[i,j] = 0
                         
         self.QSS_SC_Si, self.QSS_SC_Sj = np.nonzero(self.QSS_SCnet)
+        print("\n\n SC network for QSS: ")
         print(self.QSS_SCnet)
         print
 
-    # Components needed to set up QSS algebraic expressions from AX = B, where A contains coeffiencts from qf's and qr's, X contains QSS species concentrations, and B contains qf's and qr's
-    # Info stored as: RHS vector (non-QSS and QSS qf's and qr's), coefficient of species (diagonal elements of A), coefficient of group mates (coupled off-diagonal elements of A)
+    # Components needed to set up QSS algebraic expressions from AX = B, 
+    # where A contains coefficients from qf's and qr's, X contains QSS species concentrations, 
+    # and B contains qf's and qr's
+    # Info stored as: RHS vector (non-QSS and QSS qf's and qr's), 
+    # coefficient of species (diagonal elements of A), coefficient of group mates (coupled off-diagonal elements of A)
     def _sortQSSsolution_elements(self, mechanism):
 
         self.QSS_rhs = OrderedDict()
@@ -6741,10 +6732,9 @@ class CPickler(CMill):
         self.QSS_groupSp = OrderedDict()
         self.QSS_supergroupSp = OrderedDict()
 
-        print self.qss_species_list
-        print self.nQSSspecies
-        
         for i in range(self.nQSSspecies):
+            symbol = self.qss_species_list[i]
+            print("-Dealing with QSS species ", i, symbol)
             coupled = []
             reactants = []
             products = []
@@ -6753,89 +6743,54 @@ class CPickler(CMill):
             groupCoeff_hold = []
             supergroupCoeff_hold = defaultdict(list)
 
-            print
-            print
-            print "i is: ", i
-            print "self.qss_species_list[i] is: ", self.qss_species_list[i]
-            print
-            
             for r in self.QSS_SR_Rj[self.QSS_SR_Si == i]:
-
                 reaction = mechanism.reaction(id=r)
+                print("... who is involved in reac ", reaction)
                 direction = self.QSS_SRnet[i][r]
                 group_flag = False
                 supergroup_flag = False
 
-                print "self.qss_species_list[i] is: ", self.qss_species_list[i]
                 # Check if reaction contains other QSS species
                 coupled = [species for species in list(set(self.QSS_SR_Si[self.QSS_SR_Rj == r]))]
-                
-                print "COUPLED IS: "
-                print coupled
 
-                print "self.qss_species_list[i] is: ", self.qss_species_list[i]
-                
                 if len(coupled) < 2:
-                    print("reaction ", r, " only contains QSS species ", self.qss_species_list[i])
-                    print
+                    print "        this reaction only involves that QSS "
                     # if QSS species is a reactant
                     if direction == -1:
-                        print("for species ", self.qss_species_list[i], " in reaction ", r, " is a reactant")
+                        print("        Species ", symbol, " in reaction ", r, " is a reactant")
                         if reaction.reversible:
-                            print("MOVE THIS SPECIES TO RHS")
-                            print
-                            print
                             rhs_hold.append('- qr_co['+str(r)+']')
-                        else:
-                            print("not reversible => qr = 0")
-                            print
-                            print
+                        #else:
+                        #    print("not reversible => qr = 0")
                         coeff_hold.append('- qf_co['+str(r)+']')
                     # if QSS species is a product
                     elif direction == 1:
+                        print("        Species ", symbol, " in reaction ", r, " is a product")
                         if reaction.reversible:
-
                             coeff_hold.append('- qr_co['+str(r)+']')
-                        print("for species ", self.qss_species_list[i], " in reaction ", r, " is a product")
-                        print("MOVE THIS SPECIES TO RHS")
                         rhs_hold.append('- qf_co['+str(r)+']')
                 else:
-                    # print("reaction ", r, " only contains QSS species ", self.qss_species_list[i])
-                    print
+                    #AF take back here
                     coupled_qss = [self.qss_species_list[j] for j in coupled]
-                    print "THE QSS SPECIES INVOLVED IN THIS REACTION ARE: "
-                    print coupled_qss
-                    print
-                    print "self.qss_species_list[i] is: ", self.qss_species_list[i]
+                    print "        this reaction couples the following QSS: ", coupled_qss
 
                     for species in coupled_qss:
-                        if species != self.qss_species_list[i]:
+                        if species != symbol:
                             other_qss = species
                     
-                    print
-                    print 
-
-                    
                     for group in self.group:
-
                         if set(self.group[group]) == set(coupled_qss):
                             print "!!!!!!!!!!!!GROUP MATCH!!!!!!!!!!!!!!!!"
                             group_flag = True
-                            print
                             
                     for supergroup in self.super_group:
-
                         contains_groups = [member for member in self.super_group[supergroup] if member in self.group.keys()]
                         contains_species = [member for member in self.super_group[supergroup] if member not in self.group.keys()]
-
                         for group in contains_groups:
                             contains_species.extend(self.group[group])
-
                         if set(coupled_qss).issubset(set(contains_species)):
                             print "!!!!!!!!!!!SUPERGROUP MATCH!!!!!!!!!!!!!!"
                             supergroup_flag = True
-                            
-                        
                         
                     if group_flag and not supergroup_flag:
                         print "YES, species "+str(coupled_qss)+" is in a group"
@@ -6844,13 +6799,11 @@ class CPickler(CMill):
                             print("for species ", self.qss_species_list[i], " in reaction ", r, " is a reactant")
                             if reaction.reversible:
                                 print("MOVE THIS SPECIES TO RHS")
-                                print
-                                print
                                 groupCoeff_hold.append('+ qr_co['+str(r)+']')
-                            else:
-                                print("not reversible => qr = 0")
-                                print
-                                print
+                            #else:
+                            #    print("not reversible => qr = 0")
+                            #    print
+                            #    print
                             coeff_hold.append('- qf_co['+str(r)+']')
                         # if QSS species is a product
                         elif direction == 1:
@@ -7112,52 +7065,55 @@ class CPickler(CMill):
         
     # Testing all of my garbage for now
     # Order of operation as of right now: run setQSSspecies, QSSvalidation, then QSSCoupling
-    def _test(self, mechanism):
-        # Testing how this works in general
-        # self._write(self.line('Does this write to the file?'))
-        # print("\n\nDoes this print to the terminal when run?\n\n")
+    def _QSS(self, mechanism):
 
-        # Testing setQSSspecies to initialize QSS information
-        # QSS = ['O2', 'CH', 'CH2', 'C', 'H2O', 'H2O2', 'CO', 'HO2']
-        # QSS = ['C','HCCO']
+        print("\n\n\n\n---------------------------------")
+        print("+++++++++QSS INFO++++++++++++++++")
+        print("---------------------------------")
+        print "QSS species list =", self.qss_species_list
 
-        # self._setQSSspecies(mechanism, QSS)
+        # sets up QSS subnetwork
+        self._getQSSnetworks(mechanism)
+
+        # Perform tests to ensure QSS species are good candidates
         self._QSSvalidation(mechanism)
-        # print("Global QSS info is: ", self.QSS_species)
-        # print("QSS_SSnet is starting with: ", self.QSS_SSnet)
-        # print("QSS_SRnet is starting with: ", self.QSS_SRnet)
-
-        # # Test helper functions for getting QSS subnetwork
-        # self._createSSnet(mechanism)
-        # print("\nEvaluated SSnet is: \n")
-        # print(self.QSS_SSnet)
-        # print()
-        # self._createSRnet(mechanism)
-        # print("\nEvaluated SRnet is: \n")
-        # print(self.QSS_SRnet)
-        # print()
-
-        # Testing creation of QSS Subnetworks for mechanism
-        # self._getQSSsubnetworks(mechanism)
-
-        # Testing QSS Coupling
+        # Testing to ensure no QSS are quadratically coupled
+        # Fill SC network
         self._QSSCoupling(mechanism)
 
+        print("\n\n\n\n---------------------------------")
+        print("+++++++++INIT NEEDS DICT+++++++++")
+        print("---------------------------------")
+        # Fill "need" dict: tells, for each spec, which other species it depends upon
         self._setQSSneeds(mechanism)
+        # Fill "is_needed" dict: tells, for each spec, which other species needs it
         self._setQSSisneeded(mechanism)
 
+        # Get two-way dependencies
+        print("\n\n\n\n---------------------------------")
+        print("+++++++++GROUPS++++++++++++++++++")
+        print("---------------------------------")
         self._getQSSgroups(mechanism)
+        # Get super groups dependencies
+        print("\n\n\n\n---------------------------------")
+        print("+++++++++SUPERGROUPS+++++++++++++")
+        print("---------------------------------")
         self._getQSSsupergroups(mechanism)
-
+        # Sort out order of group eval
+        print("\n\n\n\n---------------------------------")
+        print("+++++++++QSS SORTING+++++++++++++")
+        print("---------------------------------")
         self._sortQSScomputation(mechanism)
-
+        # Actually gauss-pivot the matrix to get algebraic expr
+        print("\n\n\n\n---------------------------------")
+        print("+++++++++QSS EVAL++++++++++++++++")
+        print("---------------------------------")
         self._sortQSSsolution_elements(mechanism)
-
-    def _test2(self, mechanism):
-        for species in self.species:
-            print (species.symbol, " ",species.id, " ", species.weight)
-        for qss in self.qss_species:
-            print(qss.symbol, " ", qss.id, " ", qss.weight)
+        # Print those expr in the mechanism.cpp
+        print("\n\n\n\n---------------------------------")
+        print("+++++++++QSS PRINTING++++++++++++")
+        print("---------------------------------")
+        self._QSScomponentFunctions(mechanism)
 
             
     def _QSSsortedPhaseSpace(self, mechanism, reagents):
@@ -7240,7 +7196,7 @@ class CPickler(CMill):
             if test >= itroe[0] and test <= itroe[1]-1:
                 ntroe_qss += 1
                 if troe_first:
-                    print "reaction ", reaction, " goes in here "
+                    #print "reaction ", reaction, " goes in here "
                     itroe_qss[0] = self.qssReactions.index(reaction)
                     troe_first = False
                 itroe_qss[1] = self.qssReactions.index(reaction)+1
@@ -7558,6 +7514,7 @@ class CPickler(CMill):
         self._write()
         self._write('comp_qss_coeff(qf_co, qr_co, sc, tc, invT);')
 
+        print "** self.decouple_index:"
         print self.decouple_index
         print self.needs.keys()
         print self.group.keys()
@@ -7709,49 +7666,6 @@ class CPickler(CMill):
     ####################
     #unused
     ####################
-
-    # Set up important QSS variables/containers
-    # This function I don't think will be necessary once QSS parsing is implemented. Initialization of QSS networks can be put in setSpecies function
-    #def _setQSSspecies(self, mechanism, QSS):
-        #nQSS = len(QSS)
-
-        #species = []
-        #for s in mechanism.species():
-        #    species.append(s.symbol)
-
-        # Get indices of QSS species from species list in mechanism 
-        #isQSS = np.in1d(species, QSS)
-        #QSS_index = np.array(np.argwhere(isQSS == True))
-
-        #print("\n QSS before sorting: ", QSS, "\n\n" )
-        ## Sort QSS as they would be found in the mechanism ordering
-        #QSS_species_index = {}
-        #QSS_species_sorted = []
-        #for i in range(nQSS):
-        #    QSS_species_sorted.append(species[int(QSS_index[i])])
-        #    QSS_species_index[species[int(QSS_index[i])]] = i
-
-        # Set global QSS components
-        #self.nQSS = nQSS
-        #self.qss_species = QSS_species_sorted
-        # QSS_list_index refers to QSS position in QSS_species
-        #self.QSS_list_index = QSS_species_index
-        # QSS_mech_index refers to QSS position in mechanism.species
-        #self.QSS_mech_index = QSS_index
-        # QSS_SSnet and QSS_SRnet are initialized for the entire mechanism
-        # and are whittled down to just QSS terms with getQSSsubnetworks() 
-
-        ## ONLY PART OF THIS THAT NEEDS TO BE KEPT: MOVED TO _setSpecies
-        #self.QSS_SSnet = np.zeros([self.nSpecies, self.nSpecies], 'd')
-        #self.QSS_SRnet = np.zeros([self.nSpecies, len(mechanism.reaction())], 'd')
-        #self.QSS_SCnet = np.zeros([nQSS, nQSS], 'd')
-        ###########################################################################
-        
-        # print("\n QSS after sorting: ", self.qss_species,"\n\n")
-        # print("\n QSS list index: ", self.QSS_list_index)
-        # print("\n QSS mechanism index: ", self.QSS_mech_index)
-        # print("QSS_SSnet is \n ", self.QSS_SSnet )
-
 
 # version
 __id__ = "$Id$"
