@@ -1664,14 +1664,14 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     double CH_C = (epsilon + qr_co[4])/CH_denom;
 
-    sc_qss[4] = C_rhs - (C_CH * (CH_rhs - C_rhs * CH_C) / (1 - C_CH * CH_C));
+    sc_qss[4] = C_rhs - (C_CH * ((CH_rhs - C_rhs * CH_C) / (1 - C_CH * CH_C)));
     sc_qss[5] = (CH_rhs - C_rhs * CH_C) / (1 - C_CH * CH_C);
 
 
 
     /*QSS species 0: O2 */
 
-    double O2_num = epsilon - qf_co[0]*sc_qss[0] - qr_co[6];
+    double O2_num = epsilon - qf_co[0]*sc_qss[2] - qr_co[6];
     double O2_denom = epsilon - qf_co[6];
 
     sc_qss[0] = O2_num/O2_denom;
@@ -1680,7 +1680,7 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     /*QSS species 7: CO */
 
-    double CO_num = epsilon - qf_co[3]*sc_qss[7] - qr_co[8];
+    double CO_num = epsilon - qf_co[3]*sc_qss[5] - qr_co[8];
     double CO_denom = epsilon - qf_co[8];
 
     sc_qss[7] = CO_num/CO_denom;
@@ -1689,7 +1689,7 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     /*QSS species 1: H2O */
 
-    double H2O_num = epsilon - qf_co[1]*sc_qss[1];
+    double H2O_num = epsilon - qf_co[1]*sc_qss[2];
     double H2O_denom = epsilon - qr_co[2];
     double H2O_rhs = H2O_num/H2O_denom;
 
@@ -1703,7 +1703,7 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     double H2O2_H2O = (epsilon + qr_co[2])/H2O2_denom;
 
-    sc_qss[1] = H2O_rhs - (H2O_H2O2 * (H2O2_rhs - H2O_rhs * H2O2_H2O) / (1 - H2O_H2O2 * H2O2_H2O));
+    sc_qss[1] = H2O_rhs - (H2O_H2O2 * ((H2O2_rhs - H2O_rhs * H2O2_H2O) / (1 - H2O_H2O2 * H2O2_H2O)));
     sc_qss[3] = (H2O2_rhs - H2O_rhs * H2O2_H2O) / (1 - H2O_H2O2 * H2O2_H2O);
 
 
@@ -2190,13 +2190,13 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     gibbs_qss(g_RT_qss, tc);
 
     /*reaction 1: O + HO2 => OH + O2 */
-    kc[0] = exp((g_RT[2] + g_RT_qss[2]) - (g_RT[4] + g_RT_qss[0]));
+    kc[0] = exp((g_RT[2] + g_RT_qss[2]) - (g_RT[3] + g_RT_qss[0]));
 
     /*reaction 2: H + HO2 => O + H2O */
     kc[1] = exp((g_RT[1] + g_RT_qss[2]) - (g_RT[2] + g_RT_qss[1]));
 
     /*reaction 3: H + H2O2 <=> OH + H2O */
-    kc[2] = exp((g_RT[1] + g_RT_qss[3]) - (g_RT[4] + g_RT_qss[1]));
+    kc[2] = exp((g_RT[1] + g_RT_qss[3]) - (g_RT[3] + g_RT_qss[1]));
 
     /*reaction 4: O + CH => H + CO */
     kc[3] = exp((g_RT[2] + g_RT_qss[5]) - (g_RT[1] + g_RT_qss[7]));
@@ -2205,19 +2205,19 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[4] = exp((g_RT[1] + g_RT_qss[5]) - (g_RT_qss[4] + g_RT[0]));
 
     /*reaction 6: O + CH2 <=> H + HCO */
-    kc[5] = exp((g_RT[2] + g_RT_qss[6]) - (g_RT[1] + g_RT[13]));
+    kc[5] = exp((g_RT[2] + g_RT_qss[6]) - (g_RT[1] + g_RT[5]));
 
     /*reaction 7: H + O2 <=> O + OH */
-    kc[6] = exp((g_RT[1] + g_RT_qss[0]) - (g_RT[2] + g_RT[4]));
+    kc[6] = exp((g_RT[1] + g_RT_qss[0]) - (g_RT[2] + g_RT[3]));
 
     /*reaction 8: H + HO2 <=> 2.000000 OH */
-    kc[7] = exp((g_RT[1] + g_RT_qss[2]) - (2.000000 * g_RT[4]));
+    kc[7] = exp((g_RT[1] + g_RT_qss[2]) - (2.000000 * g_RT[3]));
 
     /*reaction 9: OH + CO <=> H + CO2 */
-    kc[8] = exp((g_RT[4] + g_RT_qss[7]) - (g_RT[1] + g_RT[12]));
+    kc[8] = exp((g_RT[3] + g_RT_qss[7]) - (g_RT[1] + g_RT[4]));
 
     /*reaction 10: OH + CH <=> H + HCO */
-    kc[9] = exp((g_RT[4] + g_RT_qss[5]) - (g_RT[1] + g_RT[13]));
+    kc[9] = exp((g_RT[3] + g_RT_qss[5]) - (g_RT[1] + g_RT[5]));
 
     return;
 }
