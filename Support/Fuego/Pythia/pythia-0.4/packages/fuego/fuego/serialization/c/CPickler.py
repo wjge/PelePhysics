@@ -6140,7 +6140,6 @@ class CPickler(CMill):
         print
         print "NEEDS (one per QSS spec): "
         print(self.needs)
-        #print(self.needs_count)
 
 
     def _setQSSisneeded(self, mechanism):
@@ -6167,7 +6166,6 @@ class CPickler(CMill):
         print
         print "IS NEEDED (one per QSS spec): "
         print(self.is_needed)
-        #print(self.is_needed_count)
 
 
     # get two-way dependencies accounted for: (s1 needs s2) and (s2 needs s1) = group
@@ -6177,255 +6175,83 @@ class CPickler(CMill):
         already_accounted_for = []
         group_count = 0
         
-        print("\n\nDetermining 2 way coupling now...")
+        print("\n\nDetermining groups of coupled species now...")
         print("---------------------------------")
-
-        # for each species spec that has needs
-        # for i in range(self.nQSSspecies):
-            # spec = self.qss_species_list[i]
-            # print("- dealing with species: "+ spec)
-            # # for each of the needs of that species spec, we could have a potential group
-            # for needs in self.needs[spec]:
-                # print("... Needs: "+ needs)
-                # potential_group = []
-                # potential_group.append(spec)
-                # # check that this group was not already found through a search with the other species involved
-                # if (needs,spec) not in already_accounted_for:
-                    # # if species spec is also needed by the current needs, then we have a group
-                    # if any(species == needs for species in self.is_needed[spec]):
-                        # print("        found 2 way coupling ! Species "+spec+" and "+needs+" depend on eachother")
-                        # potential_group.append(needs)
-                        # self.group['group_'+str(group_count)] = potential_group
-                        # # Add this group to a list so that it doesn't get counted again 
-                        # # in the event that the needs species is also a spec in the needs key list
-                        # already_accounted_for.append((spec,needs))
-
-                    # group_count += 1
-
         all_groups = OrderedDict()
+        # Loop through species to tackle the needs group
         for member in self.needs_running.keys():
             print "- dealing with group: "+ member
-
             potential_group = defaultdict(list)
             already_accounted_for = defaultdict(list)
             good_path = OrderedDict()
             for other in self.needs_running.keys():
                 good_path[other] = False
-            
             self._findClosedCycle(mechanism, member, member, already_accounted_for, potential_group, all_groups, good_path)
-            print "- potential group is: ", all_groups
-            print
+            #print "** potential group is: ", all_groups
+            #print
 
+        print "** Groups of coupled species are: ", all_groups
 
-        print
-        print
-        print "** 2-way coupling groups are: ", all_groups
-
+        print("\n\nRemove duplicates...")
+        print("---------------------------------")
+        # Check for duplicates
         for group1 in all_groups:
-            print "group 1 is: ", group1
+            print "- dealing with group 1: "+ group1
             for group2 in all_groups:
-                print "group 2 is: ", group2
+                print "... group 2 is: "+ group2
                 if group2 != group1 and set(all_groups[group2]).issubset(set(all_groups[group1])):
                     all_groups.pop(group2, None)
-                    print "all groups in loop now: ", all_groups
-        print
-        print "Now all groups are: ", all_groups
-
+                    print "    !! group 2 is subset of group 1 !! all groups in loop now: ", all_groups
+        # Rename
         for count, group in enumerate(all_groups):
             self.group['group_'+str(count)] = all_groups[group]
-
         print
-        print self.group
+        print "** Final groups are: ", self.group
 
         self._updateGroupNeeds(mechanism)
         self._updateGroupDependencies(mechanism)
 
-    # get intergroup dependencies accounted for: (this needs that) and (that needs this) = supergroup, 
-    # where this and that can be individual species or groups
-    def _getQSSsupergroups(self, mechanism):
-
-        self.super_group = OrderedDict()
-        already_accounted_for = []
-        super_group_count = 0
-
-        print("\n\nDetermining Super-group coupling...")
-        print("---------------------------------")
-
-        # for member in self.needs_running.keys():
-            # print("- dealing with group: "+ member)
-            # for needs in self.needs_running[member]:
-                # print("... Needs: "+ needs)
-                # potential_super_group = []
-                # potential_super_group.append(member)
-                # # check that this super-group was not already found through a search with the other member involved
-                # if(needs,member) not in already_accounted_for:
-                    # if any(components == needs for components in self.is_needed_running[member]):
-                        # print("        found 2 way coupling ! Group "+member+" and "+needs+" depend on eachother")
-                        # potential_super_group.append(needs)
-                        # self.super_group['super_group_'+str(super_group_count)] = potential_super_group
-                        # # Add this supergroup to a list so that it doesn't get counted again 
-                        # already_accounted_for.append((member,needs))
-                        # super_group_count += 1
-
-        # for member in self.needs_running.keys():
-            # print "- dealing with group: "+ member
-
-            # potential_group = []
-            # already_accounted_for = []
-            # good_path = OrderedDict()
-            # for other in self.needs_running.keys():
-                # good_path[other] = False
-            # all_groups = OrderedDict()
-            # parents = defaultdict(list)
-            # level = 0
-            # count = 0
-            
-            # self._findClosedCycle(mechanism, member, member, already_accounted_for, potential_group, all_groups,  good_path, parents, level, count)
-            # print "- potential group is: ", all_groups
-            # print
-
-        # print "** 2-way coupling supergroups are: ", self.super_group
-
-        # self._updateSupergroupNeeds(mechanism)
-        # self._updateSupergroupDependencies(mechanism)
-
 
     def _findClosedCycle(self, mechanism, match, species, visited, potential_cycle, all_groups, good_path):
+
+        # Loop through species
+        print "      Entering Closed Cycle with match, parent: ", match, species
         if species not in visited[match]:
+            print "      Parent is not already visited..."
             visited[match].append(species)
             potential_cycle[match].append(species)
-
             parent = species
-            print "Parent is: "+parent
-            print
             for need in self.needs_running[species]:
                 child = need
-                print "Start level of needs loop"
-                print "Parent is: "+parent
-                print "Child is: "+child
-                print "Potential cycle is: ", potential_cycle[match]
+                print "       x Start level of needs loop"
+                #print "       x Parent is: "+parent
+                print "       x Child is: "+child
+                #print "Potential cycle is: ", potential_cycle[match]
                 if child not in visited[match]:
-                    print "go a level further"
+                    #print "go a level further"
+                    print "         xx Child is not already visited..."  
                     self._findClosedCycle(mechanism, match, child, visited, potential_cycle, all_groups, good_path)
-                    print
-                    print "We've finshed a recursion!"
-                    print "the child that was passed in was: "+child
+                    print "         We've finshed a recursion! The child that was passed in was: "+child
                     if good_path[child] == False:
                         potential_cycle[match].remove(child)
                     print
                 else:
-                    print "child has been visited already"
-                    print
+                    print "         xx Child has been visited already"
                     if child == match:
-                        print "child equals match -> we've found a closed cycle!"
+                        print "            Child equals match -> we've found a closed cycle!"
                         good_path[parent] = True
                         all_groups[match] = potential_cycle[match]
                     elif good_path[child] == True:
-                        print "we know this leads to a cycle"
+                        print "            ...we know this leads to a cycle"
                         good_path[parent] = True
                         if child not in all_groups[match]:
                             all_groups[match].append(child)
                     else:
-                        print "Bad Path"
-                    print "all_groups is now: ", all_groups
-                    print
+                        print "            Bad Path!"
+                    print "         -- > all_groups is now: ", all_groups
             if not self.needs_running[species]:
-                print "Dead End"
+                print "       x but this is a Dead End.."
                     
-        
-    def _findClosedCycle2(self, mechanism, match, species, visited, potential_cycle, all_groups, good_path, all_paths, level, count, path):
-
-        if species not in visited[match]:
-            visited[match].append(species)
-        potential_cycle[match].append(species)
-
-        potential_cycle[match] = list(set(potential_cycle))
-        all_paths[path].append(species)
-        all_paths[path] = list(set(all_paths[path]))
-
-        
-        parent = species
-        for need in self.needs_running[species]:
-            new_path = True
-            child = need
-
-            print
-            print
-            print "On path "+str(path)+" which is: ", all_paths[path]
-            print "On level "+str(level)
-            print "We have now visited: ", visited[match]
-            print "Our potential cycle is now: ", potential_cycle
-            print "parent is currently "+parent
-            
-            print "child is currently "+ child
-            print "all groups are: ", all_groups
-            print
-            if need not in visited[match]:
-                level += 1
-                print "Go a level further"
-                self._findClosedCycle(mechanism, match, need, visited, potential_cycle, all_groups, good_path, all_paths, level, count, path)
-                new_path = False
-            elif need == match and good_path[species] == False:
-                print "Good path!"
-                if count == 0: 
-                    potential_cycle[match].append(species)
-                    all_groups[match] = potential_cycle[match]
-                    print all_groups[match]
-                    return True
-                else:
-                    print "Oh! we already know this species has a loop. Add to supergroup!"
-                    all_groups[match].append(species)
-                good_path[species] = True
-                new_path = False
-                path += 1
-                count += 1
-                all_paths[path].extend(all_paths[path-1])
-                all_paths[path].remove(species)
-                self._findClosedCycle(mechanism, match, species, visited, potential_cycle, all_groups, good_path, all_paths, level, count, path)
-                return True
-            elif good_path[need] == True and species not in all_groups[match]:
-                print "Hey! This leads to something that we already determined was in a good path! expand that path with this"
-                all_groups[match].append(species)
-                print all_groups
-                good_path[species] = True
-                new_path = False
-                path += 1
-                all_paths[path].extend(all_paths[path-1])
-                print "new path is: ", all_paths[path]
-            print
-            print "This is end of the loop dealing with need "+ need+" of species "+ species
-            print "Okay, now our needs are: ", self.needs_running[species]
-            print "And we have visited: ", visited[match]
-            print "We are on path "+str(path)+" which is: ", all_paths[path]
-            print "loop through needs continues here! "
-            path += 1
-            all_paths[path].extend(all_paths[path-1])
-            # all_paths[path].remove(need)
-            if new_path:
-                print "Nothing happend; switch to new path"
-                path += 1
-                all_paths[path].extend(all_paths[path-1])
-                print "new path is: ", all_paths[path]
-                # all_paths[path].remove(species)
-
-        if not self.needs_running[species]:
-            print "parent is currently "+parent
-            print "there are no children"
-            print "potential cycle is: ", potential_cycle[match]
-            print "dead end of path: ", all_paths[path]
-            # potential_cycle[match].remove(species)
-                # potential_cycle.remove(need)
-            # if set(self.needs_running[species]).issubset(set(visited)) and level > 0:
-                # print
-                # print "We need to go up! "
-                # all_paths[path].remove(species)
-                # level -= 1
-                # self._findClosedCycle(mechanism, match, all_paths[path][level], visited, potential_cycle, all_groups, good_path, all_paths, level, count, path)
-            
-        print "Done"
-        return False
-            
-        
         
         
     # Sort order that QSS species need to be computed based on dependencies
@@ -6437,7 +6263,6 @@ class CPickler(CMill):
         # look at how many dependencies each component has
         needs_count_regress = self.needs_count_running.copy()
 
-        print "needs count regress is: ", needs_count_regress
         # There should always be a component present that loses
         # all dependencies as you update the computation
         while 0 in needs_count_regress.values():
@@ -6462,8 +6287,8 @@ class CPickler(CMill):
         if len(self.decouple_index) != len(self.needs_running):
             print("WARNING: Some components may not have been taken into account")
 
-        print "** order of execution for qss concentration calculations: "
-        print(self.decouple_index)
+        print
+        print "** order of execution for qss concentration calculations: ", self.decouple_index
 
 
     # Update group member needs with group names:
@@ -6563,6 +6388,7 @@ class CPickler(CMill):
                     del self.needs_count_running[spec]
                     del self.is_needed_running[spec]
             
+        print
         print "** This is the final needs running and is_needed running: "
         print(self.needs_running)
         print(self.is_needed_running)
@@ -6638,6 +6464,7 @@ class CPickler(CMill):
         self.is_needed_running.update(solo_is_needed)
         self.is_needed_count_running.update(solo_is_needed_count)
        
+        print
         print "** This is the final needs running and is_needed running: "
         print(self.needs_running)
         print(self.is_needed_running)
@@ -6652,176 +6479,7 @@ class CPickler(CMill):
     ###############################################################
         
                         
-    def _updateSupergroupNeeds(self, mechanism):
 
-        print("\n\nUpdating super-group needs...")
-        print("---------------------------------")
-        
-        for super_group_key in self.super_group.keys():
-            print("-Dealing with supergroup "+ super_group_key)
-
-            update_needs = []
-            update_is_needed = []
-            update_needs_count = 0
-            update_needed_count = 0
-
-            super_group_needs = {}
-            super_group_needs_count = {}
-            super_group_is_needed = {}
-            super_group_is_needed_count = {}
-            
-            other_super_groups = self.super_group.keys()
-            other_super_groups.remove(super_group_key)
-            print "  (other supergroups are: ", other_super_groups,")"
-            
-            # for each species in the current group
-            for spec in self.super_group[super_group_key]:
-                print("... for supergroup member: "+spec)
-                # look at any additional needs that are not already accounted for with the group
-                for need in list(set(self.needs_running[spec]) - set(self.super_group[super_group_key])):
-                    print("        An additional not-in-supergroup need is "+ need)
-                    not_in_super_group = True
-                    # check the other groups to see if the need can be found in one of them
-                    for other_super_group in other_super_groups:
-                        # if the other group is not already accounted for and 
-                        # it contains the need we're looking for, update the group needs 
-                        # with that group that contains the need
-                        if other_super_group not in update_needs and any(member == need for member in self.super_group[other_super_group]):
-                            print("        it is found in a different super group. Adding it.")
-                            not_in_super_group = False
-                            update_needs.append(other_super_group)
-                            update_needs_count += 1
-                        elif other_super_group in update_needs and any(member == need for member in self.super_group[other_super_group]):
-                            print "        this supergroup has already been accounted for by another component's needs"
-                            not_in_super_group = False
-                    # alternatively, if this is just a solo need that's not in another group, 
-                    # update the group needs with just that need. 
-                    if not_in_super_group and need not in update_needs:
-                        print("        this need was not found in a supergroup ! Adding the group directly")
-                        update_needs.append(need)
-                        update_needs_count += 1
-                # look at any additional species (outside of the group) that depend on the current group member
-                for needed in list(set(self.is_needed_running[spec]) - set(self.super_group[super_group_key])):
-                    print("        An additional not-in-supergroup is-needed is "+ needed)
-                    not_in_super_group = True
-                    # for the other groups
-                    for other_super_group in other_super_groups:
-                        # if the other group hasn't alredy been accounted for 
-                        # and the species is in that group, then that other group depends 
-                        # on a species in the current group
-                        if other_super_group not in update_is_needed and any(member == needed for member in self.super_group[other_super_group]):
-                            print("        it is found in a different super group. Adding it.")
-                            not_in_super_group = False
-                            update_is_needed.append(other_super_group)
-                            update_needed_count += 1
-                        elif other_super_group in update_is_needed and any(member == need for member in self.super_group[other_super_group]):
-                            print "        this supergroup has already been accounted for by another component's needs"
-                            not_in_super_group = False
-                    # if the species is not in another group, then that lone species just depends on the current group. 
-                    if not_in_super_group and needed not in update_is_needed:
-                        print("        this is-needed was not found in a supergroup ! Adding the group directly")
-                        update_is_needed.append(needed)
-                        update_needed_count += 1
-
-
-            super_group_needs[super_group_key] = update_needs
-            super_group_needs_count[super_group_key] = update_needs_count
-            super_group_is_needed[super_group_key] = update_is_needed
-            super_group_is_needed_count[super_group_key] = update_needed_count
-
-            self.needs_running.update(super_group_needs)
-            self.needs_count_running.update(super_group_needs_count)
-            self.is_needed_running.update(super_group_is_needed)
-            self.is_needed_count_running.update(super_group_is_needed_count)
-
-            print "So, ", super_group_key," needs ",update_needs
-            print "So, ", super_group_key," is-needed is ",update_is_needed
-        
-        for super_group in self.super_group.keys():
-            for spec in self.super_group[super_group]:
-                if spec in self.needs_running:
-                    del self.needs_running[spec]
-                    del self.needs_count_running[spec]
-                    del self.is_needed_running[spec]
-
-        print "** This is the final needs running and is_needed running: "
-        print(self.needs_running)
-        print(self.is_needed_running)
-
-
-    # Update solo species dependendent on group members with group names:
-    # species needs member -> species needs group
-    # species is needed by group member -> species is needed by group
-    def _updateSupergroupDependencies(self, mechanism):
-
-        print("\n\nUpdating super-group dependencies...")
-        print("---------------------------------")
-
-        super_solo_needs = self.needs_running.copy()
-        super_solo_needs_count = self.needs_count_running.copy()
-        super_solo_is_needed = self.is_needed_running.copy()
-        super_solo_is_needed_count = self.is_needed_count_running.copy()
-
-        # remove the groups because we're just dealing with things that aren't in groups now
-        for super_group in self.super_group.keys():
-            del super_solo_needs[super_group]
-            del super_solo_needs_count[super_group]
-            del super_solo_is_needed[super_group]
-            del super_solo_is_needed_count[super_group]
-        
-        for solo in super_solo_needs.keys():
-            print("-Dealing with solo group "+ solo)
-            update_needs = []
-            update_is_needed = []
-            update_needs_count = 0
-            update_needed_count = 0
-            for need in super_solo_needs[solo]:
-                print("... who needs: "+need)
-                not_in_super_group = True
-                for super_group in self.super_group.keys():
-                    if super_group not in update_needs and any(member == need for member in self.super_group[super_group]):
-                        print "        this group is in super_group: ", super_group
-                        not_in_super_group = False
-
-                        update_needs.append(super_group)
-                        update_needs_count += 1
-                    elif super_group in update_needs and any(member == need for member in self.super_group[super_group]):
-                        print "        this super-group is already accounted for by other group component's needs."
-                        not_in_super_group = False
-                if not_in_super_group and need not in update_needs:
-                    print("        this need was not found in a super-group ! Adding the need (group) directly")
-                    update_needs.append(need)
-                    update_needs_count += 1
-            for needed in super_solo_is_needed[solo]:
-                print("... who is-needed needs are: "+needed)
-                not_in_super_group = True
-                for super_group in self.super_group.keys():
-                    if super_group not in update_is_needed and any(member == needed for member in self.super_group[super_group]):
-                        print "        this group is in super_group: ", super_group
-                        not_in_super_group = False
-                        update_is_needed.append(super_group)
-                        update_needed_count +=1
-                    elif super_group in update_is_needed and any(member == need for member in self.super_group[super_group]):
-                        print "        this super-group is already accounted for by other group component's needs."
-                        not_in_super_group = False
-                if not_in_super_group and needed not in update_is_needed:
-                    print("        this is-needed was not found in a super-group ! Adding the group directly")
-                    update_is_needed.append(needed)
-                    update_needed_count += 1
-
-            super_solo_needs[solo] = update_needs
-            super_solo_needs_count[solo] = update_needs_count
-            super_solo_is_needed[solo] = update_is_needed
-            super_solo_is_needed_count[solo] = update_needed_count
-
-        self.needs_running.update(super_solo_needs)
-        self.needs_count_running.update(super_solo_needs_count)
-        self.is_needed_running.update(super_solo_is_needed)
-        self.is_needed_count_running.update(super_solo_is_needed_count)
-
-        print "** This is the final needs running and is_needed running: "
-        print(self.needs_running)
-        print(self.is_needed_running)
                         
     ###################################################################
     #
@@ -6908,7 +6566,7 @@ class CPickler(CMill):
         self.QSS_SC_Si, self.QSS_SC_Sj = np.nonzero(self.QSS_SCnet)
         print("\n\n SC network for QSS: ")
         print(self.QSS_SCnet)
-        print
+
 
     # Components needed to set up QSS algebraic expressions from AX = B, 
     # where A contains coefficients from qf's and qr's, X contains QSS species concentrations, 
@@ -6920,7 +6578,7 @@ class CPickler(CMill):
         self.QSS_rhs = OrderedDict()
         self.QSS_coeff = OrderedDict()
         self.QSS_groupSp = OrderedDict()
-        self.QSS_supergroupSp = OrderedDict()
+        #self.QSS_supergroupSp = OrderedDict()
 
         for i in range(self.nQSSspecies):
             symbol = self.qss_species_list[i]
@@ -6931,14 +6589,14 @@ class CPickler(CMill):
             rhs_hold = []
             coeff_hold = []
             groupCoeff_hold = []
-            supergroupCoeff_hold = defaultdict(list)
+            #supergroupCoeff_hold = defaultdict(list)
 
             for r in self.QSS_SR_Rj[self.QSS_SR_Si == i]:
                 reaction = mechanism.reaction(id=r)
                 print("... who is involved in reac ", reaction.id)
                 direction = self.QSS_SRnet[i][r]
                 group_flag = False
-                supergroup_flag = False
+                #supergroup_flag = False
 
                 # Check if reaction contains other QSS species
                 coupled = [species for species in list(set(self.QSS_SR_Si[self.QSS_SR_Rj == r]))]
@@ -6973,16 +6631,16 @@ class CPickler(CMill):
                             print "!!!!!!!!!!!!GROUP MATCH!!!!!!!!!!!!!!!!"
                             group_flag = True
                             
-                    for supergroup in self.super_group:
-                        contains_groups = [member for member in self.super_group[supergroup] if member in self.group.keys()]
-                        contains_species = [member for member in self.super_group[supergroup] if member not in self.group.keys()]
-                        for group in contains_groups:
-                            contains_species.extend(self.group[group])
-                        if set(coupled_qss).issubset(set(contains_species)):
-                            print "!!!!!!!!!!!SUPERGROUP MATCH!!!!!!!!!!!!!!"
-                            supergroup_flag = True
+                    #for supergroup in self.super_group:
+                    #    contains_groups = [member for member in self.super_group[supergroup] if member in self.group.keys()]
+                    #    contains_species = [member for member in self.super_group[supergroup] if member not in self.group.keys()]
+                    #    for group in contains_groups:
+                    #        contains_species.extend(self.group[group])
+                    #    if set(coupled_qss).issubset(set(contains_species)):
+                    #        print "!!!!!!!!!!!SUPERGROUP MATCH!!!!!!!!!!!!!!"
+                    #        supergroup_flag = True
                         
-                    if group_flag and not supergroup_flag:
+                    if group_flag:
                         print "YES, species "+str(coupled_qss)+" is in a group"
                         # if QSS species is a reactant
                         if direction == -1:
@@ -7003,28 +6661,28 @@ class CPickler(CMill):
                             print("ADD TO CORRESPONDING GROUP COEFFICIENT")
                             groupCoeff_hold.append('+ qf_co['+str(r)+']')
                             
-                    elif supergroup_flag:
-                        print "YES, species "+str(coupled_qss)+" is in a super group"
-                        # if QSS species is a reactant
-                        if direction == -1:
-                            print("for species ", self.qss_species_list[i], " in reaction ", r, " is a reactant")
-                            if reaction.reversible:
-                                print("MOVE THIS SPECIES TO RHS")
-                                print
-                                print
-                                supergroupCoeff_hold[other_qss].append('+ qr_co['+str(r)+']')
-                            else:
-                                print("not reversible => qr = 0")
-                                print
-                                print
-                            coeff_hold.append('- qf_co['+str(r)+']')
-                        # if QSS species is a product
-                        elif direction == 1:
-                            if reaction.reversible:
-                                coeff_hold.append('- qr_co['+str(r)+']')
-                            print("for species ", self.qss_species_list[i], " in reaction ", r, " is a product")
-                            print("MOVE THIS SPECIES TO RHS")
-                            supergroupCoeff_hold[other_qss].append('+ qf_co['+str(r)+']')
+                    #elif supergroup_flag:
+                    #    print "YES, species "+str(coupled_qss)+" is in a super group"
+                    #    # if QSS species is a reactant
+                    #    if direction == -1:
+                    #        print("for species ", self.qss_species_list[i], " in reaction ", r, " is a reactant")
+                    #        if reaction.reversible:
+                    #            print("MOVE THIS SPECIES TO RHS")
+                    #            print
+                    #            print
+                    #            supergroupCoeff_hold[other_qss].append('+ qr_co['+str(r)+']')
+                    #        else:
+                    #            print("not reversible => qr = 0")
+                    #            print
+                    #            print
+                    #        coeff_hold.append('- qf_co['+str(r)+']')
+                    #    # if QSS species is a product
+                    #    elif direction == 1:
+                    #        if reaction.reversible:
+                    #            coeff_hold.append('- qr_co['+str(r)+']')
+                    #        print("for species ", self.qss_species_list[i], " in reaction ", r, " is a product")
+                    #        print("MOVE THIS SPECIES TO RHS")
+                    #        supergroupCoeff_hold[other_qss].append('+ qf_co['+str(r)+']')
                     else:
                         print "YES, species "+other_qss+" is uni-directionally coupled with "+str(self.qss_species_list[i])
                         # if QSS species is a reactant
@@ -7038,8 +6696,8 @@ class CPickler(CMill):
                             rhs_hold.append('- qf_co['+str(r)+']*sc_qss['+str(self.qss_species_list.index(other_qss))+']')
 
                             
-                for other_qss in supergroupCoeff_hold:
-                    " ".join(supergroupCoeff_hold[other_qss])
+                #for other_qss in supergroupCoeff_hold:
+                #    " ".join(supergroupCoeff_hold[other_qss])
             
 
                 print
@@ -7048,7 +6706,7 @@ class CPickler(CMill):
                 print "rhs_hold is ", rhs_hold
                 print "coeff_hold is ", coeff_hold
                 print "groupCoeff_hold is ", groupCoeff_hold
-                print "supergroupCoeff_hold is ", supergroupCoeff_hold
+                #print "supergroupCoeff_hold is ", supergroupCoeff_hold
                 print "######################################################################################################"
                 print
       
@@ -7060,13 +6718,13 @@ class CPickler(CMill):
                 if any(component == self.qss_species_list[i] for component in self.group[group]):
                     self.QSS_groupSp[self.qss_species_list[i]] = " ".join(groupCoeff_hold)
 
-            for super_group in self.super_group.keys():
-                for component in self.super_group[super_group]:
-                    if component in self.group.keys():
-                        if any(species == self.qss_species_list[i] for species in self.group[component]):
-                            self.QSS_supergroupSp[self.qss_species_list[i]] = supergroupCoeff_hold
-                    elif component == self.qss_species_list[i]:
-                        self.QSS_supergroupSp[self.qss_species_list[i]] = supergroupCoeff_hold
+            #for super_group in self.super_group.keys():
+            #    for component in self.super_group[super_group]:
+            #        if component in self.group.keys():
+            #            if any(species == self.qss_species_list[i] for species in self.group[component]):
+            #                self.QSS_supergroupSp[self.qss_species_list[i]] = supergroupCoeff_hold
+            #        elif component == self.qss_species_list[i]:
+            #            self.QSS_supergroupSp[self.qss_species_list[i]] = supergroupCoeff_hold
 
             print
             print "HERE IS EVERYTHING: "
@@ -7077,28 +6735,28 @@ class CPickler(CMill):
             print
             print "GROUP COEFFICIENTS: ", self.QSS_groupSp
             print
-            print "SUPERGROUP COEFFICIENTS: ", self.QSS_supergroupSp
-            print
-            print
+            #print "SUPERGROUP COEFFICIENTS: ", self.QSS_supergroupSp
+            #print
+            #print
 
-        for species in self.QSS_supergroupSp.keys():
-            for coeff in self.QSS_supergroupSp[species].keys():
-                self.QSS_supergroupSp[species][coeff] =" ".join(self.QSS_supergroupSp[species][coeff])
+        #for species in self.QSS_supergroupSp.keys():
+        #    for coeff in self.QSS_supergroupSp[species].keys():
+        #        self.QSS_supergroupSp[species][coeff] =" ".join(self.QSS_supergroupSp[species][coeff])
 
         
-        for symbol in self.super_group.keys():
-            supergr_species = []
-            for component in self.super_group[symbol]:
-                if component in self.group.keys():
-                    supergr_species.extend(self.group[component])
-                else:
-                    supergr_species.extend(component)
+        #for symbol in self.super_group.keys():
+        #    supergr_species = []
+        #    for component in self.super_group[symbol]:
+        #        if component in self.group.keys():
+        #            supergr_species.extend(self.group[component])
+        #        else:
+        #            supergr_species.extend(component)
 
-            supergr_species = list(set(supergr_species))
-            for s1 in supergr_species:
-                for s2 in supergr_species:
-                    if s2 != s1 and not self.QSS_supergroupSp[s1][s2]:
-                        self.QSS_supergroupSp[s1][s2] = str(0.0)
+        #    supergr_species = list(set(supergr_species))
+        #    for s1 in supergr_species:
+        #        for s2 in supergr_species:
+        #            if s2 != s1 and not self.QSS_supergroupSp[s1][s2]:
+        #                self.QSS_supergroupSp[s1][s2] = str(0.0)
             
         
     def _Gauss_pivoting(self, A, B=None):
@@ -7124,7 +6782,6 @@ class CPickler(CMill):
             print("--A", A)
 
             indi, indj = np.nonzero(Anum)
-            #print("--indi, indj", indi, indj)
 
             n = len(B)
             print("--", n," matrix")
@@ -7170,10 +6827,8 @@ class CPickler(CMill):
                     print
                   
                     indi, indj = np.nonzero(Anum)
-                    #print("--indi, indj", indi, indj)
 
                     for j in indj[indi == k]:
-                        # Messy writing to correct !!!!
                         print("        .. dealing with elem on column ", j, " : ", A[i + 1][j])
                         if A[i + 1][j] != '0':
                             if num != '0':
@@ -7285,10 +6940,10 @@ class CPickler(CMill):
         print("---------------------------------")
         self._getQSSgroups(mechanism)
         # Get super groups dependencies
-        print("\n\n\n\n---------------------------------")
-        print("+++++++++SUPERGROUPS+++++++++++++")
-        print("---------------------------------")
-        self._getQSSsupergroups(mechanism)
+        #print("\n\n\n\n---------------------------------")
+        #print("+++++++++SUPERGROUPS+++++++++++++")
+        #print("---------------------------------")
+        #self._getQSSsupergroups(mechanism)
         # Sort out order of group eval
         print("\n\n\n\n---------------------------------")
         print("+++++++++QSS SORTING+++++++++++++")
@@ -7342,7 +6997,6 @@ class CPickler(CMill):
 
 
     def _QSScomponentFunctions(self, mechanism):
-
 
         nSpecies = self.nSpecies
         nReactions = len(mechanism.reaction())
@@ -7704,11 +7358,12 @@ class CPickler(CMill):
         self._write()
         self._write('comp_qss_coeff(qf_co, qr_co, sc, tc, invT);')
 
+        print
         print "** self.decouple_index:"
         print self.decouple_index
         print self.needs.keys()
         print self.group.keys()
-        print self.super_group.keys()
+        #print self.super_group.keys()
         
         for i in self.decouple_index:
             print self.decouple_index[i]
@@ -7787,68 +7442,65 @@ class CPickler(CMill):
                 self._write()
 
 
-            if symbol in self.super_group.keys():
+            #if symbol in self.super_group.keys():
 
-                supergr_species = []
+            #    supergr_species = []
 
-                for component in self.super_group[symbol]:
-                    if component in self.group.keys():
-                        supergr_species.extend(self.group[component])
-                    else:
-                        supergr_species.extend(component)
+            #    for component in self.super_group[symbol]:
+            #        if component in self.group.keys():
+            #            supergr_species.extend(self.group[component])
+            #        else:
+            #            supergr_species.extend(component)
 
-                supergr_species = list(set(supergr_species))
-                Coeff_subMatrix = [['0'] * len(supergr_species) for i in range(len(supergr_species))]
-                RHS_subMatrix = ['0'] * len(supergr_species)
-
-
-                for index, species in enumerate(supergr_species):
-
-                    self._write(self.line('QSS species '+str(self.qss_species_list.index(species))+': '+species))
-                    self._write()
-
-                    denominator = species+'_denom'
-                    numerator = species+'_num'
-
-                    self._write('double %s = epsilon %s;'% (numerator, self.QSS_rhs[species]))
-                    self._write('double %s = epsilon %s;' % (denominator, self.QSS_coeff[species]))
-                    self._write('double '+species+'_rhs = '+numerator+'/'+denominator+';')
-                    self._write()
-
-                    
-                    for j in range(len(supergr_species)):
-                        if j == index:
-                            Coeff_subMatrix[index][j] = '1'
-                        else:
-                            Coeff_subMatrix[index][j] = str(species)+'_'+str(supergr_species[j])
-                            self._write('double '+str(species)+'_'+str(supergr_species[j])+' = (epsilon '+self.QSS_supergroupSp[species][supergr_species[j]]+')/'+denominator+';')
-                            self._write()
-                            
-                    RHS_subMatrix[index] = str(species)+'_rhs'
-                print "A IS "
-                print Coeff_subMatrix
-                print
-                print "B IS "
-                print RHS_subMatrix
-                print
-                A, X, B = self._Gauss_pivoting(Coeff_subMatrix, RHS_subMatrix)
-
-                print "X IS "
-                print X
-
-                for count, species in enumerate(supergr_species):
-
-                    self._write('sc_qss['+str(self.qss_species_list.index(species))+'] = '+X[count]+';')
-                self._write()
-                self._write()
+            #    supergr_species = list(set(supergr_species))
+            #    Coeff_subMatrix = [['0'] * len(supergr_species) for i in range(len(supergr_species))]
+            #    RHS_subMatrix = ['0'] * len(supergr_species)
 
 
-                
+            #    for index, species in enumerate(supergr_species):
+
+            #        self._write(self.line('QSS species '+str(self.qss_species_list.index(species))+': '+species))
+            #        self._write()
+
+            #        denominator = species+'_denom'
+            #        numerator = species+'_num'
+
+            #        self._write('double %s = epsilon %s;'% (numerator, self.QSS_rhs[species]))
+            #        self._write('double %s = epsilon %s;' % (denominator, self.QSS_coeff[species]))
+            #        self._write('double '+species+'_rhs = '+numerator+'/'+denominator+';')
+            #        self._write()
+
+            #        
+            #        for j in range(len(supergr_species)):
+            #            if j == index:
+            #                Coeff_subMatrix[index][j] = '1'
+            #            else:
+            #                Coeff_subMatrix[index][j] = str(species)+'_'+str(supergr_species[j])
+            #                self._write('double '+str(species)+'_'+str(supergr_species[j])+' = (epsilon '+self.QSS_supergroupSp[species][supergr_species[j]]+')/'+denominator+';')
+            #                self._write()
+            #                
+            #        RHS_subMatrix[index] = str(species)+'_rhs'
+            #    print "A IS "
+            #    print Coeff_subMatrix
+            #    print
+            #    print "B IS "
+            #    print RHS_subMatrix
+            #    print
+            #    A, X, B = self._Gauss_pivoting(Coeff_subMatrix, RHS_subMatrix)
+
+            #    print "X IS "
+            #    print X
+
+            #    for count, species in enumerate(supergr_species):
+
+            #        self._write('sc_qss['+str(self.qss_species_list.index(species))+'] = '+X[count]+';')
+            #    self._write()
+            #    self._write()
+
         self._write()
         self._write('return;')
         self._outdent()
         self._write('}')
-
         
         return
 
@@ -7856,6 +7508,322 @@ class CPickler(CMill):
     ####################
     #unused
     ####################
+
+    #def _findClosedCycle2(self, mechanism, match, species, visited, potential_cycle, all_groups, good_path, all_paths, level, count, path):
+
+    #    if species not in visited[match]:
+    #        visited[match].append(species)
+    #    potential_cycle[match].append(species)
+
+    #    potential_cycle[match] = list(set(potential_cycle))
+    #    all_paths[path].append(species)
+    #    all_paths[path] = list(set(all_paths[path]))
+
+    #    
+    #    parent = species
+    #    for need in self.needs_running[species]:
+    #        new_path = True
+    #        child = need
+
+    #        print
+    #        print
+    #        print "On path "+str(path)+" which is: ", all_paths[path]
+    #        print "On level "+str(level)
+    #        print "We have now visited: ", visited[match]
+    #        print "Our potential cycle is now: ", potential_cycle
+    #        print "parent is currently "+parent
+    #        
+    #        print "child is currently "+ child
+    #        print "all groups are: ", all_groups
+    #        print
+    #        if need not in visited[match]:
+    #            level += 1
+    #            print "Go a level further"
+    #            self._findClosedCycle(mechanism, match, need, visited, potential_cycle, all_groups, good_path, all_paths, level, count, path)
+    #            new_path = False
+    #        elif need == match and good_path[species] == False:
+    #            print "Good path!"
+    #            if count == 0: 
+    #                potential_cycle[match].append(species)
+    #                all_groups[match] = potential_cycle[match]
+    #                print all_groups[match]
+    #                return True
+    #            else:
+    #                print "Oh! we already know this species has a loop. Add to supergroup!"
+    #                all_groups[match].append(species)
+    #            good_path[species] = True
+    #            new_path = False
+    #            path += 1
+    #            count += 1
+    #            all_paths[path].extend(all_paths[path-1])
+    #            all_paths[path].remove(species)
+    #            self._findClosedCycle(mechanism, match, species, visited, potential_cycle, all_groups, good_path, all_paths, level, count, path)
+    #            return True
+    #        elif good_path[need] == True and species not in all_groups[match]:
+    #            print "Hey! This leads to something that we already determined was in a good path! expand that path with this"
+    #            all_groups[match].append(species)
+    #            print all_groups
+    #            good_path[species] = True
+    #            new_path = False
+    #            path += 1
+    #            all_paths[path].extend(all_paths[path-1])
+    #            print "new path is: ", all_paths[path]
+    #        print
+    #        print "This is end of the loop dealing with need "+ need+" of species "+ species
+    #        print "Okay, now our needs are: ", self.needs_running[species]
+    #        print "And we have visited: ", visited[match]
+    #        print "We are on path "+str(path)+" which is: ", all_paths[path]
+    #        print "loop through needs continues here! "
+    #        path += 1
+    #        all_paths[path].extend(all_paths[path-1])
+    #        # all_paths[path].remove(need)
+    #        if new_path:
+    #            print "Nothing happend; switch to new path"
+    #            path += 1
+    #            all_paths[path].extend(all_paths[path-1])
+    #            print "new path is: ", all_paths[path]
+    #            # all_paths[path].remove(species)
+
+    #    if not self.needs_running[species]:
+    #        print "parent is currently "+parent
+    #        print "there are no children"
+    #        print "potential cycle is: ", potential_cycle[match]
+    #        print "dead end of path: ", all_paths[path]
+    #        # potential_cycle[match].remove(species)
+    #            # potential_cycle.remove(need)
+    #        # if set(self.needs_running[species]).issubset(set(visited)) and level > 0:
+    #            # print
+    #            # print "We need to go up! "
+    #            # all_paths[path].remove(species)
+    #            # level -= 1
+    #            # self._findClosedCycle(mechanism, match, all_paths[path][level], visited, potential_cycle, all_groups, good_path, all_paths, level, count, path)
+    #        
+    #    print "Done"
+    #    return False
+            
+
+    # get intergroup dependencies accounted for: (this needs that) and (that needs this) = supergroup, 
+    # where this and that can be individual species or groups
+    def _getQSSsupergroups(self, mechanism):
+
+        self.super_group = OrderedDict()
+        already_accounted_for = []
+        super_group_count = 0
+
+        print("\n\nDetermining Super-group coupling...")
+        print("---------------------------------")
+
+        # for member in self.needs_running.keys():
+            # print("- dealing with group: "+ member)
+            # for needs in self.needs_running[member]:
+                # print("... Needs: "+ needs)
+                # potential_super_group = []
+                # potential_super_group.append(member)
+                # # check that this super-group was not already found through a search with the other member involved
+                # if(needs,member) not in already_accounted_for:
+                    # if any(components == needs for components in self.is_needed_running[member]):
+                        # print("        found 2 way coupling ! Group "+member+" and "+needs+" depend on eachother")
+                        # potential_super_group.append(needs)
+                        # self.super_group['super_group_'+str(super_group_count)] = potential_super_group
+                        # # Add this supergroup to a list so that it doesn't get counted again 
+                        # already_accounted_for.append((member,needs))
+                        # super_group_count += 1
+
+        # for member in self.needs_running.keys():
+            # print "- dealing with group: "+ member
+
+            # potential_group = []
+            # already_accounted_for = []
+            # good_path = OrderedDict()
+            # for other in self.needs_running.keys():
+                # good_path[other] = False
+            # all_groups = OrderedDict()
+            # parents = defaultdict(list)
+            # level = 0
+            # count = 0
+            
+            # self._findClosedCycle(mechanism, member, member, already_accounted_for, potential_group, all_groups,  good_path, parents, level, count)
+            # print "- potential group is: ", all_groups
+            # print
+
+        # print "** 2-way coupling supergroups are: ", self.super_group
+
+        # self._updateSupergroupNeeds(mechanism)
+        # self._updateSupergroupDependencies(mechanism)
+
+
+    # Update solo species dependendent on group members with group names:
+    # species needs member -> species needs group
+    # species is needed by group member -> species is needed by group
+    #def _updateSupergroupDependencies(self, mechanism):
+
+    #    print("\n\nUpdating super-group dependencies...")
+    #    print("---------------------------------")
+
+    #    super_solo_needs = self.needs_running.copy()
+    #    super_solo_needs_count = self.needs_count_running.copy()
+    #    super_solo_is_needed = self.is_needed_running.copy()
+    #    super_solo_is_needed_count = self.is_needed_count_running.copy()
+
+    #    # remove the groups because we're just dealing with things that aren't in groups now
+    #    for super_group in self.super_group.keys():
+    #        del super_solo_needs[super_group]
+    #        del super_solo_needs_count[super_group]
+    #        del super_solo_is_needed[super_group]
+    #        del super_solo_is_needed_count[super_group]
+    #    
+    #    for solo in super_solo_needs.keys():
+    #        print("-Dealing with solo group "+ solo)
+    #        update_needs = []
+    #        update_is_needed = []
+    #        update_needs_count = 0
+    #        update_needed_count = 0
+    #        for need in super_solo_needs[solo]:
+    #            print("... who needs: "+need)
+    #            not_in_super_group = True
+    #            for super_group in self.super_group.keys():
+    #                if super_group not in update_needs and any(member == need for member in self.super_group[super_group]):
+    #                    print "        this group is in super_group: ", super_group
+    #                    not_in_super_group = False
+
+    #                    update_needs.append(super_group)
+    #                    update_needs_count += 1
+    #                elif super_group in update_needs and any(member == need for member in self.super_group[super_group]):
+    #                    print "        this super-group is already accounted for by other group component's needs."
+    #                    not_in_super_group = False
+    #            if not_in_super_group and need not in update_needs:
+    #                print("        this need was not found in a super-group ! Adding the need (group) directly")
+    #                update_needs.append(need)
+    #                update_needs_count += 1
+    #        for needed in super_solo_is_needed[solo]:
+    #            print("... who is-needed needs are: "+needed)
+    #            not_in_super_group = True
+    #            for super_group in self.super_group.keys():
+    #                if super_group not in update_is_needed and any(member == needed for member in self.super_group[super_group]):
+    #                    print "        this group is in super_group: ", super_group
+    #                    not_in_super_group = False
+    #                    update_is_needed.append(super_group)
+    #                    update_needed_count +=1
+    #                elif super_group in update_is_needed and any(member == need for member in self.super_group[super_group]):
+    #                    print "        this super-group is already accounted for by other group component's needs."
+    #                    not_in_super_group = False
+    #            if not_in_super_group and needed not in update_is_needed:
+    #                print("        this is-needed was not found in a super-group ! Adding the group directly")
+    #                update_is_needed.append(needed)
+    #                update_needed_count += 1
+
+    #        super_solo_needs[solo] = update_needs
+    #        super_solo_needs_count[solo] = update_needs_count
+    #        super_solo_is_needed[solo] = update_is_needed
+    #        super_solo_is_needed_count[solo] = update_needed_count
+
+    #    self.needs_running.update(super_solo_needs)
+    #    self.needs_count_running.update(super_solo_needs_count)
+    #    self.is_needed_running.update(super_solo_is_needed)
+    #    self.is_needed_count_running.update(super_solo_is_needed_count)
+
+    #    print "** This is the final needs running and is_needed running: "
+    #    print(self.needs_running)
+    #    print(self.is_needed_running)
+
+
+    #def _updateSupergroupNeeds(self, mechanism):
+
+    #    print("\n\nUpdating super-group needs...")
+    #    print("---------------------------------")
+    #    
+    #    for super_group_key in self.super_group.keys():
+    #        print("-Dealing with supergroup "+ super_group_key)
+
+    #        update_needs = []
+    #        update_is_needed = []
+    #        update_needs_count = 0
+    #        update_needed_count = 0
+
+    #        super_group_needs = {}
+    #        super_group_needs_count = {}
+    #        super_group_is_needed = {}
+    #        super_group_is_needed_count = {}
+    #        
+    #        other_super_groups = self.super_group.keys()
+    #        other_super_groups.remove(super_group_key)
+    #        print "  (other supergroups are: ", other_super_groups,")"
+    #        
+    #        # for each species in the current group
+    #        for spec in self.super_group[super_group_key]:
+    #            print("... for supergroup member: "+spec)
+    #            # look at any additional needs that are not already accounted for with the group
+    #            for need in list(set(self.needs_running[spec]) - set(self.super_group[super_group_key])):
+    #                print("        An additional not-in-supergroup need is "+ need)
+    #                not_in_super_group = True
+    #                # check the other groups to see if the need can be found in one of them
+    #                for other_super_group in other_super_groups:
+    #                    # if the other group is not already accounted for and 
+    #                    # it contains the need we're looking for, update the group needs 
+    #                    # with that group that contains the need
+    #                    if other_super_group not in update_needs and any(member == need for member in self.super_group[other_super_group]):
+    #                        print("        it is found in a different super group. Adding it.")
+    #                        not_in_super_group = False
+    #                        update_needs.append(other_super_group)
+    #                        update_needs_count += 1
+    #                    elif other_super_group in update_needs and any(member == need for member in self.super_group[other_super_group]):
+    #                        print "        this supergroup has already been accounted for by another component's needs"
+    #                        not_in_super_group = False
+    #                # alternatively, if this is just a solo need that's not in another group, 
+    #                # update the group needs with just that need. 
+    #                if not_in_super_group and need not in update_needs:
+    #                    print("        this need was not found in a supergroup ! Adding the group directly")
+    #                    update_needs.append(need)
+    #                    update_needs_count += 1
+    #            # look at any additional species (outside of the group) that depend on the current group member
+    #            for needed in list(set(self.is_needed_running[spec]) - set(self.super_group[super_group_key])):
+    #                print("        An additional not-in-supergroup is-needed is "+ needed)
+    #                not_in_super_group = True
+    #                # for the other groups
+    #                for other_super_group in other_super_groups:
+    #                    # if the other group hasn't alredy been accounted for 
+    #                    # and the species is in that group, then that other group depends 
+    #                    # on a species in the current group
+    #                    if other_super_group not in update_is_needed and any(member == needed for member in self.super_group[other_super_group]):
+    #                        print("        it is found in a different super group. Adding it.")
+    #                        not_in_super_group = False
+    #                        update_is_needed.append(other_super_group)
+    #                        update_needed_count += 1
+    #                    elif other_super_group in update_is_needed and any(member == need for member in self.super_group[other_super_group]):
+    #                        print "        this supergroup has already been accounted for by another component's needs"
+    #                        not_in_super_group = False
+    #                # if the species is not in another group, then that lone species just depends on the current group. 
+    #                if not_in_super_group and needed not in update_is_needed:
+    #                    print("        this is-needed was not found in a supergroup ! Adding the group directly")
+    #                    update_is_needed.append(needed)
+    #                    update_needed_count += 1
+
+
+    #        super_group_needs[super_group_key] = update_needs
+    #        super_group_needs_count[super_group_key] = update_needs_count
+    #        super_group_is_needed[super_group_key] = update_is_needed
+    #        super_group_is_needed_count[super_group_key] = update_needed_count
+
+    #        self.needs_running.update(super_group_needs)
+    #        self.needs_count_running.update(super_group_needs_count)
+    #        self.is_needed_running.update(super_group_is_needed)
+    #        self.is_needed_count_running.update(super_group_is_needed_count)
+
+    #        print "So, ", super_group_key," needs ",update_needs
+    #        print "So, ", super_group_key," is-needed is ",update_is_needed
+    #    
+    #    for super_group in self.super_group.keys():
+    #        for spec in self.super_group[super_group]:
+    #            if spec in self.needs_running:
+    #                del self.needs_running[spec]
+    #                del self.needs_count_running[spec]
+    #                del self.is_needed_running[spec]
+
+    #    print "** This is the final needs running and is_needed running: "
+    #    print(self.needs_running)
+    #    print(self.is_needed_running)
+
+        
 
 # version
 __id__ = "$Id$"
