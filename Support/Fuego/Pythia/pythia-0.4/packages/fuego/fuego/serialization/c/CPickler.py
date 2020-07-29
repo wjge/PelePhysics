@@ -79,8 +79,9 @@ class CPickler(CMill):
         self.highT = 10000.0
         ##QSS
         self.qssReactions = []
+        self.qfqr_co_idx_map = []
         self.nqssReactions = 0
-
+        
         # QSS specific #
         #############
         # sp-sp network
@@ -6178,30 +6179,43 @@ class CPickler(CMill):
         print("\n\nDetermining groups of coupled species now...")
         print("---------------------------------")
         all_groups = OrderedDict()
+        check_these = self.needs_running.keys()
         # Loop through species to tackle the needs group
         for member in self.needs_running.keys():
-            print "- dealing with group: "+ member
-            potential_group = defaultdict(list)
-            already_accounted_for = defaultdict(list)
-            good_path = OrderedDict()
-            for other in self.needs_running.keys():
-                good_path[other] = False
-            self._findClosedCycle(mechanism, member, member, already_accounted_for, potential_group, all_groups, good_path)
-            #print "** potential group is: ", all_groups
-            #print
+            # Only need to check things that have not already been found to be in a group
+            if member in check_these:
+                    
+                print "- dealing with group: "+ member
+                potential_group = defaultdict(list)
+                already_accounted_for = defaultdict(list)
+                good_path = OrderedDict()
+                for other in self.needs_running.keys():
+                    good_path[other] = False
+                self._findClosedCycle(mechanism, member, member, already_accounted_for, potential_group, all_groups, good_path)
+                print "** potential group is: ", all_groups
+                print
+                # Remove groupmates from list of species to check; checking these would just lead to us finding a duplicate group
+                for group in all_groups:
+                    checked = set(all_groups[group])
+                    unchecked = set(check_these)
+                    for species in list(checked.intersection(unchecked)):
+                        check_these.remove(species)
+
+                print "Now we just have to check: ", check_these
 
         print "** Groups of coupled species are: ", all_groups
 
-        print("\n\nRemove duplicates...")
-        print("---------------------------------")
+        # Don't need this now because duplicates are avoided with 
+        # print("\n\nRemove duplicates...")
+        # print("---------------------------------")
         # Check for duplicates
-        for group1 in all_groups:
-            print "- dealing with group 1: "+ group1
-            for group2 in all_groups:
-                print "... group 2 is: "+ group2
-                if group2 != group1 and set(all_groups[group2]).issubset(set(all_groups[group1])):
-                    all_groups.pop(group2, None)
-                    print "    !! group 2 is subset of group 1 !! all groups in loop now: ", all_groups
+        # for group1 in all_groups:
+            # print "- dealing with group 1: "+ group1
+            # for group2 in all_groups:
+                # print "... group 2 is: "+ group2
+                # if group2 != group1 and set(all_groups[group2]).issubset(set(all_groups[group1])):
+                    # all_groups.pop(group2, None)
+                    # print "    !! group 2 is subset of group 1 !! all groups in loop now: ", all_groups
         # Rename
         for count, group in enumerate(all_groups):
             self.group['group_'+str(count)] = all_groups[group]
@@ -6580,6 +6594,29 @@ class CPickler(CMill):
         self.QSS_groupSp = OrderedDict()
         #self.QSS_supergroupSp = OrderedDict()
 
+        # Need to get qfqr_coeff reaction map
+        ispecial      = self.reactionIndex[5:7]
+        nspecial_qss  = 0
+        ispecial_qss  = [0,0]
+        special_first = True
+        
+        for reaction in self.qssReactions:
+            test = reaction - 1
+            if test >= ispecial[0] and test <= ispecial[1]-1:
+                nspecial_qss += 1
+                if special_first:
+                    ispecial_qss[0] = self.qssReactions.index(reaction)
+                    special_first = False
+                ispecial_qss[1] = self.qssReactions.index(reaction)+1
+
+        
+        self.qfqr_co_idx_map = self.qssReactions
+        if (ispecial_qss[1] - ispecial_qss[0]) > 0:
+            for index in range(ispecial_qss[0], ispecial_qss[1]):
+                del self.qfqr_co_idx_map[index]
+
+        # print "qfqr_co_idx_map is now: ", self.qfqr_co_idx_map
+        
         for i in range(self.nQSSspecies):
             symbol = self.qss_species_list[i]
             print("-Dealing with QSS species ", i, symbol)
@@ -6592,8 +6629,9 @@ class CPickler(CMill):
             #supergroupCoeff_hold = defaultdict(list)
 
             for r in self.QSS_SR_Rj[self.QSS_SR_Si == i]:
-                reaction = mechanism.reaction(id=r)
+                reaction = mechanism.reaction(id=r-1)
                 print("... who is involved in reac ", reaction.id)
+                print("... reaction ", reaction.id, "is QSS reaction number ", self.qfqr_co_idx_map.index(reaction.id)+1)
                 direction = self.QSS_SRnet[i][r]
                 group_flag = False
                 #supergroup_flag = False
@@ -6607,16 +6645,16 @@ class CPickler(CMill):
                     if direction == -1:
                         print("        Species ", symbol, " in reaction ", r, " is a reactant")
                         if reaction.reversible:
-                            rhs_hold.append('- qr_co['+str(r)+']')
+                            rhs_hold.append('- qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
                         #else:
                         #    print("not reversible => qr = 0")
-                        coeff_hold.append('- qf_co['+str(r)+']')
+                        coeff_hold.append('- qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
                     # if QSS species is a product
                     elif direction == 1:
                         print("        Species ", symbol, " in reaction ", r, " is a product")
                         if reaction.reversible:
-                            coeff_hold.append('- qr_co['+str(r)+']')
-                        rhs_hold.append('- qf_co['+str(r)+']')
+                            coeff_hold.append('- qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                        rhs_hold.append('- qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
                 else:
                     #AF take back here
                     coupled_qss = [self.qss_species_list[j] for j in coupled]
@@ -6647,19 +6685,19 @@ class CPickler(CMill):
                             print("for species ", self.qss_species_list[i], " in reaction ", r, " is a reactant")
                             if reaction.reversible:
                                 print("ADD TO CORRESPONDING GROUP COEFFICIENT")
-                                groupCoeff_hold.append('+ qr_co['+str(r)+']')
+                                groupCoeff_hold.append('+ qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
                             #else:
                             #    print("not reversible => qr = 0")
                             #    print
                             #    print
-                            coeff_hold.append('- qf_co['+str(r)+']')
+                            coeff_hold.append('- qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
                         # if QSS species is a product
                         elif direction == 1:
                             if reaction.reversible:
-                                coeff_hold.append('- qr_co['+str(r)+']')
+                                coeff_hold.append('- qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
                             print("for species ", self.qss_species_list[i], " in reaction ", r, " is a product")
                             print("ADD TO CORRESPONDING GROUP COEFFICIENT")
-                            groupCoeff_hold.append('+ qf_co['+str(r)+']')
+                            groupCoeff_hold.append('+ qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
                             
                     #elif supergroup_flag:
                     #    print "YES, species "+str(coupled_qss)+" is in a super group"
@@ -6688,12 +6726,12 @@ class CPickler(CMill):
                         # if QSS species is a reactant
                         if direction == -1:
                             print("for species ", self.qss_species_list[i], " in reaction ", r, " is a reactant")
-                            coeff_hold.append('- qf_co['+str(r)+']')
+                            coeff_hold.append('- qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
                         # if QSS species is a product
                         elif direction == 1:
                             print("for species ", self.qss_species_list[i], " in reaction ", r, " is a product")
                             print("MOVE THIS SPECIES TO RHS")
-                            rhs_hold.append('- qf_co['+str(r)+']*sc_qss['+str(self.qss_species_list.index(other_qss))+']')
+                            rhs_hold.append('- qf_co['+str(self.qfqr_co_idx_map.index(r))+']*sc_qss['+str(self.qss_species_list.index(other_qss))+']')
 
                             
                 #for other_qss in supergroupCoeff_hold:
@@ -6774,6 +6812,17 @@ class CPickler(CMill):
                     B[i] = 'B' + str(i)
             print("--B", B)
 
+            # Get species names:
+            species = ['0' for i in range(len(B))]
+            for member in range(len(B)):
+                hold = str(B[member])
+                hold = hold[:-4]
+                species[member] = hold
+
+            print
+            print "Species involved are: ", species
+            print
+            
             Anum = np.zeros([len(A[0]), len(A[0])])
             for i in range(len(A[0])):
                 for j in range(len(A[0])):
@@ -6871,6 +6920,8 @@ class CPickler(CMill):
             else:
                 X[n] =  B[n] 
             print("X(",n,")=",X[n])
+            print
+            print "Or: X(",n,") = sc_qss["+str(self.qss_species_list.index(species[n]))+"]"
 
             for i in range(1, n + 1):
                 sumprod = ''
@@ -6881,10 +6932,17 @@ class CPickler(CMill):
                             sumprod += ' + '
                         flag = True
                         if A[n - i][n - j] == '1':
+                            print "DOES THIS GET USED??"
                             sumprod += ' (' + str(X[n - j]) + ')'
                         elif j != 0:
+                            print
+                            print "DOES THIS SECOND PART GET USED??"
+                            print
                             sumprod += ' - ' + A[n - i][n - j] + ' * ' + '(' + X[n - j] + ')'
                         else:
+                            print
+                            print "WHAT ABOUT THE THIRD PART??"
+                            print
                             sumprod +=  A[n - i][n - j] + ' * ' + '(' + X[n - j] + ')'
         
                 print
@@ -6903,6 +6961,8 @@ class CPickler(CMill):
                     else:
                         X[n - i] = '(' + B[n - i] + ' - (' + sumprod + ')) / ' + A[n - i][n - i]
                 print("X(",n - i,")=",X[n - i])
+                print
+                print "Or: X(",n-i,") = sc_qss["+str(self.qss_species_list.index(species[n-i]))+"]"
                 print("\n\n")
 
             return A, X, B                
@@ -6992,7 +7052,7 @@ class CPickler(CMill):
                     conc = "pow(sc[%d], %f)" % (self.ordered_idx_map[symbol], float(coefficient))
                 phi += [conc]     
             if (len(phi) < 1):
-                phi = ["0.0"]
+                phi = ["1.0"]
         return "*".join(phi)
 
 
@@ -7098,6 +7158,11 @@ class CPickler(CMill):
 
         nclassd_qss = self.nqssReactions - nspecial_qss
         nCorr_qss   = n3body_qss + ntroe_qss + nsri_qss + nlindemann_qss
+
+        print
+        print "qfqr_co_idx_map:", self.qfqr_co_idx_map
+        print "qss reactions are: ", self.qssReactions
+        print
         
         for i in range(nclassd_qss):
             self._write()
