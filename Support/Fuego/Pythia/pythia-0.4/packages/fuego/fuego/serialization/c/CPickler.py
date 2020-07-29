@@ -2895,7 +2895,19 @@ class CPickler(CMill):
         self._write('#pragma omp threadprivate(Kc_save)')
         self._write('#endif')
         self._write()
+        if (self.nQSSspecies > 0):
+            self._write('static double k_f_save_qss[%d];' % self.nqssReactions)
+            self._write('#ifdef _OPENMP')
+            self._write('#pragma omp threadprivate(k_f_save)')
+            self._write('#endif')
+            self._write()
+            self._write('static double Kc_save_qss[%d];' % self.nqssReactions)
+            self._write('#ifdef _OPENMP')
+            self._write('#pragma omp threadprivate(Kc_save)')
+            self._write('#endif')
+            self._write()
 
+        
         # main function
         self._write()
         self._write(self.line('compute the production rate for each species pointwise on CPU'))
@@ -2913,6 +2925,10 @@ class CPickler(CMill):
         self._write('T_save = T;')
         self._write('comp_k_f(tc,invT,k_f_save);');
         self._write('comp_Kc(tc,invT,Kc_save);');
+        if (self.nQSSspecies > 0):
+            self._write()
+            self._write('comp_k_f_qss(tc,invT,k_f_save_qss);');
+            self._write('comp_Kc_qss(tc,invT,Kc_save_qss);');
         self._outdent()
         self._write("}")
 
@@ -6938,12 +6954,12 @@ class CPickler(CMill):
                             print
                             print "DOES THIS SECOND PART GET USED??"
                             print
-                            sumprod += ' - ' + A[n - i][n - j] + ' * ' + '(' + X[n - j] + ')'
+                            sumprod += ' + ' + A[n - i][n - j] + ' * ' + 'sc_qss[' + str(self.qss_species_list.index(species[n - j])) + ']'
                         else:
                             print
                             print "WHAT ABOUT THE THIRD PART??"
                             print
-                            sumprod +=  A[n - i][n - j] + ' * ' + '(' + X[n - j] + ')'
+                            sumprod +=  A[n - i][n - j] + ' * ' + 'sc_qss[' + str(self.qss_species_list.index(species[n - j])) + ']'
         
                 print
                 print "sumprod is: ", sumprod
@@ -7148,6 +7164,89 @@ class CPickler(CMill):
         # n3body     = i3body[1]     - i3body[0]
         # nsimple    = isimple[1]    - isimple[0]
         # nspecial   = ispecial[1]   - ispecial[0]
+
+
+        # k_f_qss function
+        self._write()
+        self._write('void comp_k_f_qss(double *  tc, double invT, double *  k_f)')
+        self._write('{')
+        self._indent()
+        self._outdent()
+        self._write('#ifdef __INTEL_COMPILER')
+        self._indent()
+        self._write('#pragma simd')
+        self._outdent()
+        self._write('#endif')
+        self._indent()
+        for index, qss_reac in enumerate(self.qssReactions):
+            print "index ", index
+            print "reaction index ", qss_reac
+            self._write("k_f[%d] = prefactor_units[%d] * fwd_A[%d]" % (index, qss_reac, qss_reac))
+            self._write("           * exp(fwd_beta[%d] * tc[0] - activation_units[%d] * fwd_Ea[%d] * invT);" % (qss_reac, qss_reac, qss_reac))
+
+        self._write()
+        self._write('return;')
+        self._outdent()
+        self._write('}')
+
+        # Kc_qss
+        self._write()
+        self._write('void comp_Kc_qss(double *  tc, double invT, double *  Kc)')
+        self._write('{')
+        self._indent()
+
+        self._write(self.line('compute the Gibbs free energy'))
+        if (self.nQSSspecies > 0):
+            self._write('double g_RT[%d], g_RT_qss[%d];' % (self.nSpecies,self.nQSSspecies))
+            self._write('gibbs(g_RT, tc);')
+            self._write('gibbs_qss(g_RT_qss, tc);')
+        else:
+            self._write('double g_RT[%d];' % (self.nSpecies))
+            self._write('gibbs(g_RT, tc);')
+
+        self._write()
+
+        index = 0
+        for reaction in mechanism.reaction():
+            r = reaction.id - 1
+            if r in self.qssReactions:
+                self._write(self.line('Reaction %s' % reaction.id))
+                KcExpArg = self._sortedKcExpArg(mechanism, reaction)
+                self._write("Kc[%d] = %s;" % (index,KcExpArg))
+                index += 1
+        self._write()
+        
+        self._outdent()
+        self._write('#ifdef __INTEL_COMPILER')
+        self._indent()
+        self._write(' #pragma simd')
+        self._outdent()
+        self._write('#endif')
+        self._indent()
+        self._write('for (int i=0; i<%d; ++i) {' % (self.nqssReactions))
+        self._indent()
+        self._write("Kc[i] = exp(Kc[i]);")
+        self._outdent()
+        self._write("};")
+
+        self._write()
+
+        self._write(self.line('reference concentration: P_atm / (RT) in inverse mol/m^3'))
+        self._write('double refC = %g / %g * invT;' % (atm.value, R.value))
+        self._write('double refCinv = 1 / refC;')
+
+        self._write()
+
+        for reaction in mechanism.reaction():
+            KcConv = self._KcConv(mechanism, reaction)
+            if KcConv:
+                self._write("Kc[%d] *= %s;" % (reaction.id-1,KcConv))        
+        
+        self._write()
+
+        self._write('return;')
+        self._outdent()
+        self._write('}')
 
         
         # qss coefficients
@@ -7363,8 +7462,8 @@ class CPickler(CMill):
         self._write("for (int i=0; i<%d; i++)" % nclassd_qss)
         self._write("{")
         self._indent()
-        self._write("qf_co[i] *= Corr[i] * k_f_save[i];")
-        self._write("qr_co[i] *= Corr[i] * k_f_save[i] / Kc_save[i];")
+        self._write("qf_co[i] *= Corr[i] * k_f_save_qss[i];")
+        self._write("qr_co[i] *= Corr[i] * k_f_save_qss[i] / Kc_save_qss[i];")
         self._outdent()
         self._write("}")
         
@@ -7422,7 +7521,8 @@ class CPickler(CMill):
         self._write('double epsilon = 1e-16;')
         self._write()
         self._write('comp_qss_coeff(qf_co, qr_co, sc, tc, invT);')
-
+        self._write()
+        
         print
         print "** self.decouple_index:"
         print self.decouple_index
@@ -7435,7 +7535,7 @@ class CPickler(CMill):
 
             symbol = self.decouple_index[i]
 
-            self._write()
+            
             if symbol in self.needs.keys():
                 denominator = symbol+'_denom'
                 numerator = symbol+'_num'
@@ -7449,8 +7549,7 @@ class CPickler(CMill):
                 self._write()
                 self._write('sc_qss[%s] = %s/%s;' % (self.qss_species_list.index(symbol), numerator, denominator))
                 self._write()
-                self._write()
-
+                
             if symbol in self.group.keys():
 
                 Coeff_subMatrix = [['0'] * len(self.group[symbol]) for i in range(len(self.group[symbol]))]
@@ -7482,7 +7581,7 @@ class CPickler(CMill):
                         else:
                             Coeff_subMatrix[index][j] = str(species)+'_'+str(gr_species[j])
                             self._write('double '+str(species)+'_'+str(gr_species[j])+' = (epsilon '+self.QSS_groupSp[species]+')/'+denominator+';')
-                            self._write()
+                    self._write()
                             
                     RHS_subMatrix[index] = str(species)+'_rhs'
                 print "A IS "
@@ -7496,15 +7595,15 @@ class CPickler(CMill):
                 print "X IS "
                 print X
 
-                for count, species in enumerate(gr_species):
-                    nComponents = len(gr_species) - 1
-                    print
-                    print nComponents
+                for count in range(len(gr_species)):
+                    max_index = len(gr_species)-1
+                    print count
+                    print max_index
+                    species = gr_species[max_index - count]
                     print species
 
-                    self._write('sc_qss['+str(self.qss_species_list.index(species))+'] = '+X[count]+';')
-                self._write()
-                self._write()
+                    self._write('sc_qss['+str(self.qss_species_list.index(species))+'] = '+X[max_index - count]+';')
+                    self._write()
 
 
             #if symbol in self.super_group.keys():
