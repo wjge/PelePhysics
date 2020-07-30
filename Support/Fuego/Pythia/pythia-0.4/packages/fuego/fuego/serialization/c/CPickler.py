@@ -160,7 +160,6 @@ class CPickler(CMill):
                 self.mech_idx_map[species.symbol]    = species.id
                 sorted_idx = sorted_idx + 1
 
-
         # Initialize QSS species-species, species-reaction, and species coupling networks        
         self.QSS_SSnet = np.zeros([self.nQSSspecies, self.nQSSspecies], 'd')
         self.QSS_SRnet = np.zeros([self.nQSSspecies, len(mechanism.reaction())], 'd')
@@ -770,6 +769,23 @@ class CPickler(CMill):
         self._write("}")
         self._write()
 
+        # Now that reactions are sorted:
+        # Get list of reaction indices that involve QSS species
+        for i, r in enumerate(mechanism.reaction()):
+            reaction_index = i
+            qss_reaction = False
+
+            agents = list(set(r.reactants + r.products))
+            for symbol, coefficient in agents:
+                if symbol in self.qss_species_list:
+                    qss_reaction = True
+
+            if qss_reaction:
+                self.qssReactions.append(reaction_index)
+        # print "QSS Reactions are: ", self.qssReactions
+        self.nqssReactions = len(self.qssReactions)
+
+        
         self._write()
         self._write(self.line(' Finalizes parameter database'))
         self._write('void CKFINALIZE()')
@@ -6103,21 +6119,14 @@ class CPickler(CMill):
             reactant_list = []
             product_list = []
             reaction_number = i
-
-            qss_reaction = False
     
             # get a list of species involved in the reactants and products
             for symbol, coefficient in r.reactants:
                 if symbol in self.qss_species_list:
-                    qss_reaction = True
                     reactant_list.append(symbol)
             for	symbol,	coeffecient in r.products:
                 if symbol in self.qss_species_list:
-                    qss_reaction = True
                     product_list.append(symbol)
-
-            if qss_reaction:
-                self.qssReactions.append(reaction_number)
         
             # if qss species s is in reaction number i, 
             # denote they are linked in the Species-Reaction network
@@ -6129,8 +6138,6 @@ class CPickler(CMill):
             for s in product_list:
                 #self.QSS_SRnet[mechanism.qss_species(s).id][reaction_number] = 1
                 self.QSS_SRnet[self.ordered_idx_map[s] - self.nSpecies][reaction_number] = 1
-        
-        self.nqssReactions = len(self.qssReactions)
 
                 
     def _setQSSneeds(self, mechanism):
@@ -7179,8 +7186,6 @@ class CPickler(CMill):
         self._write('#endif')
         self._indent()
         for index, qss_reac in enumerate(self.qssReactions):
-            print "index ", index
-            print "reaction index ", qss_reac
             self._write("k_f[%d] = prefactor_units[%d] * fwd_A[%d]" % (index, qss_reac, qss_reac))
             self._write("           * exp(fwd_beta[%d] * tc[0] - activation_units[%d] * fwd_Ea[%d] * invT);" % (qss_reac, qss_reac, qss_reac))
 
