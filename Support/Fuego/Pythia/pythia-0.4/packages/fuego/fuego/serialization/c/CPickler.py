@@ -7017,6 +7017,13 @@ class CPickler(CMill):
         isimple    = self.reactionIndex[4:6]
         ispecial   = self.reactionIndex[5:7]
 
+        print "troe index range is: ", itroe
+        print "sri index range is: ", isri
+        print "lindemann index range is: ", ilindemann
+        print "3body index range is: ", i3body
+        print "simple index range is: ", isimple
+        print "special index range is: ", ispecial
+        
         ntroe_qss      = 0
         nsri_qss       = 0
         nlindemann_qss = 0
@@ -7060,7 +7067,7 @@ class CPickler(CMill):
                     ilindemann_qss[0] = self.qssReactions.index(reac_id)
                     lindemann_first = False
                 ilindemann_qss[1] = self.qssReactions.index(reac_id)+1
-            if reac_id >= i3body[0] and reac_id < i3body[1]-1:
+            if reac_id >= i3body[0] and reac_id < i3body[1]:
                 print "reaction ", reac_id, mechanism.reaction(id=reac_id).equation(), " goes in 3body"
                 n3body_qss += 1
                 if threebody_first:
@@ -7245,24 +7252,25 @@ class CPickler(CMill):
                 self._write('#endif')
                 self._indent()
                 self._indent()
-            self._write("for (int i=%d; i<%d; i++)" %(itroe_qss[0],itroe_qss[1]))
-            self._write("{")
-            self._indent()
-            self._write("double redP, F, logPred, logFcent, troe_c, troe_n, troe, F_troe;")
-            self._write("redP = alpha[i-%d] / k_f_save[i] * phase_units[i] * low_A[i] * exp(low_beta[i] * tc[0] - activation_units[i] * low_Ea[i] *invT);" % itroe_qss[0])
-            self._write("F = redP / (1.0 + redP);")
-            self._write("logPred = log10(redP);")
-            self._write('logFcent = log10(')
-            self._write('    (fabs(troe_Tsss[i]) > 1.e-100 ? (1.-troe_a[i])*exp(-T/troe_Tsss[i]) : 0.) ')
-            self._write('    + (fabs(troe_Ts[i]) > 1.e-100 ? troe_a[i] * exp(-T/troe_Ts[i]) : 0.) ')
-            self._write('    + (troe_len[i] == 4 ? exp(-troe_Tss[i] * invT) : 0.) );')
-            self._write("troe_c = -.4 - .67 * logFcent;")
-            self._write("troe_n = .75 - 1.27 * logFcent;")
-            self._write("troe = (troe_c + logPred) / (troe_n - .14*(troe_c + logPred));")
-            self._write("F_troe = pow(10., logFcent / (1.0 + troe*troe));")
-            self._write("Corr[i] = F * F_troe;")
-            self._outdent()
-            self._write('}')
+                self._write("double redP, F, logPred, logFcent, troe_c, troe_n, troe, F_troe;")
+            for i in range(itroe_qss[0], itroe_qss[1]):
+                alpha_index = i - itroe_qss[0]
+                self._write(self.line("Index for alpha is %d" % alpha_index))
+                self._write(self.line("Reaction index is %d" % self.qssReactions[i]))
+                self._write(self.line("QSS reaction list index (corresponds to index needed by k_f_save_qss, Corr, Kc_save_qss) is %d" % i))
+                
+                self._write("redP = alpha[%d] / k_f_save_qss[%d] * phase_units[%d] * low_A[%d] * exp(low_beta[%d] * tc[0] - activation_units[%d] * low_Ea[%d] *invT);" % (alpha_index, i, self.qssReactions[i], self.qssReactions[i], self.qssReactions[i], self.qssReactions[i], self.qssReactions[i]))
+                self._write("F = redP / (1.0 + redP);")
+                self._write("logPred = log10(redP);")
+                self._write('logFcent = log10(')
+                self._write('    (fabs(troe_Tsss[%d]) > 1.e-100 ? (1.-troe_a[%d])*exp(-T/troe_Tsss[%d]) : 0.) ' % (self.qssReactions[i], self.qssReactions[i], self.qssReactions[i]))
+                self._write('    + (fabs(troe_Ts[%d]) > 1.e-100 ? troe_a[%d] * exp(-T/troe_Ts[%d]) : 0.) ' % (self.qssReactions[i], self.qssReactions[i], self.qssReactions[i]))
+                self._write('    + (troe_len[%d] == 4 ? exp(-troe_Tss[%d] * invT) : 0.) );' % (self.qssReactions[i], self.qssReactions[i]))
+                self._write("troe_c = -.4 - .67 * logFcent;")
+                self._write("troe_n = .75 - 1.27 * logFcent;")
+                self._write("troe = (troe_c + logPred) / (troe_n - .14*(troe_c + logPred));")
+                self._write("F_troe = pow(10., logFcent / (1.0 + troe*troe));")
+                self._write("Corr[%d] = F * F_troe;" % i)
 
             self._outdent()
             self._write("}")
