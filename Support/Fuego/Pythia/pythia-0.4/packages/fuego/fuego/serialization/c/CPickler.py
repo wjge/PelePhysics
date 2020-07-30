@@ -346,6 +346,8 @@ class CPickler(CMill):
           ]
         if (self.nQSSspecies > 0):
             self._rep += [ 
+                'void comp_k_f_qss(double *  tc, double invT, double *  k_f);',
+                'void comp_Kc_qss(double *  tc, double invT, double *  Kc);',
                 'void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT);',
                 'void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc, double invT);',
             ]
