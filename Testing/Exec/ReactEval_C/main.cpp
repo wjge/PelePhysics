@@ -148,6 +148,10 @@ main (int   argc,
     } else if (fuel_name == "NC12H26") {
         fuel_idx  = NC12H26_ID;
 #endif
+#ifdef NXC7H16_ID
+    } else if (fuel_name == "C7H16") {
+        fuel_idx  = NXC7H16_ID;
+#endif
     }
     oxy_idx   = O2_ID;
     bath_idx  = N2_ID;
