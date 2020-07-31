@@ -6256,39 +6256,37 @@ class CPickler(CMill):
 
         # Loop through species
         print "      Entering Closed Cycle with match, parent: ", match, species
-        if species not in visited[match]:
-            print "      Parent is not already visited..."
-            visited[match].append(species)
-            potential_cycle[match].append(species)
-            parent = species
-            for need in self.needs_running[species]:
-                child = need
-                print "       x Start level of needs loop"
-                print "       x Child is: "+child
-                if child not in visited[match]:
-                    #go a level further !
-                    print "         xx Child is not already visited..."  
-                    self._findClosedCycle(mechanism, match, child, visited, potential_cycle, all_groups, good_path)
-                    print "         We've finshed a recursion! The child that was passed in was: "+child
-                    if good_path[child] == False:
-                        potential_cycle[match].remove(child)
-                    print
+        visited[match].append(species)
+        potential_cycle[match].append(species)
+        parent = species
+        for need in self.needs_running[species]:
+            child = need
+            print "       x Start level of needs loop"
+            print "       x Child is: "+child
+            if child not in visited[match]:
+                #go a level further !
+                print "         xx Child is not already visited..."  
+                self._findClosedCycle(mechanism, match, child, visited, potential_cycle, all_groups, good_path)
+                print "         We've finshed a recursion! The child that was passed in was: "+child
+                if good_path[child] == False:
+                    potential_cycle[match].remove(child)
+                print
+            else:
+                print "         xx Child has been visited already"
+                if child == match:
+                    print "            Child equals match -> we've found a closed cycle!"
+                    good_path[parent] = True
+                    all_groups[match] = potential_cycle[match]
+                elif good_path[child] == True:
+                    print "            ...we know this leads to a cycle"
+                    good_path[parent] = True
+                    if child not in all_groups[match]:
+                        all_groups[match].append(child)
                 else:
-                    print "         xx Child has been visited already"
-                    if child == match:
-                        print "            Child equals match -> we've found a closed cycle!"
-                        good_path[parent] = True
-                        all_groups[match] = potential_cycle[match]
-                    elif good_path[child] == True:
-                        print "            ...we know this leads to a cycle"
-                        good_path[parent] = True
-                        if child not in all_groups[match]:
-                            all_groups[match].append(child)
-                    else:
-                        print "            Bad Path!"
-                    print "         -- > all_groups is now: ", all_groups
-            if not self.needs_running[species]:
-                print "       x but this is a Dead End.."
+                    print "            Bad Path!"
+                print "         -- > all_groups is now: ", all_groups
+        if not self.needs_running[species]:
+            print "       x but this is a Dead End.."
                     
         
         
