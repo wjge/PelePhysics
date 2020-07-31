@@ -3209,7 +3209,7 @@ class CPickler(CMill):
             self._write("for (int i=%d; i<%d; i++)" %(isri[0],isri[1]))
             self._write("{")
             self._indent()
-            self._write("redP = alpha[i-%d] / k_f_save[i] * phase_units[i] * low_A[i] * exp(low_beta[i] * tc[0] - activation_units[i] * low_Ea[i] *invT);" % itroe[0])
+            self._write("redP = alpha[i-%d] / k_f_save[i] * phase_units[i] * low_A[i] * exp(low_beta[i] * tc[0] - activation_units[i] * low_Ea[i] *invT);" % isri[0])
             self._write("F = redP / (1.0 + redP);")
             self._write("logPred = log10(redP);")
             self._write("X = 1.0 / (1.0 + logPred*logPred);")
@@ -7306,20 +7306,21 @@ class CPickler(CMill):
                 self._write('#endif')
                 self._indent()
                 self._indent()
-            self._write("for (int i=%d; i<%d; i++)" %(isri_qss[0],isri_qss[1]))
-            self._write("{")
-            self._indent()
-            self._write("redP = alpha[i-%d] / k_f_save[i] * phase_units[i] * low_A[i] * exp(low_beta[i] * tc[0] - activation_units[i] * low_Ea[i] *invT);" % itroe_qss[0])
-            self._write("F = redP / (1.0 + redP);")
-            self._write("logPred = log10(redP);")
-            self._write("X = 1.0 / (1.0 + logPred*logPred);")
-            self._write("F_sri = exp(X * log(sri_a[i] * exp(-sri_b[i]*invT)")
-            self._write("   +  (sri_c[i] > 1.e-100 ? exp(T/sri_c[i]) : 0.0) )")
-            self._write("   *  (sri_len[i] > 3 ? sri_d[i]*exp(sri_e[i]*tc[0]) : 1.0);")
-            self._write("Corr[i] = F * F_sri;")
-            self._outdent()
-            self._write('}')
+            for i in range(isri_qss[0], isri_qss[1]):
+                alpha_index = i - isri_qss[0]
+                self._write(self.line("Index for alpha is %d" % alpha_index))
+                self._write(self.line("Reaction index is %d" % self.qssReactions[i]))
+                self._write(self.line("QSS reaction list index (corresponds to index needed by k_f_save_qss, Corr, Kc_save_qss) is %d" % i))
 
+                self._write("redP = alpha[%d] / k_f_save_qss[%d] * phase_units[%d] * low_A[%d] * exp(low_beta[%d] * tc[0] - activation_units[%d] * low_Ea[%d] *invT);" % (alpha_index, i, self.qssReactions[i], self.qssReactions[i], self.qssReactions[i], self.qssReactions[i], self.qssReactions[i]))
+                self._write("F = redP / (1.0 + redP);")
+                self._write("logPred = log10(redP);")
+                self._write("X = 1.0 / (1.0 + logPred*logPred);")
+                self._write("F_sri = exp(X * log(sri_a[%d] * exp(-sri_b[%d]*invT)" % (self.qssReactions[i], self.qssReactions[i]))
+                self._write("   +  (sri_c[%d] > 1.e-100 ? exp(T/sri_c[%d]) : 0.0) )" % (self.qssReactions[i], self.qssReactions[i]))
+                self._write("   *  (sri_len[%d] > 3 ? sri_d[%d]*exp(sri_e[%d]*tc[0]) : 1.0);" % (self.qssReactions[i], self.qssReactions[i], self.qssReactions[i]))
+                self._write("Corr[%d] = F * F_sri;" % i)
+            
             self._outdent()
             self._write("}")
 
@@ -7344,9 +7345,9 @@ class CPickler(CMill):
                         self._write("alpha = %s;" %(alpha))
 
             if nlindemann_qss == 1:
-                self._write("double redP = alpha / k_f_save[%d] * phase_units[%d] * low_A[%d] * exp(low_beta[%d] * tc[0] - activation_units[%d] * low_Ea[%d] * invT);" 
-                            % (ilindemann_qss[0],ilindemann_qss[0],ilindemann_qss[0],ilindemann_qss[0],ilindemann_qss[0],ilindemann_qss[0]))
-                self._write("Corr[%d] = redP / (1. + redP);" % ilindemann_qss[0])
+                self._write("double redP = alpha / k_f_save_qss[%d] * phase_units[%d] * low_A[%d] * exp(low_beta[%d] * tc[0] - activation_units[%d] * low_Ea[%d] * invT);" 
+                            % (ilindemann_qss[0],self.qssReactions[ilindemann_qss[0]],self.qssReactions[ilindemann_qss[0]],self.qssReactions[ilindemann_qss[0]],self.qssReactions[ilindemann_qss[0]],self.qssReactions[ilindemann_qss[0]]))
+                self._write("Corr[%d] = redP / (1. + redP);" % self.qssReactions.index(ilindemann_qss[0]))
             else:
                 if nlindemann_qss >= 4:
                     self._outdent()
@@ -7356,14 +7357,14 @@ class CPickler(CMill):
                     self._outdent()
                     self._write('#endif')
                     self._indent()
-                self._write("for (int i=%d; i<%d; i++)" % (ilindemann_qss[0], ilindemann_qss[1]))
-                self._write("{")
-                self._indent()
-                self._write("double redP = alpha[i-%d] / k_f_save[i] * phase_units[i] * low_A[i] * exp(low_beta[i] * tc[0] - activation_units[i] * low_Ea[i] * invT);"
-                            % ilindemann_qss[0])
-                self._write("Corr[i] = redP / (1. + redP);")
-                self._outdent()
-                self._write('}')
+                for i in range(ilindemann_qss[0], ilindemann_qss[1]):
+                    self._write(self.line("Index for alpha is %d" % alpha_index))
+                    self._write(self.line("Reaction index is %d" % self.qssReactions[i]))
+                    self._write(self.line("QSS reaction list index (corresponds to index needed by k_f_save_qss, Corr, Kc_save_qss) is %d" % i))
+                    
+                    self._write("double redP = alpha[%d] / k_f_save_qss[%d] * phase_units[%d] * low_A[%d] * exp(low_beta[%d] * tc[0] - activation_units[%d] * low_Ea[%d] * invT);"
+                                % (alpha_index, i, self.qssReactions[i], self.qssReactions[i], self.qssReactions[i], self.qssReactions[i], self.qssReactions[i]))
+                    self._write("Corr[i] = redP / (1. + redP);" % i)
 
             self._outdent()
             self._write("}")
