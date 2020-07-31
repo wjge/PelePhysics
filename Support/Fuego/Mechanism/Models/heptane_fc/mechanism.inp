@@ -15,9 +15,11 @@ PXC4H9      PXC4H9O2    C5H9        C5H10X1     C5H11X1
 C6H12X1     C7H15X2     NXC7H16     
 END
 QSS
-CH          HCO         CH2         CH2GSG      CH3O
-C2H5        CH3O2H      HCCO        C2H3        CH2CHO
-C2H5O       CH3CO       C2H5O2      C3H2
+CH          HCO         CH2         CH3O        C2H5
+CH3O2H      HCCO        C2H3        CH2CHO      C2H5O
+C2H5O2      C3H2        C3H3        NXC3H7      PXC4H9
+PXC4H9O2    C5H9        C5H10X1     C5H11X1     C6H12X1
+!CH3CO       CH2GSG
 END
 TRANS ALL
 N2                 1    97.530     3.621     0.000     1.760     4.000          

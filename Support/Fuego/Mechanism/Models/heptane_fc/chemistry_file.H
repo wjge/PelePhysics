@@ -22,6 +22,8 @@ AMREX_GPU_HOST_DEVICE void cv_R(double *  species, double *  tc);
 void equilibriumConstants(double *  kc, double *  g_RT, double T);
 AMREX_GPU_HOST_DEVICE void productionRate(double *  wdot, double *  sc, double T);
 AMREX_GPU_HOST_DEVICE void comp_qfqr(double *  q_f, double *  q_r, double *  sc, double *  qss_sc, double *  tc, double invT);
+void comp_k_f_qss(double *  tc, double invT, double *  k_f);
+void comp_Kc_qss(double *  tc, double invT, double *  Kc);
 void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT);
 void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc, double invT);
 #ifndef AMREX_USE_CUDA
