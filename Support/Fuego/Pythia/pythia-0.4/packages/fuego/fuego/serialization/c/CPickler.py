@@ -7252,7 +7252,7 @@ class CPickler(CMill):
                 self._write('#endif')
                 self._indent()
                 self._indent()
-                self._write("double redP, F, logPred, logFcent, troe_c, troe_n, troe, F_troe;")
+            self._write("double redP, F, logPred, logFcent, troe_c, troe_n, troe, F_troe;")
             for i in range(itroe_qss[0], itroe_qss[1]):
                 alpha_index = i - itroe_qss[0]
                 self._write(self.line("Index for alpha is %d" % alpha_index))
