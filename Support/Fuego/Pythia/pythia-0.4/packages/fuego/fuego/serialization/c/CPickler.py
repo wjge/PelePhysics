@@ -6857,32 +6857,36 @@ class CPickler(CMill):
 
                     for j in indj[indi == k]:
                         print("        .. dealing with elem on column ", j, " : ", A[i + 1][j])
-                        if A[i + 1][j] != '0':
-                            if num != '0':
-                                if pivot != '1':
-                                    if num != '1':
-                                        A[i + 1][j] = A[i + 1][j] + ' - ' + A[k][j] + ' * ' + num + '/ ' + pivot
-                                        A[i + 1][j] = '(' + A[i + 1][j] + ')'
-                                else:
-                                    if num != '1':
-                                        A[i + 1][j] =   A[i + 1][j] + ' - ' + A[k][j] + ' * ' + num
-                                        A[i + 1][j] = '(' + A[i + 1][j] + ')'
-                                    else:
-                                        A[i + 1][j] =  A[i + 1][j] + ' - ' + A[k][j]
-                                        A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                        if (j == k):
+                            print("0 ELEM !")
+                            A[i + 1][j] = '0'
                         else:
-                            if num != '0':
-                                if pivot != '1':
-                                    if num != '1':
-                                        A[i + 1][j] = ' - ' + A[k][j] + ' * ' + num + ' / ' + pivot
-                                        A[i + 1][j] = '(' + A[i + 1][j] + ')'
-                                else:
-                                    if num != '1':
-                                        A[i + 1][j] = ' - ' + A[k][j] + ' * ' + num
-                                        A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                            if A[i + 1][j] != '0':
+                                if num != '0':
+                                    if pivot != '1':
+                                        if num != '1':
+                                            A[i + 1][j] = A[i + 1][j] + ' - ' + A[k][j] + ' * ' + num + '/ ' + pivot
+                                            A[i + 1][j] = '(' + A[i + 1][j] + ')'
                                     else:
-                                        A[i + 1][j] = ' - ' + A[k][j]
-                                        A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                        if num != '1':
+                                            A[i + 1][j] =   A[i + 1][j] + ' - ' + A[k][j] + ' * ' + num
+                                            A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                        else:
+                                            A[i + 1][j] =  A[i + 1][j] + ' - ' + A[k][j]
+                                            A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                            else:
+                                if num != '0':
+                                    if pivot != '1':
+                                        if num != '1':
+                                            A[i + 1][j] = ' - ' + A[k][j] + ' * ' + num + ' / ' + pivot
+                                            A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                    else:
+                                        if num != '1':
+                                            A[i + 1][j] = ' - ' + A[k][j] + ' * ' + num
+                                            A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                        else:
+                                            A[i + 1][j] = ' - ' + A[k][j]
+                                            A[i + 1][j] = '(' + A[i + 1][j] + ')'
                         print
                         print "Updated A is: "
                         print A
