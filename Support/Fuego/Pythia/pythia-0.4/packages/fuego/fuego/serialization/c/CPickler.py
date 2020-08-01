@@ -4233,6 +4233,7 @@ class CPickler(CMill):
                 i = self.ordered_idx_map[symbol]
                 terms[i] += "%sg_RT[%d]"%(factor,i)
 
+# HEAD
         dG = ""
         for i in range(self.nSpecies):
             if terms[i]:
@@ -4240,6 +4241,20 @@ class CPickler(CMill):
         for i in range(self.nQSSspecies):
             if terms_qss[i]:
                 dG += terms_qss[i]
+
+            self._write()
+#===========================            
+#             # kfs
+#             self._write("/* Evaluate the kfs */")
+#             #self._write("double k_f[%d];"% nclassd)
+#             #self._write("double Corr[%d];" % nclassd)
+#             self._write("double k_f, k_r, Corr;")
+#             if ntroe > 0:
+#                 self._write("double redP, F, logPred, logFcent, troe_c, troe_n, troe, F_troe;")
+#             if nsri > 0:
+#                 self._write("double redP, F, X, F_sri;")
+#             self._write()
+#>>>>>>> development
 
         if dG[0:3] == " + ":
             return dG[3:]
@@ -6644,7 +6659,7 @@ class CPickler(CMill):
             products = []
             rhs_hold = []
             coeff_hold = []
-            groupCoeff_hold = []
+            groupCoeff_hold = defaultdict(list)
 
             for r in self.QSS_SR_Rj[self.QSS_SR_Si == i]:
                 reaction = mechanism.reaction(id=r)
@@ -6692,21 +6707,38 @@ class CPickler(CMill):
                             "        that are both on the same group"
                             group_flag = True
                             
+                    # if group_flag:
+                    #     # if QSS species is a reactant
+                    #     if direction == -1:
+                    #         print("        -- for species ", symbol, " in reaction ", r, " is a reactant")
+                    #         if reaction.reversible:
+                    #             #print("ADD TO CORRESPONDING GROUP COEFFICIENT")
+                    #             groupCoeff_hold.append('+ qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                    #         coeff_hold.append('- qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                    #     # if QSS species is a product
+                    #     elif direction == 1:
+                    #         if reaction.reversible:
+                    #             coeff_hold.append('- qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                    #         print("        -- for species ", symbol, " in reaction ", r, " is a product")
+                    #         #print("ADD TO CORRESPONDING GROUP COEFFICIENT")
+                    #         groupCoeff_hold.append('+ qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                            
+                    # THIS is the right groupCoeff list
                     if group_flag:
                         # if QSS species is a reactant
                         if direction == -1:
-                            print("        -- for species ", symbol, " in reaction ", r, " is a reactant")
+                            print("       -- species ", symbol, " in reaction ", r, " is a reactant")
                             if reaction.reversible:
                                 #print("ADD TO CORRESPONDING GROUP COEFFICIENT")
-                                groupCoeff_hold.append('+ qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                                groupCoeff_hold[other_qss].append('+ qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
                             coeff_hold.append('- qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
-                        # if QSS species is a product
+                            # if QSS species is a product
                         elif direction == 1:
                             if reaction.reversible:
                                 coeff_hold.append('- qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
-                            print("        -- for species ", symbol, " in reaction ", r, " is a product")
+                            print("        -- species ", symbol, " in reaction ", r, " is a product")
                             #print("ADD TO CORRESPONDING GROUP COEFFICIENT")
-                            groupCoeff_hold.append('+ qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                            groupCoeff_hold[other_qss].append('+ qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
                             
                     else:
                         print "        species "+other_qss+" is uni-directionally coupled with "+str(symbol)
@@ -6721,7 +6753,10 @@ class CPickler(CMill):
                             rhs_hold.append('- qf_co['+str(self.qfqr_co_idx_map.index(r))+']*sc_qss['+str(self.qss_species_list.index(other_qss))+']')
 
                             
+                for other_qss in groupCoeff_hold:
+                    " ".join(groupCoeff_hold[other_qss])
 
+                    
                 print
                 print "#####################################################################################################"
                 print "After dealing with QSS species "+symbol+" in  reaction "+str(r)+" we have the following: "
@@ -6736,7 +6771,7 @@ class CPickler(CMill):
 
             for group in self.group.keys():
                 if any(component == symbol for component in self.group[group]):
-                    self.QSS_groupSp[symbol] = " ".join(groupCoeff_hold)
+                    self.QSS_groupSp[symbol] = groupCoeff_hold
 
             print
             print "HERE IS EVERYTHING: "
@@ -6748,6 +6783,30 @@ class CPickler(CMill):
             print "GROUP COEFFICIENTS: ", self.QSS_groupSp
             print
 
+        for species in self.QSS_groupSp.keys():
+            for coeff in self.QSS_groupSp[species].keys():
+                self.QSS_groupSp[species][coeff] =" ".join(self.QSS_groupSp[species][coeff])
+
+        for symbol in self.group.keys():
+            for s1 in self.group[symbol]:
+                for s2 in self.group[symbol]:
+                    if s2 != s1 and not self.QSS_groupSp[s1][s2]:
+                        self.QSS_groupSp[s1][s2] = str(0.0)
+
+        print
+        print
+        print
+        print "FINAL LISTS: "
+        print
+        print "RHS: ", self.QSS_rhs
+        print
+        print "SELF: ", self.QSS_coeff
+        print
+        print "GROUP COEFFICIENTS: ", self.QSS_groupSp
+        print
+        print
+        print
+                        
         
     def _Gauss_pivoting(self, A, B=None):
 
@@ -7507,7 +7566,7 @@ class CPickler(CMill):
                             Coeff_subMatrix[index][j] = '1'
                         else:
                             Coeff_subMatrix[index][j] = str(species)+'_'+str(gr_species[j])
-                            self._write('double '+str(species)+'_'+str(gr_species[j])+' = (epsilon '+self.QSS_groupSp[species]+')/'+denominator+';')
+                            self._write('double '+str(species)+'_'+str(gr_species[j])+' = (epsilon '+self.QSS_groupSp[species][gr_species[j]]+')/'+denominator+';')
                     self._write()
                             
                     RHS_subMatrix[index] = str(species)+'_rhs'
