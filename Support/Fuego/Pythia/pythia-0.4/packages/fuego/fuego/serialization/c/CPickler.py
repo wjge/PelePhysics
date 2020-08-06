@@ -6700,11 +6700,11 @@ class CPickler(CMill):
                         print "        species ", symbol, " in reaction ", r, " is a reactant"
                         coeff_hold.append('-qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
                         if reaction.reversible:
-                            groupCoeff_hold[other_qss].append('+ qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                            groupCoeff_hold[other_qss].append('+qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
                     # if QSS species is a product
                     elif direction == 1:
                         print "        species ", symbol, " in reaction ", r, " is a product"
-                        groupCoeff_hold[other_qss].append('+ qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                        groupCoeff_hold[other_qss].append('+qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
                         if reaction.reversible:
                             coeff_hold.append('-qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
                             
@@ -6777,9 +6777,14 @@ class CPickler(CMill):
         
     def _Gauss_pivoting(self, A, B=None):
 
+            print
             print("###")
             print("IN GAUSS PIVOT")
             print("###")
+            
+            pivots               = []
+            intermediate_helpers = OrderedDict() 
+            helper_counters = 0
 
             X = [''] * len(A[0])
             for i in range(len(A[0])):
@@ -6788,7 +6793,6 @@ class CPickler(CMill):
             if B == None:
                 for i in range(len(A[0])):
                     B[i] = 'B' + str(i)
-            print("--B", B)
 
             # Get species names:
             species = ['0' for i in range(len(B))]
@@ -6797,7 +6801,6 @@ class CPickler(CMill):
                 hold = hold[:-4]
                 species[member] = hold
 
-            print
             print "Species involved are: ", species
             print
             
@@ -6806,17 +6809,19 @@ class CPickler(CMill):
                 for j in range(len(A[0])):
                     if A[i][j] != '0':
                         Anum[i, j] = 1
-            print("--A", A)
+
+            print"--A", A
+            print"--B", B
+            #print Anum
 
             indi, indj = np.nonzero(Anum)
 
             n = len(B)
-            print("--", n," matrix")
             for k in range(n - 1):
 
-                print("   **ROW of pivot ",k)
-
                 pivot = A[k][k]
+
+                # swap lines if needed
                 if pivot == 0:
                     temp = np.array(A[k + 1][:])
                     A[k + 1][:] = A[k][:]
@@ -6827,83 +6832,115 @@ class CPickler(CMill):
                     B[k] = temp
 
                     pivot = A[k][k]
-                print("     pivot ", pivot)
+
+                print 
+                print "   **ROW of pivot ",k, " and pivot is ", pivot 
+                pivots.append(pivot)
 
                 for i in range(k, len(B) - 1):
                     num = A[i + 1][k]
-                    print("     **Treating ROW ",i+1, "with numerator ",num)
+                    print "       xx Treating ROW ",i+1, "with numerator ",num, "subst fact will be", num,"/",pivot
+                    if (num == "0"):
+                        print "        !! No need to do anything, already zeroed ... skip"
+                        continue
                     B = list(B)
-                    print "B starts with: " 
-                    print B
-                    print
+                    print "          - B starts with: "
+                    print "           ", B
                     if num != '0':
                         if pivot != '1':
                             if num != '1':
-                                B[i + 1] =  B[i + 1] + ' - ' + B[int(k)] + ' * ' + num + ' / ' + pivot
+                                helper = num + '/' + pivot
+                                helper_name = "H_"+str(helper_counters)
+                                intermediate_helpers[helper_name] = helper
+                                B[i + 1] =  B[i + 1] + ' -' + B[int(k)] + '*' + helper_name
                                 B[i + 1] = '(' + B[i + 1] + ')'
+                                helper_counters += 1
+                            else:
+                                helper = 1 + '/' + pivot
+                                helper_name = "H_"+str(helper_counters)
+                                intermediate_helpers[helper_name] = helper
+                                print " IN THIS CASE !! CHECK THAT ITS OK !! "
+                                B[i + 1] =  B[i + 1] + ' -' + B[int(k)] + '*' + helper_name
+                                B[i + 1] = '(' + B[i + 1] + ')'
+                                helper_counters += 1
                         else:
                             if num != '1':
-                                B[i + 1] = B[i + 1] + ' - ' + B[int(k)] + ' * ' + num
+                                helper = num
+                                helper_name = "H_"+str(helper_counters)
+                                intermediate_helpers[helper_name] = helper
+                                B[i + 1] = B[i + 1] + ' -' + B[int(k)] + '*' + helper_name
                                 B[i + 1] = '(' + B[i + 1] + ')'
+                                helper_counters += 1
                             else:
-                                B[i + 1] =  B[i + 1] + ' - ' + B[int(k)]
+                                B[i + 1] =  B[i + 1] + ' -' + B[int(k)]
                                 B[i + 1] = '(' + B[i + 1] + ')'
 
-                    print "... and B ends with: " 
-                    print B
-                    print
+                    print "          ... and B ends with: "
+                    print "            ", B
                   
                     indi, indj = np.nonzero(Anum)
 
-                    for j in indj[indi == k]:
-                        print("        .. dealing with elem on column ", j, " : ", A[i + 1][j])
+                    for j in indj[indi == (i + 1)]:
+                        print "          - Dealing with row elem on column ", j, " : ", A[i + 1][j]
                         if (j == k):
-                            print("0 ELEM !")
+                            print("            !! 0 ELEM !")
                             A[i + 1][j] = '0'
                         else:
                             if A[i + 1][j] != '0':
                                 if num != '0':
                                     if pivot != '1':
                                         if num != '1':
-                                            A[i + 1][j] = A[i + 1][j] + ' - ' + A[k][j] + ' * ' + num + '/ ' + pivot
-                                            A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                            if A[k][j] != '0':
+                                                A[i + 1][j] = A[i + 1][j] + ' -' + A[k][j] + '*' + helper_name
+                                                A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                        else:
+                                            if A[k][j] != '0':
+                                                print " IN THIS CASE !! CHECK THAT ITS OK !! "
+                                                A[i + 1][j] = A[i + 1][j] + ' -' + A[k][j] + '*' + helper_name
+                                                A[i + 1][j] = '(' + A[i + 1][j] + ')'
                                     else:
                                         if num != '1':
-                                            A[i + 1][j] =   A[i + 1][j] + ' - ' + A[k][j] + ' * ' + num
-                                            A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                            if A[k][j] != '0':
+                                                A[i + 1][j] = A[i + 1][j] + ' -' + A[k][j] + '*' + helper_name
+                                                A[i + 1][j] = '(' + A[i + 1][j] + ')'
                                         else:
-                                            A[i + 1][j] =  A[i + 1][j] + ' - ' + A[k][j]
-                                            A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                            if A[k][j] != '0':
+                                                A[i + 1][j] = A[i + 1][j] + ' -' + A[k][j]
+                                                A[i + 1][j] = '(' + A[i + 1][j] + ')'
                             else:
                                 if num != '0':
                                     if pivot != '1':
                                         if num != '1':
-                                            A[i + 1][j] = ' - ' + A[k][j] + ' * ' + num + ' / ' + pivot
-                                            A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                            if A[k][j] != '0':
+                                                A[i + 1][j] = ' -' + A[k][j] + '*' + helper_name
+                                                A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                        else:
+                                            if A[k][j] != '0':
+                                                print " IN THIS CASE !! CHECK THAT ITS OK !! "
+                                                A[i + 1][j] = ' -' + A[k][j] + '*' + helper_name
+                                                A[i + 1][j] = '(' + A[i + 1][j] + ')'
                                     else:
                                         if num != '1':
-                                            A[i + 1][j] = ' - ' + A[k][j] + ' * ' + num
-                                            A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                                            if A[k][j] != '0':
+                                                A[i + 1][j] = ' -' + A[k][j] + '*' + helper_name
+                                                A[i + 1][j] = '(' + A[i + 1][j] + ')'
                                         else:
-                                            A[i + 1][j] = ' - ' + A[k][j]
-                                            A[i + 1][j] = '(' + A[i + 1][j] + ')'
-                        print
-                        print "Updated A is: "
-                        print A
-                        print
+                                            if A[k][j] != '0':
+                                                A[i + 1][j] = ' -' + A[k][j]
+                                                A[i + 1][j] = '(' + A[i + 1][j] + ')'
+                    print "          ... and updated A is: "
+                    print "             ", A
 
             for i in range(len(B)):
                 X = list(X)
                 B[i] = str(B[i])
 
+            # start with last elem
             n = n - 1
             if A[n][n] != '1':
-                X[n] =  B[n] + ' / ' + A[n][n] 
+                X[n] =  B[n] + '/' + A[n][n] 
             else:
                 X[n] =  B[n] 
-            print("X(",n,")=",X[n])
-            print
-            print "Or: X(",n,") = sc_qss["+str(self.qss_species_list.index(species[n]))+"]"
 
             for i in range(1, n + 1):
                 sumprod = ''
@@ -6914,40 +6951,26 @@ class CPickler(CMill):
                             sumprod += ' + '
                         flag = True
                         if A[n - i][n - j] == '1':
-                            print "DOES THIS GET USED??"
                             sumprod += ' (' + str(X[n - j]) + ')'
                         elif j != 0:
-                            print
-                            print "DOES THIS SECOND PART GET USED??"
-                            print
-                            sumprod += ' + ' + A[n - i][n - j] + ' * ' + 'sc_qss[' + str(self.qss_species_list.index(species[n - j])) + ']'
+                            sumprod += ' +' + A[n - i][n - j] + '*' + 'sc_qss[' + str(self.qss_species_list.index(species[n - j])) + ']'
                         else:
-                            print
-                            print "WHAT ABOUT THE THIRD PART??"
-                            print
-                            sumprod +=  A[n - i][n - j] + ' * ' + 'sc_qss[' + str(self.qss_species_list.index(species[n - j])) + ']'
+                            sumprod +=  A[n - i][n - j] + '*' + 'sc_qss[' + str(self.qss_species_list.index(species[n - j])) + ']'
         
-                print
-                print "sumprod is: ", sumprod
-                print
-                print
-
                 if sumprod == '':
                     if A[n - i][n - i] != '1':
-                        X[n - i] = '(' + B[n - i] + ') / ' + A[n - i][n - i]
+                        X[n - i] = '(' + B[n - i] + ')/' + A[n - i][n - i]
                     else:
                         X[n - i] = B[n - i]
                 else:
                     if A[n - i][n - i] == '1':
-                        X[n - i] = B[n - i] + ' - (' + sumprod + ')'
+                        X[n - i] = B[n - i] + ' -(' + sumprod + ')'
                     else:
-                        X[n - i] = '(' + B[n - i] + ' - (' + sumprod + ')) / ' + A[n - i][n - i]
-                print("X(",n - i,")=",X[n - i])
-                print
-                print "Or: X(",n-i,") = sc_qss["+str(self.qss_species_list.index(species[n-i]))+"]"
-                print("\n\n")
+                        X[n - i] = '(' + B[n - i] + ' -(' + sumprod + '))/' + A[n - i][n - i]
+            print 
+            print 
 
-            return A, X, B                
+            return A, X, B, intermediate_helpers             
                 
         
     # Testing all of my garbage for now
@@ -7595,27 +7618,54 @@ class CPickler(CMill):
                         else:
                             if (self.QSS_QSS_coeff[species][gr_species[j]] != "0.0"):
                                 Coeff_subMatrix[index][j] = str(species)+'_'+str(gr_species[j])
+                                # let us assume for now these lines are not too big
                                 self._write('double '+str(species)+'_'+str(gr_species[j])+' = (epsilon '+self.QSS_QSS_coeff[species][gr_species[j]]+')/'+denominator+';')
                     self._write()
                     RHS_subMatrix[index] = str(species)+'_rhs'
 
-                print "A IS "
-                print Coeff_subMatrix
-                print "B IS "
-                print RHS_subMatrix
-                A, X, B = self._Gauss_pivoting(Coeff_subMatrix, RHS_subMatrix)
+                #print "A IS "
+                #print Coeff_subMatrix
+                #print "B IS "
+                #print RHS_subMatrix
+                #print
+                A, X, B, intermediate_helpers = self._Gauss_pivoting(Coeff_subMatrix, RHS_subMatrix)
 
                 print "X IS "
                 print X
+                
+                for helper in intermediate_helpers:
+                    self._write('double %s = %s;' % (helper, intermediate_helpers[helper]))
 
                 for count in range(len(gr_species)):
                     max_index = len(gr_species)-1
-                    print count
-                    print max_index
+                    #print count
+                    #print max_index
                     species = gr_species[max_index - count]
-                    print species
+                    #print species
 
-                    self._write('sc_qss['+str(self.qss_species_list.index(species))+'] = '+X[max_index - count]+';')
+                    # cut line if too big !
+                    long_line_elements = X[max_index - count].split()
+                    len_long_line = len(long_line_elements)
+                    # if we have more than 4 elements
+                    if (len_long_line > 4):
+                        # treat first line separately
+                        self._write('sc_qss['+str(self.qss_species_list.index(species))+'] = '+(" ".join(long_line_elements[0:4])))
+                        # proceed by strides of 4
+                        for kk in xrange(4,len_long_line,4):
+                            # if there are less than 4 elems left then we are at the end of the list
+                            if (len(long_line_elements[kk:kk+4]) < 4):
+                                self._write('                    %s;' % (" ".join(long_line_elements[kk:kk+4])))
+                            # if there are 4 elems we are ...
+                            else:
+                                # either are in the middle of the list
+                                if (len(long_line_elements[kk:]) > 4):
+                                    self._write('                    %s' % (" ".join(long_line_elements[kk:kk+4])))
+                                # or at the end but list number was a multiple of 4
+                                else:
+                                    self._write('                    %s;' % (" ".join(long_line_elements[kk:kk+4])))
+                    # if we have less than 4 elements just write them
+                    else:
+                        self._write('sc_qss['+str(self.qss_species_list.index(species))+'] = '+X[max_index - count]+';')
                     self._write()
 
 
