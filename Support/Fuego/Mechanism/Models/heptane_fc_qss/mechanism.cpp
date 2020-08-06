@@ -9188,6 +9188,7 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
 void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 {
 
+    double H_0, H_1, H_2;
     double  qf_co[167], qr_co[167];
     double epsilon = 1e-12;
 
@@ -9231,7 +9232,7 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     double C3H3_C3H2 = (epsilon +qf_co[95])/C3H3_denom;
 
-    double H_0 = C3H3_C3H2;
+    H_0 = C3H3_C3H2;
     sc_qss[15] = (C3H3_rhs -C3H2_rhs*H_0)/(1 -C3H2_C3H3*H_0);
 
     sc_qss[14] = C3H2_rhs -(C3H2_C3H3*sc_qss[15]);
@@ -9288,9 +9289,9 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     double HCCO_CH2GSG = (epsilon +qf_co[77])/HCCO_denom;
 
-    double H_0 = CH2_CH;
-    double H_1 = CH2GSG_CH2/(1 -CH_CH2*H_0);
-    double H_2 = HCCO_CH2GSG/(1 -(CH2_CH2GSG -CH_CH2GSG*H_0)*H_1);
+    H_0 = CH2_CH;
+    H_1 = CH2GSG_CH2/(1 -CH_CH2*H_0);
+    H_2 = HCCO_CH2GSG/(1 -(CH2_CH2GSG -CH_CH2GSG*H_0)*H_1);
     sc_qss[8] = (HCCO_rhs -(CH2GSG_rhs -(CH2_rhs -CH_rhs*H_0)*H_1)*H_2)/(1
                         -CH2GSG_HCCO*H_2);
 
@@ -9347,7 +9348,7 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     double PXC4H9O2_PXC4H9 = (epsilon +qf_co[140])/PXC4H9O2_denom;
 
-    double H_0 = PXC4H9O2_PXC4H9;
+    H_0 = PXC4H9O2_PXC4H9;
     sc_qss[21] = (PXC4H9O2_rhs -PXC4H9_rhs*H_0)/(1 -PXC4H9_PXC4H9O2*H_0);
 
     sc_qss[20] = PXC4H9_rhs -(PXC4H9_PXC4H9O2*sc_qss[21]);
@@ -9369,7 +9370,7 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     double C5H11X1_C5H10X1 = (epsilon +qr_co[149])/C5H11X1_denom;
 
-    double H_0 = C5H11X1_C5H10X1;
+    H_0 = C5H11X1_C5H10X1;
     sc_qss[24] = (C5H11X1_rhs -C5H10X1_rhs*H_0)/(1 -C5H10X1_C5H11X1*H_0);
 
     sc_qss[23] = C5H10X1_rhs -(C5H10X1_C5H11X1*sc_qss[24]);
@@ -9398,7 +9399,7 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     double C2H5O2_C2H5 = (epsilon +qf_co[87])/C2H5O2_denom;
 
-    double H_0 = C2H5O2_C2H5;
+    H_0 = C2H5O2_C2H5;
     sc_qss[13] = (C2H5O2_rhs -C2H5_rhs*H_0)/(1 -C2H5_C2H5O2*H_0);
 
     sc_qss[5] = C2H5_rhs -(C2H5_C2H5O2*sc_qss[13]);
@@ -9420,7 +9421,7 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     double NXC3H7O2_NXC3H7 = (epsilon +qf_co[115])/NXC3H7O2_denom;
 
-    double H_0 = NXC3H7O2_NXC3H7;
+    H_0 = NXC3H7O2_NXC3H7;
     sc_qss[18] = (NXC3H7O2_rhs -NXC3H7_rhs*H_0)/(1 -NXC3H7_NXC3H7O2*H_0);
 
     sc_qss[17] = NXC3H7_rhs -(NXC3H7_NXC3H7O2*sc_qss[18]);
