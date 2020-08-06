@@ -12,7 +12,6 @@ AMREX_GPU_HOST_DEVICE void get_mw(double mw_new[]);
 void atomicWeight(double *  awt);
 void molecularWeight(double *  wt);
 AMREX_GPU_HOST_DEVICE void gibbs(double *  species, double *  tc);
-AMREX_GPU_HOST_DEVICE void gibbs_qss(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void helmholtz(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void speciesInternalEnergy(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void speciesEnthalpy(double *  species, double *  tc);
@@ -22,10 +21,6 @@ AMREX_GPU_HOST_DEVICE void cv_R(double *  species, double *  tc);
 void equilibriumConstants(double *  kc, double *  g_RT, double T);
 AMREX_GPU_HOST_DEVICE void productionRate(double *  wdot, double *  sc, double T);
 AMREX_GPU_HOST_DEVICE void comp_qfqr(double *  q_f, double *  q_r, double *  sc, double *  qss_sc, double *  tc, double invT);
-void comp_k_f_qss(double *  tc, double invT, double *  k_f);
-void comp_Kc_qss(double *  tc, double invT, double *  Kc);
-void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT);
-void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc, double invT);
 #ifndef AMREX_USE_CUDA
 void comp_k_f(double *  tc, double invT, double *  k_f);
 void comp_Kc(double *  tc, double invT, double *  Kc);
