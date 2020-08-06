@@ -6669,15 +6669,15 @@ class CPickler(CMill):
                     # if QSS species is a reactant
                     if direction == -1:
                         print "        species ", symbol, " in reaction ", r, " is a reactant"
-                        coeff_hold.append('- qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                        coeff_hold.append('-qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
                         if reaction.reversible:
-                            rhs_hold.append('- qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                            rhs_hold.append('-qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
                     # if QSS species is a product
                     elif direction == 1:
                         print "        species ", symbol, " in reaction ", r, " is a product"
-                        rhs_hold.append('- qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                        rhs_hold.append('-qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
                         if reaction.reversible:
-                            coeff_hold.append('- qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                            coeff_hold.append('-qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
                 else:
                     # note in this case there can only be 2 QSS in one reac, one on each side  !  
                     coupled_qss = [self.qss_species_list[j] for j in coupled]
@@ -6698,7 +6698,7 @@ class CPickler(CMill):
                         # if QSS species is a reactant
                     if direction == -1:
                         print "        species ", symbol, " in reaction ", r, " is a reactant"
-                        coeff_hold.append('- qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                        coeff_hold.append('-qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
                         if reaction.reversible:
                             groupCoeff_hold[other_qss].append('+ qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
                     # if QSS species is a product
@@ -6706,7 +6706,7 @@ class CPickler(CMill):
                         print "        species ", symbol, " in reaction ", r, " is a product"
                         groupCoeff_hold[other_qss].append('+ qf_co['+str(self.qfqr_co_idx_map.index(r))+']')
                         if reaction.reversible:
-                            coeff_hold.append('- qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
+                            coeff_hold.append('-qr_co['+str(self.qfqr_co_idx_map.index(r))+']')
                             
                     #else:
                     #    print "         but species "+other_qss+" is uni-directionally coupled with "+str(symbol)
@@ -7492,7 +7492,31 @@ class CPickler(CMill):
 
                 self._write(self.line('QSS species '+str(self.qss_species_list.index(symbol))+': '+symbol))
                 self._write()
-                self._write('double %s = epsilon %s;'% (numerator, self.QSS_rhs[symbol]))
+                # RHS 
+                # cut line if too big !
+                long_line_elements = (self.QSS_rhs[symbol]).split()
+                len_long_line = len(long_line_elements)
+                # if we have more than 7 elements
+                if (len_long_line > 7):
+                    # treat first line separately with the epsilon
+                    self._write('double %s = epsilon %s'% (numerator, " ".join(long_line_elements[0:7])))
+                    # proceed by strides of 7
+                    for kk in xrange(7,len_long_line,7):
+                        # if there are less than 7 elems left then we are at the end of the list
+                        if (len(long_line_elements[kk:kk+7]) < 7):
+                            self._write('                    %s;' % (" ".join(long_line_elements[kk:kk+7])))
+                        # if there are 7 elems we are ...
+                        else:
+                            # either are in the middle of the list
+                            if (len(long_line_elements[kk:]) > 7):
+                                self._write('                    %s' % (" ".join(long_line_elements[kk:kk+7])))
+                            # or at the end but list number was a multiple of 7
+                            else:
+                                self._write('                    %s;' % (" ".join(long_line_elements[kk:kk+7])))
+                # if we have less than 7 elements just write them
+                else:
+                    self._write('double %s = epsilon %s;'% (numerator, self.QSS_rhs[symbol]))
+                # COEFF
                 self._write('double %s = epsilon %s;' % (denominator, self.QSS_coeff[symbol]))
                 self._write()
                 self._write('sc_qss[%s] = %s/%s;' % (self.qss_species_list.index(symbol), numerator, denominator))
@@ -7512,8 +7536,55 @@ class CPickler(CMill):
                     denominator = species+'_denom'
                     numerator = species+'_num'
 
-                    self._write('double %s = epsilon %s;'% (numerator, self.QSS_rhs[species]))
-                    self._write('double %s = epsilon %s;' % (denominator, self.QSS_coeff[species]))
+                    # RHS 
+                    # cut line if too big !
+                    long_line_elements = (self.QSS_rhs[species]).split()
+                    len_long_line = len(long_line_elements)
+                    # if we have more than 7 elements
+                    if (len_long_line > 7):
+                        # treat first line separately with the epsilon
+                        self._write('double %s = epsilon %s'% (numerator, " ".join(long_line_elements[0:7])))
+                        # proceed by strides of 7
+                        for kk in xrange(7,len_long_line,7):
+                            # if there are less than 7 elems left then we are at the end of the list
+                            if (len(long_line_elements[kk:kk+7]) < 7):
+                                self._write('                    %s;' % (" ".join(long_line_elements[kk:kk+7])))
+                            # if there are 7 elems we are ...
+                            else:
+                                # either are in the middle of the list
+                                if (len(long_line_elements[kk:]) > 7):
+                                    self._write('                    %s' % (" ".join(long_line_elements[kk:kk+7])))
+                                # or at the end but list number was a multiple of 7
+                                else:
+                                    self._write('                    %s;' % (" ".join(long_line_elements[kk:kk+7])))
+                    # if we have less than 7 elements just write them
+                    else:
+                        self._write('double %s = epsilon %s;'% (numerator, self.QSS_rhs[species]))
+                    # COEFF
+                    # cut line if too big !
+                    long_line_elements = (self.QSS_coeff[species]).split()
+                    len_long_line = len(long_line_elements)
+                    # if we have more than 7 elements
+                    if (len_long_line > 7):
+                        # treat first line separately with the epsilon
+                        self._write('double %s = epsilon %s'% (denominator, " ".join(long_line_elements[0:7])))
+                        # proceed by strides of 7
+                        for kk in xrange(7,len_long_line,7):
+                            # if there are less than 7 elems left then we are at the end of the list
+                            if (len(long_line_elements[kk:kk+7]) < 7):
+                                self._write('                    %s;' % (" ".join(long_line_elements[kk:kk+7])))
+                            # if there are 7 elems we are ...
+                            else:
+                                # either are in the middle of the list
+                                if (len(long_line_elements[kk:]) > 7):
+                                    self._write('                    %s' % (" ".join(long_line_elements[kk:kk+7])))
+                                # or at the end but list number was a multiple of 7
+                                else:
+                                    self._write('                    %s;' % (" ".join(long_line_elements[kk:kk+7])))
+                    # if we have less than 7 elements just write them
+                    else:
+                        self._write('double %s = epsilon %s;' % (denominator, self.QSS_coeff[species]))
+                    # RHS
                     self._write('double '+species+'_rhs = '+numerator+'/'+denominator+';')
                     self._write()
 
