@@ -1,6 +1,6 @@
-ncells = 1
+ncells = 2 256 2
 max_grid_size  = 16
-plot_file = plt
+plotfile = plt
 fuel_name = CH4
 
 ode.dt  = 1.e-05
@@ -9,8 +9,6 @@ ode.reactor_type  = 1 # 1=full e, 2=full h
 ode.verbose = 1
 ode.use_typ_vals = 0
 ode.analytical_jacobian = 1 
-ode.rtol = 1e-8
-ode.atol = 1e-8
 ode.rtol = 1e-10
 ode.atol = 1e-10
 

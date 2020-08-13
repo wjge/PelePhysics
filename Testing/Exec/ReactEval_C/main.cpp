@@ -12,17 +12,17 @@
 #include <PlotFileFromMF.H>
 #include <EOS.H>
 #include <Transport.H>
-#include <reactor.h>
+#include <R_CvodeCPU.H>
 
-#ifndef USE_RK64_PP
-#ifdef USE_ARKODE_PP 
-static std::string ODE_SOLVER = "ARKODE";
-#else
+//#ifndef USE_RK64_PP
+//#ifdef USE_ARKODE_PP 
+//static std::string ODE_SOLVER = "ARKODE";
+//#else
 static std::string ODE_SOLVER = "CVODE";
-#endif
-#else
-static std::string ODE_SOLVER = "RK64";
-#endif
+//#endif
+//#else
+//static std::string ODE_SOLVER = "RK64";
+//#endif
 
 using namespace amrex;
 
@@ -145,6 +145,8 @@ main (int   argc,
     EOS::init();
     transport_init();
 
+    ReactorCVODE_CPU reactor;
+
     BL_PROFILE_VAR("main::reactor_info()", reactInfo);
 
     /* Initialize reactor object inside OMP region, including tolerances */
@@ -153,13 +155,13 @@ main (int   argc,
 #endif
     {
       // Set ODE tolerances
-      SetTolFactODE(rtol,atol);
+      reactor.SetTolFactODE(rtol,atol);
 
-#ifdef AMREX_USE_CUDA
-      reactor_info(ode_iE, ode_ncells);
-#else
-      reactor_init(ode_iE, ode_ncells);
-#endif
+//#ifdef AMREX_USE_CUDA
+//      reactor_info(ode_iE, ode_ncells);
+//#else
+      reactor.reactor_init(ode_iE, ode_ncells);
+//#endif
     }
     BL_PROFILE_VAR_STOP(reactInfo);
 
@@ -240,7 +242,7 @@ main (int   argc,
         for (int i = 0; i < NUM_SPECIES; ++i) {
           typ_vals[i] = std::max(typ_vals[i],1.e-10);
         }
-        SetTypValsODE(typ_vals);
+        reactor.SetTypValsODE(typ_vals);
       }
     }
 
@@ -338,7 +340,7 @@ main (int   argc,
           Real time = 0.0;
           Real dt_incr = dt/ndt;
           for (int ii = 0; ii < ndt; ++ii) {
-            tmp_fc[i] += react(tmp_vect + i*(NUM_SPECIES+1), tmp_src_vect + i*NUM_SPECIES,
+            tmp_fc[i] += reactor.react(tmp_vect + i*(NUM_SPECIES+1), tmp_src_vect + i*NUM_SPECIES,
                                tmp_vect_energy + i, tmp_src_vect_energy + i,
                                dt_incr, time);
             dt_incr =  dt/ndt;
@@ -351,20 +353,20 @@ main (int   argc,
         Real dt_incr = dt/ndt;
         for (int ii = 0; ii < ndt; ++ii)
         {
-#ifdef AMREX_USE_CUDA
-          react(box,
-                rhoY, frcExt, T,
-                rhoE, frcEExt,
-                fc, mask,
-                dt_incr, time,
-                ode_iE, Gpu::gpuStream());
-#else
-          react_1(box,
+//#ifdef AMREX_USE_CUDA
+//          ReactorCVODE_CPU::react(box,
+//                rhoY, frcExt, T,
+//                rhoE, frcEExt,
+//                fc, mask,
+//                dt_incr, time,
+//                ode_iE, Gpu::gpuStream());
+//#else
+          reactor.react(box,
                   rhoY, frcExt, T,
                   rhoE, frcEExt,
                   fc, mask,
                   dt_incr, time);
-#endif
+//#endif
           dt_incr =  dt/ndt;
         }
       }
@@ -396,14 +398,14 @@ main (int   argc,
     }
     BL_PROFILE_VAR_STOP(Advance);
 
-    {
-      Vector<double> typ_vals(NUM_SPECIES+1);
-      Print() << "ode.typ_vals= ";
-      for (int i = 0; i < NUM_SPECIES+1; ++i) {
-        Print() << std::max(1.e-10,mf.max(i)) << " ";
-      }
-      Print() << std::endl;
-    }
+    //{
+    //  Vector<double> typ_vals(NUM_SPECIES+1);
+    //  Print() << "ode.typ_vals= ";
+    //  for (int i = 0; i < NUM_SPECIES+1; ++i) {
+    //    Print() << std::max(1.e-10,mf.max(i)) << " ";
+    //  }
+    //  Print() << std::endl;
+    //}
 
     if (do_plt) {
       BL_PROFILE_VAR_START(PlotFile);
@@ -417,7 +419,7 @@ main (int   argc,
     }
     
 #ifndef AMREX_USE_CUDA
-    reactor_close();
+    reactor.reactor_close();
 #endif
     transport_close();
     EOS::close();
