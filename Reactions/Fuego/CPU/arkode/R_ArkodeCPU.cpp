@@ -1,135 +1,39 @@
-#include <reactor.h> 
-#include <AMReX_ParmParse.H>
-#include <chemistry_file.H>
-#include "mechanism.h"
-#include <EOS.H>
+#include <R_ArkodeCPU.H>
 
 using namespace amrex;
 
-/**********************************/
-/* Global Variables */
-  N_Vector y         = NULL;
-  SUNLinearSolver LS = NULL;
-  SUNNonlinearSolver NLS = NULL;
-  SUNMatrix A        = NULL;
-  void *arkode_mem    = NULL;
-  /* User data */
-  UserData data      = NULL;
-/* OPTIONS */
-  /* energy */
-  double *rhoX_init   = NULL;
-  double *rhoXsrc_ext = NULL;
-  double *rYsrc       = NULL;
-  Array<double,NUM_SPECIES+1> typVals = {-1};
-  double relTol       = 1.0e-10;
-  double absTol       = 1.0e-10;
-/* REMOVE MAYBE LATER */
-  int dense_solve           = 1;
-  int eint_rho = 1; // in/out = rhoE/rhoY
-  int enth_rho = 2; // in/out = rhoH/rhoY 
-
-#ifdef _OPENMP
-#pragma omp threadprivate(y,LS,NLS,A)
-#pragma omp threadprivate(arkode_mem,data)
-#pragma omp threadprivate(rhoX_init,rhoXsrc_ext,rYsrc)
-#pragma omp threadprivate(typVals)
-#pragma omp threadprivate(relTol,absTol)
-#pragma omp threadprivate(dense_solve,eint_rho,enth_rho)
-#endif
-/**********************************/
+int ReactorARKODE_CPU::eint_rho;
+int ReactorARKODE_CPU::enth_rho;
 
 /**********************************/
-/* Initialization of typVals */
-void SetTypValsODE(const std::vector<double>& ExtTypVals) {
-    int size_ETV = NUM_SPECIES + 1;
-    Vector<std::string> kname;
-    EOS::speciesNames(kname);
-    int omp_thread = 0;
-#ifdef _OPENMP
-    omp_thread = omp_get_thread_num();
-#endif
-
-    for (int i=0; i<size_ETV-1; i++) {
-      typVals[i] = ExtTypVals[i];
-    }
-    typVals[size_ETV-1] = ExtTypVals[size_ETV-1];
-    if (omp_thread == 0){
-        Print() << "Set the typVals in PelePhysics: \n  ";
-        for (int i=0; i<size_ETV-1; i++) {
-            Print() << kname[i] << ":" << typVals[i] << "  ";
-        }
-        Print() << "Temp:"<< typVals[size_ETV-1] <<  " \n";
-    }
+/* Class functions */
+ReactorARKODE_CPU::ReactorARKODE_CPU() 
+{
+    // CVODE
+    y  = NULL; 
+    LS = NULL;
+    NLS = NULL;
+    A  = NULL;
+    arkode_mem  = NULL;
+    data       = NULL;
+    // Scaling
+    typVals = {-1};
+    relTol  = 1.0e-10;
+    absTol  = 1.0e-10;
+    /* OPTIONS -- should be static */
+    dense_solve           = 1;
+    ReactorARKODE_CPU::eint_rho = 1; // in/out = rhoE/rhoY
+    ReactorARKODE_CPU::enth_rho = 2; // in/out = rhoH/rhoY 
 }
 
+ReactorARKODE_CPU::~ReactorARKODE_CPU() { ; }
 
-/* Set or update the rel/abs tolerances  */
-void SetTolFactODE(double relative_tol,double absolute_tol) {
-    relTol = relative_tol;
-    absTol = absolute_tol;
-
-    int omp_thread = 0;
-#ifdef _OPENMP
-    omp_thread = omp_get_thread_num();
-#endif
-
-    if (omp_thread == 0){
-        Print() << "Set RTOL, ATOL = "<<relTol<< " "<<absTol<<  " in PelePhysics\n";
-    }
-}
-
-
-/* Function to ReSet the Tolerances */
-void ReSetTolODE() {
-
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data != NULL, "Reactor object is not initialized !!");
-
-	int neq_tot;
-	N_Vector atol;
-	realtype *ratol;
-        neq_tot = (NUM_SPECIES + 1) * data->ncells;
-        atol    = N_VNew_Serial(neq_tot);
-	ratol   = N_VGetArrayPointer(atol);
-
-        int omp_thread = 0;
-#ifdef _OPENMP
-        omp_thread = omp_get_thread_num(); 
-#endif
-
-	int offset;
-	if (typVals[0] > 0) {
-            if ((data->iverbose > 0) && (omp_thread == 0)) {
-	        Print() << "Setting ARK/ERKODE tolerances rtol = " << relTol << " atolfact = " << absTol << " in PelePhysics \n";
-	    }
-	    for  (int i = 0; i < data->ncells; i++) {
-	        offset = i * (NUM_SPECIES + 1);
-		for  (int k = 0; k < NUM_SPECIES + 1; k++) {
-		    ratol[offset + k] = typVals[k]*absTol;
-		}
-	    }
-	} else {
-            if ((data->iverbose > 0) && (omp_thread == 0)) {
-	        Print() << "Setting ARK/ERKODE tolerances rtol = " << relTol << " atol = " << absTol << " in PelePhysics \n";
-	    }
-            for (int i=0; i<neq_tot; i++) {
-                ratol[i] = absTol;
-            }
-	}
-        if (data->iuse_erkode == 1) {
-	    int flag = ERKStepSVtolerances(arkode_mem, relTol, atol); 
-	    if (check_flag(&flag, "ERKStepSVtolerances", 1)) Abort("Problem in ReSetTolODE");
-        } else {
-	    int flag = ARKStepSVtolerances(arkode_mem, relTol, atol); 
-	    if (check_flag(&flag, "ARKStepSVtolerances", 1)) Abort("Problem in ReSetTolODE");
-        }
-
-        N_VDestroy(atol);
-}
-
+/**********************************/
+/* Functions Called by the Program */
 
 /* Initialization routine, called once at the begining of the problem */
-int reactor_init(int reactor_type, int Ncells) {
-        /* return Flag  */
+int ReactorARKODE_CPU::reactor_init(int reactor_type, int Ncells) {
+    /* return Flag  */
 	int flag;
 	/* ARKODE initial time - 0 */
 	realtype time;
@@ -143,86 +47,91 @@ int reactor_init(int reactor_type, int Ncells) {
 	omp_thread = omp_get_thread_num(); 
 #endif
 	/* Total number of eq to integrate */
-        neq_tot        = (NUM_SPECIES + 1) * Ncells;
+    neq_tot        = (NUM_SPECIES + 1) * Ncells;
 
 	/* Definition of main vector */
 	y = N_VNew_Serial(neq_tot);
-        if (check_flag((void *)y, "N_VNew_Serial", 0)) return(1);
+    if (check_flag((void *)y, "N_VNew_Serial", 0)) return(1);
 
-        /* Does not work for more than 1 cell right now */
+    /* Does not work for more than 1 cell right now */
 	data = AllocUserData(reactor_type, Ncells);
 	if(check_flag((void *)data, "AllocUserData", 2)) return(1);
 
-        /* Just a sanity check */
-        if ( (data->iimplicit_solve == 1) && (data->iuse_erkode == 1)) 
-        {
-            Abort("ERK ODE is for explicit updates, cannot do implict");
+    /* Just a sanity check */
+    if ( (data->iimplicit_solve == 1) && (data->iuse_erkode == 1)) 
+    {
+        Abort("ERK ODE is for explicit updates, cannot do implict");
 	}
 
 	/* Number of species and cells in mechanism */
-        if ((data->iverbose > 0) && (omp_thread == 0)) {
-		Print() << "Number of species in mech is " << NUM_SPECIES << "\n";
-		Print() << "Number of cells in one solve is " << data->ncells << "\n";
+    if ((data->iverbose > 0) && (omp_thread == 0)) {
+	    Print() << "Number of species in mech is " << NUM_SPECIES << "\n";
+	    Print() << "Number of cells in one solve is " << data->ncells << "\n";
 	}
 
 	/* Create the solver memory, specify RHS function 
 	 * and set the pointer to user-defined data*/
 	time = 0.0e+0;
-        if (data->iimplicit_solve == 1) {
+    if (data->iimplicit_solve == 1) {
 	    arkode_mem = ARKStepCreate(NULL, cF_RHS, time, y);
 	    if (check_flag((void *)arkode_mem, "ARKStepCreate", 0)) return 1;
+
 	    flag = ARKStepSetUserData(arkode_mem, data);
 	    if (check_flag(&flag, "ARKStepSetUserData", 1)) return 1;
-        } else {
-            if (data->iuse_erkode == 1) {
+
+    } else {
+        if (data->iuse_erkode == 1) {
 	        arkode_mem = ERKStepCreate(cF_RHS, time, y);
-		if (check_flag((void *)arkode_mem, "ERKStepCreate", 0)) return 1;
-		flag = ERKStepSetUserData(arkode_mem, data);
-		if (check_flag(&flag, "ERKStepSetUserData", 1)) return 1;
-            } else {
+		    if (check_flag((void *)arkode_mem, "ERKStepCreate", 0)) return 1;
+
+		    flag = ERKStepSetUserData(arkode_mem, data);
+		    if (check_flag(&flag, "ERKStepSetUserData", 1)) return 1;
+
+        } else {
 	        arkode_mem = ARKStepCreate(cF_RHS, NULL, time, y);
-		if (check_flag((void *)arkode_mem, "ARKStepCreate", 0)) return 1;
-		flag = ARKStepSetUserData(arkode_mem, data);
-		if (check_flag(&flag, "ARKStepSetUserData", 1)) return 1;
-            }
+		    if (check_flag((void *)arkode_mem, "ARKStepCreate", 0)) return 1;
+
+		    flag = ARKStepSetUserData(arkode_mem, data);
+		    if (check_flag(&flag, "ARKStepSetUserData", 1)) return 1;
+
         }
+    }
 	
 	/* Definition of tolerances */
-        atol  = N_VNew_Serial(neq_tot);
+    atol  = N_VNew_Serial(neq_tot);
 	ratol = N_VGetArrayPointer(atol);
-        int offset;
+    int offset;
 	if (typVals[0] > 0) {
-            if ((data->iverbose > 0) && (omp_thread == 0)) {
-	        Print() << "Setting ARK/ERKODE tolerances rtol = " << relTol << " atolfact = " << absTol << " in PelePhysics \n";
+        if ((data->iverbose > 0) && (omp_thread == 0)) {
+	    Print() << "Setting ARK/ERKODE tolerances rtol = " << relTol << " atolfact = " << absTol << " in PelePhysics \n";
 	    }
 	    for  (int i = 0; i < data->ncells; i++) {
 	        offset = i * (NUM_SPECIES + 1);
-		for  (int k = 0; k < NUM_SPECIES + 1; k++) {
-		    ratol[offset + k] = typVals[k]*absTol;
-		}
+	        for  (int k = 0; k < NUM_SPECIES + 1; k++) {
+	            ratol[offset + k] = typVals[k]*absTol;
+	        }
 	    }
 	} else {
-            if ((data->iverbose > 0) && (omp_thread == 0)) {
+        if ((data->iverbose > 0) && (omp_thread == 0)) {
 	        Print() << "Setting ARK/ERKODE tolerances rtol = " << relTol << " atol = " << absTol << " in PelePhysics \n";
 	    }
-            for (int i=0; i<neq_tot; i++) {
-                ratol[i] = absTol;
-            }
+        for (int i=0; i<neq_tot; i++) {
+            ratol[i] = absTol;
+        }
 	}
-        if (data->iuse_erkode == 1) {
+    if (data->iuse_erkode == 1) {
 	    flag = ERKStepSVtolerances(arkode_mem, relTol, atol); 
 	    if (check_flag(&flag, "ERKStepSVtolerances", 1)) return 1;
-        } else {
+    } else {
 	    flag = ARKStepSVtolerances(arkode_mem, relTol, atol); 
 	    if (check_flag(&flag, "ARKStepSVtolerances", 1)) return 1;
-        }
+    }
 
-        if(data->iimplicit_solve == 1){
-            if ((data->iverbose > 0) && (omp_thread == 0)) {
-              Print() << "\n--> Using the ARKStep implicit solver (RK solver with Newton solve and Dense Direct Linear solve ) \n";
+    if(data->iimplicit_solve == 1){
+        if ((data->iverbose > 0) && (omp_thread == 0)) {
+            Print() << "\n--> Using the ARKStep implicit solver (RK solver with Newton solve and Dense Direct Linear solve ) \n";
 	    }
-
-            /* Create dense SUNMatrix for use in linear solves */
+        /* Create dense SUNMatrix for use in linear solves */
 	    A = SUNDenseMatrix(neq_tot, neq_tot);
 	    if(check_flag((void *)A, "SUNDenseMatrix", 0)) return(1);
 
@@ -245,24 +154,24 @@ int reactor_init(int reactor_type, int Ncells) {
 	    if (check_flag(&flag, "ARKStepSetMaxNonlinIters", 1)) return 1;
 
 	    if (data->ianalytical_jacobian == 0) {
-                if ((data->iverbose > 0) && (omp_thread == 0)) {
-		    Print() << "    Without Analytical J/Preconditioner\n";
+            if ((data->iverbose > 0) && (omp_thread == 0)) {
+	            Print() << "    Without Analytical J/Preconditioner\n";
 	        }
 	    } else {
-                if ((data->iverbose > 0) && (omp_thread == 0)) {
-                    Print() << "    With Analytical J\n";
+            if ((data->iverbose > 0) && (omp_thread == 0)) {
+                Print() << "    With Analytical J\n";
 	        }
 	        /* Set the user-supplied Jacobian routine Jac */
 	        flag = ARKStepSetJacFn(arkode_mem, cJac);                 /* Set Jacobian routine */
 	        if (check_flag(&flag, "ARKStepSetJacFn", 1)) return 1;
 	    }
-        } else {
-            if ((data->iverbose > 0) && (omp_thread == 0)) {
-		if (data->iuse_erkode == 1) {
-                    Print() << "\n--> Using the ERKStep explicit solver (RK solver) \n";
-		} else {
-                    Print() << "\n--> Using the ARKStep explicit solver (RK solver) \n";
-		}
+    } else {
+        if ((data->iverbose > 0) && (omp_thread == 0)) {
+	 	    if (data->iuse_erkode == 1) {
+                Print() << "\n--> Using the ERKStep explicit solver (RK solver) \n";
+		    } else {
+                Print() << "\n--> Using the ARKStep explicit solver (RK solver) \n";
+		    }
 	    }
 	}
 
@@ -275,8 +184,8 @@ int reactor_init(int reactor_type, int Ncells) {
 	N_VDestroy(atol); 
 
 	/* Ok we're done ...*/
-        if ((data->iverbose > 1) && (omp_thread == 0)) {
-		Print() << "\n--> DONE WITH INITIALIZATION (CPU)" << data->ireactor_type << "\n";
+    if ((data->iverbose > 1) && (omp_thread == 0)) {
+        Print() << "\n--> DONE WITH INITIALIZATION (CPU)" << data->ireactor_type << "\n";
 	}
 
 	/* Reactor is now initialized */
@@ -285,9 +194,8 @@ int reactor_init(int reactor_type, int Ncells) {
 	return(0);
 }
 
-
 /* Main call routine */
-int react(realtype *rY_in, realtype *rY_src_in, 
+int ReactorARKODE_CPU::react(realtype *rY_in, realtype *rY_src_in, 
           realtype *rX_in, realtype *rX_src_in,
           realtype &dt_react, realtype &time){
 
@@ -319,26 +227,26 @@ int react(realtype *rY_in, realtype *rY_src_in,
 	std::memcpy(rhoX_init, rX_in, sizeof(realtype) * data->ncells);
 	std::memcpy(rhoXsrc_ext, rX_src_in, sizeof(realtype) * data->ncells);
 
-        if (data->iimplicit_solve == 1) {
-            //set explicit rhs to null
+    if (data->iimplicit_solve == 1) {
+        //set explicit rhs to null
 	    ARKStepReInit(arkode_mem, NULL, cF_RHS, time_init, y);
-        } else {
-            if (data->iuse_erkode == 1) {
+    } else {
+        if (data->iuse_erkode == 1) {
 	        ERKStepReInit(arkode_mem, cF_RHS, time_init, y);
-            } else {
-                //set implicit rhs to null
-	        ARKStepReInit(arkode_mem, cF_RHS, NULL, time_init, y);
-            }
-        }
-
-        Real dummy_time = 0;
-        if (data->iuse_erkode == 1) { 
-            int flag = ERKStepEvolve(arkode_mem, time_out, y, &dummy_time, ARK_NORMAL);      /* call integrator */
-	    if (check_flag(&flag, "ERKStepEvolve", 1)) return 1;
         } else {
+            //set implicit rhs to null
+	        ARKStepReInit(arkode_mem, cF_RHS, NULL, time_init, y);
+        }
+    }
+
+    Real dummy_time = 0;
+    if (data->iuse_erkode == 1) { 
+        int flag = ERKStepEvolve(arkode_mem, time_out, y, &dummy_time, ARK_NORMAL);      /* call integrator */
+	    if (check_flag(&flag, "ERKStepEvolve", 1)) return 1;
+    } else {
 	    int flag = ARKStepEvolve(arkode_mem, time_out, y, &dummy_time, ARK_NORMAL);      /* call integrator */
 	    if (check_flag(&flag, "ARKStepEvolve", 1)) return 1;
-        }
+    }
 
 	/* Update dt_react with real time step taken ... */
 	dt_react = dummy_time - time_init;
@@ -354,7 +262,7 @@ int react(realtype *rY_in, realtype *rY_src_in,
 	/* Pack data to return in main routine external */
 	std::memcpy(rY_in, yvec_d, ((NUM_SPECIES+1)*data->ncells)*sizeof(realtype));
 	for  (int i = 0; i < data->ncells; i++) {
-            rX_in[i] = rX_in[i] + dt_react * rX_src_in[i];
+        rX_in[i] = rX_in[i] + dt_react * rX_src_in[i];
 	}
 
 	if ((data->iverbose > 1) && (omp_thread == 0)) {
@@ -364,39 +272,53 @@ int react(realtype *rY_in, realtype *rY_src_in,
 	}
 
 	/* Get estimate of how hard the integration process was */
-        long int nfe, nfi, nf;
-        if (data->iuse_erkode == 1) {
-            int flag = ERKStepGetNumRhsEvals(arkode_mem, &nfe);
-            nf=nfe;
-        } else {
-            int flag = ARKStepGetNumRhsEvals(arkode_mem, &nfe, &nfi);
-            nf=nfi;
-        }
+    long int nfe, nfi, nf;
+    if (data->iuse_erkode == 1) {
+        int flag = ERKStepGetNumRhsEvals(arkode_mem, &nfe);
+        nf=nfe;
+    } else {
+        int flag = ARKStepGetNumRhsEvals(arkode_mem, &nfe, &nfi);
+        nf=nfi;
+    }
+
 	return nf;
 }
 
 
-/* RHS routine */
-int cF_RHS(realtype t, N_Vector y_in, N_Vector ydot_in, 
-		void *user_data){
+/* Free memory */
+void ReactorARKODE_CPU::reactor_close(){
 
-	realtype *y_d      = N_VGetArrayPointer(y_in);
-	realtype *ydot_d   = N_VGetArrayPointer(ydot_in);
+  if (data->iuse_erkode == 1) {
+      ERKStepFree(&arkode_mem);    /* Free integrator memory */
+  } else {
+      ARKStepFree(&arkode_mem);    /* Free integrator memory */
+      if (data->iimplicit_solve == 1) {
+          SUNLinSolFree(LS);
+          SUNMatDestroy(A);
+          SUNNonlinSolFree(NLS); 
+      } 
+  }
 
-        fKernelSpec(&t, y_d, ydot_d, 
-		    user_data);
+  N_VDestroy(y); 
+  FreeUserData(data);
 
-	return(0);
+  free(rhoX_init);
+  free(rhoXsrc_ext);
+  free(rYsrc);
 }
 /**********************************/
-/*
- * kernels
- */
 
-/* RHS source terms evaluation */
-void fKernelSpec(realtype *dt, realtype *yvec_d, realtype *ydot_d,  
-			    void *user_data)
-{
+/**********************************/
+/* Functions Called by the Solver */
+
+
+/* RHS routine */
+int ReactorARKODE_CPU::cF_RHS(realtype t, N_Vector y_in, N_Vector ydot_in, 
+		void *user_data){
+
+  realtype *y_d      = N_VGetArrayPointer(y_in);
+  realtype *ydot_d   = N_VGetArrayPointer(ydot_in);
+
   /* Make local copies of pointers in user_data (cell M)*/
   UserData data_wk = (UserData) user_data;
 
@@ -419,15 +341,15 @@ void fKernelSpec(realtype *dt, realtype *yvec_d, realtype *ydot_d,
       /* rho MKS */ 
       realtype rho = 0.0;
       for (int i = 0; i < NUM_SPECIES; i++){
-          rho = rho + yvec_d[offset + i];
+          rho = rho + y_d[offset + i];
       }
 
       /* temp */
-      temp = yvec_d[offset + NUM_SPECIES];
+      temp = y_d[offset + NUM_SPECIES];
 
       /* Yks */
       for (int i = 0; i < NUM_SPECIES; i++){
-          massfrac[i] = yvec_d[offset + i] / rho;
+          massfrac[i] = y_d[offset + i] / rho;
       }
 
       /* NRG CGS */
@@ -454,11 +376,12 @@ void fKernelSpec(realtype *dt, realtype *yvec_d, realtype *ydot_d,
       }
       ydot_d[offset + NUM_SPECIES] = ydot_d[offset + NUM_SPECIES] /(rho * cX);
   }
+
+	return(0);
 }
 
-
 /* Analytical Jacobian evaluation */
-int cJac(realtype tn, N_Vector u, N_Vector fu, SUNMatrix J,
+int ReactorARKODE_CPU::cJac(realtype tn, N_Vector u, N_Vector fu, SUNMatrix J,
 		void *user_data, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3){
 
   /* Make local copies of pointers to input data (big M) */
@@ -520,16 +443,14 @@ int cJac(realtype tn, N_Vector u, N_Vector fu, SUNMatrix J,
   }
 
   return(0);
-
 }
+/**********************************/
 
-
-/* 
- * OTHERS
-*/
+/**********************************/
+/* Helper functions */
 
 /* Get and print some final statistics */
-void PrintFinalStats(void *arkode_mem, realtype Temp)
+void ReactorARKODE_CPU::PrintFinalStats(void *arkode_mem, realtype Temp)
 {
   long int nst, nst_a, nfe, nfi, nsetups, nje, nfeLS, nni, ncfn, netf;
   int flag;
@@ -587,7 +508,7 @@ void PrintFinalStats(void *arkode_mem, realtype Temp)
    opt == 2 means function allocates memory so check if returned
    NULL pointer */
 
-int check_flag(void *flagvalue, const char *funcname, int opt)
+int ReactorARKODE_CPU::check_flag(void *flagvalue, const char *funcname, int opt)
 {
     int *errflag;
 
@@ -621,8 +542,90 @@ int check_flag(void *flagvalue, const char *funcname, int opt)
 }
 
 
+/* Initialization of typVals */
+void ReactorARKODE_CPU::SetTypValsODE(const std::vector<double>& ExtTypVals) {
+    int size_ETV = NUM_SPECIES + 1;
+    Vector<std::string> kname;
+    EOS::speciesNames(kname);
+    int omp_thread = 0;
+#ifdef _OPENMP
+    omp_thread = omp_get_thread_num();
+#endif
+
+    for (int i=0; i<size_ETV-1; i++) {
+      typVals[i] = ExtTypVals[i];
+    }
+    typVals[size_ETV-1] = ExtTypVals[size_ETV-1];
+    if (omp_thread == 0){
+        Print() << "Set the typVals in PelePhysics: \n  ";
+        for (int i=0; i<size_ETV-1; i++) {
+            Print() << kname[i] << ":" << typVals[i] << "  ";
+        }
+        Print() << "Temp:"<< typVals[size_ETV-1] <<  " \n";
+    }
+}
+
+
+/* Set or update the rel/abs tolerances  */
+void ReactorARKODE_CPU::SetTolFactODE(double relative_tol,double absolute_tol) {
+    relTol = relative_tol;
+    absTol = absolute_tol;
+
+    int omp_thread = 0;
+#ifdef _OPENMP
+    omp_thread = omp_get_thread_num();
+#endif
+
+    if (omp_thread == 0){
+        Print() << "Set RTOL, ATOL = "<<relTol<< " "<<absTol<<  " in PelePhysics\n";
+    }
+}
+
+
+/* Function to ReSet the Tolerances */
+void ReactorARKODE_CPU::ReSetTolODE() {
+    int omp_thread = 0;
+#ifdef _OPENMP
+    omp_thread = omp_get_thread_num(); 
+#endif
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data != NULL, "Reactor object is not initialized !!");
+
+	int neq_tot     = (NUM_SPECIES + 1) * data->ncells;
+	N_Vector atol   = N_VNew_Serial(neq_tot);
+	realtype *ratol = N_VGetArrayPointer(atol);
+
+	if (typVals[0] > 0) {
+        if ((data->iverbose > 0) && (omp_thread == 0)) {
+	        Print() << "Setting ARK/ERKODE tolerances rtol = " << relTol << " atolfact = " << absTol << " in PelePhysics \n";
+	    }
+	    for  (int i = 0; i < data->ncells; i++) {
+	        int offset = i * (NUM_SPECIES + 1);
+		    for  (int k = 0; k < NUM_SPECIES + 1; k++) {
+		        ratol[offset + k] = typVals[k]*absTol;
+		    }
+	    }
+	} else {
+        if ((data->iverbose > 0) && (omp_thread == 0)) {
+	        Print() << "Setting ARK/ERKODE tolerances rtol = " << relTol << " atol = " << absTol << " in PelePhysics \n";
+	    }
+        for (int i=0; i<neq_tot; i++) {
+            ratol[i] = absTol;
+        }
+	}
+    if (data->iuse_erkode == 1) {
+	    int flag = ERKStepSVtolerances(arkode_mem, relTol, atol); 
+	    if (check_flag(&flag, "ERKStepSVtolerances", 1)) Abort("Problem in ReSetTolODE");
+    } else {
+	    int flag = ARKStepSVtolerances(arkode_mem, relTol, atol); 
+	    if (check_flag(&flag, "ARKStepSVtolerances", 1)) Abort("Problem in ReSetTolODE");
+    }
+
+    N_VDestroy(atol);
+}
+
 /* Alloc Data for ARKODE */
-UserData AllocUserData(int reactor_type, int num_cells)
+ReactorARKODE_CPU::UserData ReactorARKODE_CPU::AllocUserData(int reactor_type, int num_cells)
 {
     Print() << "   Allocating data\n";
 
@@ -653,31 +656,11 @@ UserData AllocUserData(int reactor_type, int num_cells)
 }
 
 
-/* Free memory */
-void reactor_close(){
-
-  if (data->iuse_erkode == 1) {
-      ERKStepFree(&arkode_mem);    /* Free integrator memory */
-  } else {
-    ARKStepFree(&arkode_mem);    /* Free integrator memory */
-    if (data->iimplicit_solve == 1) {
-      SUNLinSolFree(LS);
-      SUNMatDestroy(A);
-      SUNNonlinSolFree(NLS); 
-    }
-  }
-
-  N_VDestroy(y); 
-  FreeUserData(data);
-
-  free(rhoX_init);
-  free(rhoXsrc_ext);
-  free(rYsrc);
-}
-
 
 /* Free data memory */
-void FreeUserData(UserData data_wk)
+void ReactorARKODE_CPU::FreeUserData(UserData data_wk)
 {
   free(data_wk);
 } 
+
+/* End of file  */

@@ -8,15 +8,17 @@ ifeq ($(USE_SUNDIALS_PP), TRUE)
         CEXE_headers += reactor.h  
         CEXE_sources += reactor.cpp
     else
+        Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/
+        CEXE_headers += ReactorBase.H   
+        CEXE_sources += ReactorBase.cpp
         ifeq ($(USE_ARKODE_PP), TRUE)
             Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/CPU/arkode
-            CEXE_headers += reactor.h  
-            CEXE_sources += reactor.cpp
+            CEXE_headers += R_ArkodeCPU.H  
+            CEXE_sources += R_ArkodeCPU.cpp
         else
-            Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/
             Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/CPU/cvode
-            CEXE_headers += ReactorBase.H R_CvodeCPU.H  
-            CEXE_sources += ReactorBase.cpp R_CvodeCPU.cpp
+            CEXE_headers += R_CvodeCPU.H  
+            CEXE_sources += R_CvodeCPU.cpp
         endif
     endif
 else 
