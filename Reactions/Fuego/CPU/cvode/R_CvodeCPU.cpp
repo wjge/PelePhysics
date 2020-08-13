@@ -1,6 +1,38 @@
 #include <R_CvodeCPU.H>
 
+#define SUN_CUSP_CONTENT(S)        ( (SUNLinearSolverContent_Sparse_custom)(S->content) )
+#define SUN_CUSP_REACTYPE(S)       ( SUN_CUSP_CONTENT(S)->reactor_type )
+#define SUN_CUSP_NUM_SUBSYS(S)     ( SUN_CUSP_CONTENT(S)->nsubsys )
+#define SUN_CUSP_SUBSYS_NNZ(S)     ( SUN_CUSP_CONTENT(S)->subsys_nnz )
+#define SUN_CUSP_SUBSYS_SIZE(S)     ( SUN_CUSP_CONTENT(S)->subsys_size )
+
 using namespace amrex;
+
+/**********************************/
+/* Class functions */
+ReactorCVODE_CPU::ReactorCVODE_CPU () 
+{
+    // CVODE
+    y  = NULL; 
+    LS = NULL;
+    A  = NULL;
+    cvode_mem  = NULL;
+    data       = NULL;
+    time_init  = 0.0;
+    // Scaling
+    typVals = {-1};
+    relTol  = 1.0e-10;
+    absTol  = 1.0e-10;
+    /* OPTIONS -- should be static */
+    dense_solve           = 1;
+    sparse_solve          = 5;
+    iterative_gmres_solve = 99;
+    sparse_solve_custom   = 101;
+    iterative_gmres_solve_custom = 199;
+    hack_dump_sparsity_pattern = -5;
+    eint_rho = 1; // in/out = rhoE/rhoY
+    enth_rho = 2; // in/out = rhoH/rhoY 
+}
 
 /**********************************/
 /* Functions Called by the Program */
@@ -399,6 +431,297 @@ int ReactorCVODE_CPU::react(realtype *rY_in, realtype *rY_src_in,
 }
 
 
+/* Main routine for CVode integration: integrate a Box version 1*/
+int ReactorCVODE_CPU::react(const Box& box,
+          Array4<Real> const& rY_in,
+          Array4<Real> const& rY_src_in,
+          Array4<Real> const& T_in,
+          Array4<Real> const& rEner_in,
+          Array4<Real> const& rEner_src_in,
+          Array4<Real> const& FC_in,
+          Array4<int> const& mask,
+          Real &dt_react,
+          Real &time) {
+
+    int omp_thread = 0;
+#ifdef _OPENMP
+    omp_thread = omp_get_thread_num(); 
+#endif
+
+    if ((data->iverbose > 1) && (omp_thread == 0)) {
+        Print() <<"\n -------------------------------------\n";
+    }
+
+    /* Initial time and time to reach after integration */
+    time_init = time;
+
+    if ((data->iverbose > 3) && (omp_thread == 0)) {
+        Print() <<"BEG : time curr is "<< time_init << " and dt_react is " << dt_react << " and final time should be " << time_init + dt_react << "\n";
+    }
+
+    if (data->ncells != 1) {
+        Abort("CVODE react can only integrate one cell at a time");
+    }
+    int box_ncells  = box.numPts();
+    data->boxcell   = 0; 
+
+    if ((data->iverbose > 2) && (omp_thread == 0)) {
+        Print() <<"Ncells in the box = "<<  box_ncells  << "\n";
+    }
+
+    /* Perform integration one cell at a time */
+    ParallelFor(box,
+    [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+    {
+      if (mask(i,j,k) == 1)
+      {
+        Real mass_frac[NUM_SPECIES];
+        Real rho = 0.0;
+        Real rho_inv;
+        Real Enrg_loc;
+        Real temp;
+
+        realtype *yvec_d      = N_VGetArrayPointer(y);
+        
+        BL_PROFILE_VAR("reactor::FlatStuff", FlatStuff);
+        for (int n = 0; n < NUM_SPECIES; n++) {
+            yvec_d[n]        = rY_in(i,j,k,n);
+            data->rYsrc[n]   = rY_src_in(i,j,k,n);
+            rho += yvec_d[n]; 
+        }
+        rho_inv                 = 1.0 / rho;
+        temp                    = T_in(i,j,k,0);
+        data->rhoX_init[0]      = rEner_in(i,j,k,0); 
+        data->rhoXsrc_ext[0]    = rEner_src_in(i,j,k,0);
+
+        /* T update with energy and Y */
+        for (int n = 0; n < NUM_SPECIES; n++) {
+            mass_frac[n] = yvec_d[n] * rho_inv;
+        }
+        Enrg_loc = data->rhoX_init[0] / rho;
+        if (data->ireactor_type == 1){
+            EOS::EY2T(Enrg_loc,mass_frac,temp);
+        } else {
+            EOS::HY2T(Enrg_loc,mass_frac,temp);
+        }
+        yvec_d[NUM_SPECIES] = temp;
+        BL_PROFILE_VAR_STOP(FlatStuff);
+
+        /* ReInit CVODE is faster */
+        CVodeReInit(cvode_mem, time_init, y);
+
+        /* Time to reach after integration */
+        Real time_out_lcl  = time_init + dt_react;
+
+        /* Integration */
+        Real dummy_time;
+        BL_PROFILE_VAR("reactor::AroundCVODE", AroundCVODE);
+        CVode(cvode_mem, time_out_lcl, y, &dummy_time, CV_NORMAL);
+        BL_PROFILE_VAR_STOP(AroundCVODE);
+
+        if ((data->iverbose > 1) && (omp_thread == 0)) {
+            Print() <<"Additional verbose info --\n";
+            PrintFinalStats(cvode_mem, yvec_d[NUM_SPECIES]);
+            Print() <<"\n -------------------------------------\n";
+        }
+
+        /* Get estimate of how hard the integration process was */
+        long int nfe,nfeLS;
+        CVodeGetNumRhsEvals(cvode_mem, &nfe);
+        CVodeGetNumLinRhsEvals(cvode_mem, &nfeLS);
+        FC_in(i,j,k,0) = nfe+nfeLS;
+
+        BL_PROFILE_VAR_START(FlatStuff);
+        rho = 0.0;
+        for (int n = 0; n < NUM_SPECIES; n++) {
+            rY_in(i,j,k,n) = yvec_d[n];
+            rho += yvec_d[n]; 
+        }
+        rho_inv    = 1.0 / rho; 
+        temp       = yvec_d[NUM_SPECIES];
+
+        /* T update with energy and Y */
+        for (int n = 0; n < NUM_SPECIES; n++) {
+            mass_frac[n] = yvec_d[n] * rho_inv;
+        }
+        //Enrg_loc = ((data->rhoX_init)[0] + (dummy_time - time_init) * rEner_src_in(i,j,k,0)) / rho;
+        Enrg_loc = (data->rhoX_init[0] + (dummy_time - time_init) * data->rhoXsrc_ext[0]) /rho;
+        if (data->ireactor_type == 1){
+            EOS::EY2T(Enrg_loc,mass_frac,temp);
+        } else {
+            EOS::HY2T(Enrg_loc,mass_frac,temp);
+        }
+        T_in(i,j,k,0) = temp;
+        BL_PROFILE_VAR_STOP(FlatStuff);
+
+        if ((data->iverbose > 3) && (omp_thread == 0)) {
+            Print() <<"END : time curr is "<< dummy_time << " and actual dt_react is " << (dummy_time - time_init) << "\n";
+        }
+      }
+    });
+
+    /* Update dt_react with real time step taken ... 
+       should be very similar to input dt_react */
+    //dt_react = dummy_time - time_init;
+#ifdef MOD_REACTOR
+    /* If reactor mode is activated, update time to perform subcycling */
+    time  = time_init + dt_react;
+#endif
+
+    /* Get estimate of how hard the integration process was */
+    return 20;
+}
+
+
+/* Main routine for CVode integration: integrate a Box version 2*/
+int ReactorCVODE_CPU::react_2(const Box& box,
+          Array4<Real> const& rY_in,
+          Array4<Real> const& rY_src_in,
+          Array4<Real> const& T_in,
+          Array4<Real> const& rEner_in,
+          Array4<Real> const& rEner_src_in,
+          Array4<Real> const& FC_in,
+          Array4<int> const& mask_in,
+          Real &dt_react,
+          Real &time) {
+
+    realtype dummy_time;
+    int flag;
+    int omp_thread = 0;
+#ifdef _OPENMP
+    omp_thread = omp_get_thread_num(); 
+#endif
+
+    if ((data->iverbose > 1) && (omp_thread == 0)) {
+        Print() <<"\n -------------------------------------\n";
+    }
+
+    /* Initial time and time to reach after integration */
+    time_init = time;
+    realtype time_out  = time + dt_react;
+
+    if ((data->iverbose > 3) && (omp_thread == 0)) {
+        Print() <<"BEG : time curr is "<< time_init << " and dt_react is " << dt_react << " and final time should be " << time_out << "\n";
+    }
+
+    /* Define full box_ncells length vectors to be integrated piece by piece
+       by CVode */
+    int box_ncells  = box.numPts();
+    if ((data->iverbose > 2) && (omp_thread == 0)) {
+        Print() <<"Ncells in the box = "<<  box_ncells  << "\n";
+    }
+    BL_PROFILE_VAR("reactor::ExtForcingAlloc", ExtForcingAlloc);
+        (data->Yvect_full)  = new  amrex::Real[box_ncells*(NUM_SPECIES+1)];
+        (data->rYsrc)       = new  amrex::Real[box_ncells*(NUM_SPECIES)];
+        (data->rhoX_init)   = new  amrex::Real[box_ncells];
+        (data->rhoXsrc_ext) = new  amrex::Real[box_ncells];
+        (data->FCunt)       = new  int[box_ncells];
+        (data->mask)        = new  int[box_ncells];
+    BL_PROFILE_VAR_STOP(ExtForcingAlloc);
+
+    BL_PROFILE_VAR("reactor::FlatStuff", FlatStuff);
+    /* Fill the full box_ncells length vectors from input Array4*/
+    const auto len        = length(box);
+    const auto lo         = lbound(box);
+    ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        int icell = (k-lo.z)*len.x*len.y + (j-lo.y)*len.x + (i-lo.x);
+        box_flatten(icell, i, j, k, data->ireactor_type,
+                    rY_in, rY_src_in, T_in, 
+                    rEner_in, rEner_src_in, mask_in,
+                    data->Yvect_full, data->rYsrc, data->rhoX_init, data->rhoXsrc_ext, data->mask);
+    });
+    BL_PROFILE_VAR_STOP(FlatStuff);
+
+    BL_PROFILE_VAR("reactor::AroundCVODE", AroundCVODE);
+    BL_PROFILE_VAR_STOP(AroundCVODE);
+
+    /* We may need extra cells to fill the fixed data->ncells in this case 
+       since we do not Init each time */
+    int extra_cells = box_ncells - box_ncells / (data->ncells) * (data->ncells);
+    if ((data->iverbose > 2) && (omp_thread == 0)) {
+        Print() <<" Extra cells = "<< extra_cells  << "\n";
+    }
+    
+    /* Integrate data->ncells at a time with CVode 
+       The extra cell machinery is not ope yet and most likely produce
+       out of bound errors */
+    realtype *yvec_d      = N_VGetArrayPointer(y);
+    for  (int i = 0; i < box_ncells+extra_cells; i+=data->ncells) {
+      if (data->mask[i] == 1)
+      {
+        //Print() <<" dealing with cell " << i <<  "\n";
+        int offset = i * (NUM_SPECIES + 1);
+        data->boxcell = i; 
+        for  (int k = 0; k < data->ncells*(NUM_SPECIES+1); k++) {
+            yvec_d[k] = data->Yvect_full[offset + k];
+        }
+        
+        /* ReInit CVODE is faster */
+        CVodeReInit(cvode_mem, time_init, y);
+
+        BL_PROFILE_VAR_START(AroundCVODE);
+        /* Integration */
+        flag = CVode(cvode_mem, time_out, y, &dummy_time, CV_NORMAL);
+        if (check_flag(&flag, "CVode", 1)) return(1);
+        BL_PROFILE_VAR_STOP(AroundCVODE);
+
+        /* Update full box length vector */
+        for  (int k = 0; k < data->ncells*(NUM_SPECIES+1); k++) {
+            data->Yvect_full[offset + k] = yvec_d[k];
+        }
+
+        /* Get estimate of how hard the integration process was */
+        long int nfe,nfeLS;
+        flag = CVodeGetNumRhsEvals(cvode_mem, &nfe);
+        flag = CVodeGetNumLinRhsEvals(cvode_mem, &nfeLS);
+        for  (int k = 0; k < data->ncells; k++) {
+            data->FCunt[i + k] = nfe+nfeLS;
+        }
+
+        if ((data->iverbose > 3) && (omp_thread == 0)) {
+            Print() <<"END : time curr is "<< dummy_time << " and actual dt_react is " << (dummy_time - time_init) << "\n";
+        }
+      }
+    }
+
+#ifdef MOD_REACTOR
+    /* If reactor mode is activated, update time to perform subcycling */
+    time  = time_init + dt_react;
+#endif
+
+    BL_PROFILE_VAR_START(FlatStuff);
+    /* Update the input/output Array4 rY_in and rEner_in*/
+    ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        int icell = (k-lo.z)*len.x*len.y + (j-lo.y)*len.x + (i-lo.x);
+        box_unflatten(icell, i, j, k, data->ireactor_type,
+                    rY_in, T_in, rEner_in, rEner_src_in, FC_in,
+                    data->Yvect_full, data->rhoX_init, data->FCunt, dt_react);
+    });
+    BL_PROFILE_VAR_STOP(FlatStuff);
+
+    BL_PROFILE_VAR_START(ExtForcingAlloc);
+    delete[] (data->Yvect_full);  
+    delete[] (data->rYsrc);       
+    delete[] (data->rhoX_init); 
+    delete[] (data->rhoXsrc_ext); 
+    delete[] (data->FCunt);       
+    delete[] (data->mask);
+    BL_PROFILE_VAR_STOP(ExtForcingAlloc);
+
+    if ((data->iverbose > 1) && (omp_thread == 0)) {
+        Print() <<"Additional verbose info --\n";
+        PrintFinalStats(cvode_mem, yvec_d[NUM_SPECIES]);
+        Print() <<"\n -------------------------------------\n";
+    }
+
+    /* Get estimate of how hard the integration process was */
+    long int nfe,nfeLS;
+    flag = CVodeGetNumRhsEvals(cvode_mem, &nfe);
+    flag = CVodeGetNumLinRhsEvals(cvode_mem, &nfeLS);
+    return nfe+nfeLS;
+}
+
+
 /* Free memory */
 void ReactorCVODE_CPU::reactor_close(){
 
@@ -410,7 +733,7 @@ void ReactorCVODE_CPU::reactor_close(){
   }
 
   N_VDestroy(y); 
-  //FreeUserData(data);
+  FreeUserData(data);
 }
 /**********************************/
 
@@ -418,7 +741,7 @@ void ReactorCVODE_CPU::reactor_close(){
 /* Functions Called by the Solver */
 
 /* RHS routine */
-int cF_RHS(realtype t, N_Vector y_in, N_Vector ydot_in,
+int ReactorCVODE_CPU::cF_RHS(realtype t, N_Vector y_in, N_Vector ydot_in,
            void *user_data){
 
     realtype *y_d      = N_VGetArrayPointer(y_in);
@@ -438,8 +761,75 @@ int cF_RHS(realtype t, N_Vector y_in, N_Vector ydot_in,
         realtype temp, energy;
         realtype dt;
 
-      /* dt is curr time - time init */
-      dt = *t - time_init;
+        /* dt is curr time - time init */
+        dt = t - time_init;
+
+        /* Offset in case several cells */
+        int offset = tid * (NUM_SPECIES + 1);
+
+        /* MW CGS */
+        CKWT(molecular_weight);
+
+        /* rho MKS */ 
+        realtype rho = 0.0;
+        for (int i = 0; i < NUM_SPECIES; i++){
+            rho = rho + y_d[offset + i];
+        }
+
+        /* temp */
+        temp = y_d[offset + NUM_SPECIES];
+
+        /* Yks */
+        for (int i = 0; i < NUM_SPECIES; i++){
+            massfrac[i] = y_d[offset + i] / rho;
+        }
+
+        /* NRG CGS */
+        energy = (data_wk->rhoX_init[data->boxcell + tid] + data_wk->rhoXsrc_ext[data_wk->boxcell + tid] * dt) /rho;
+
+        if (data_wk->ireactor_type == eint_rho){
+            /* UV REACTOR */
+            EOS::EY2T(energy, massfrac, temp);
+            EOS::TY2Cv(temp, massfrac, cX);
+            EOS::T2Ei(temp, Xi);
+        } else if (data_wk->ireactor_type == enth_rho) {
+            /* HP REACTOR */
+            EOS::HY2T(energy, massfrac, temp);
+            EOS::TY2Cp(temp, massfrac, cX);
+            EOS::T2Hi(temp, Xi);
+        }
+        EOS::RTY2WDOT(rho, temp, massfrac, cdot);
+
+        /* Fill ydot vect */
+        ydot_d[offset + NUM_SPECIES] = data_wk->rhoXsrc_ext[data_wk->boxcell + tid];
+        for (int i = 0; i < NUM_SPECIES; i++){
+            ydot_d[offset + i] = cdot[i] + data_wk->rYsrc[(data_wk->boxcell + tid) * (NUM_SPECIES) + i];
+            ydot_d[offset + NUM_SPECIES] = ydot_d[offset + NUM_SPECIES]  - ydot_d[offset + i] * Xi[i];
+        }
+        ydot_d[offset + NUM_SPECIES] = ydot_d[offset + NUM_SPECIES] /(rho * cX);
+    }
+    BL_PROFILE_VAR_STOP(fKernelSpec);
+
+    return(0);
+}
+
+/* Analytical Jacobian evaluation */
+int ReactorCVODE_CPU::cJac(realtype /* tn */, N_Vector u, N_Vector /* fu */, SUNMatrix J,
+         void *user_data, N_Vector /* tmp1 */, N_Vector /* tmp2 */, N_Vector /* tmp3 */){
+
+  /* Make local copies of pointers to input data (big M) */
+  realtype *ydata  = N_VGetArrayPointer(u);
+
+  /* Make local copies of pointers in user_data (cell M)*/
+  UserData data_wk = (UserData) user_data;
+
+  BL_PROFILE_VAR("DenseJac", DenseJac);
+  for (int tid = 0; tid < data_wk->ncells; tid ++) {
+      /* Tmp vars */
+      realtype *J_col_k;
+      realtype massfrac[NUM_SPECIES], molecular_weight[NUM_SPECIES];
+      realtype temp; 
+      realtype Jmat_tmp[(NUM_SPECIES+1)*(NUM_SPECIES+1)];
 
       /* Offset in case several cells */
       int offset = tid * (NUM_SPECIES + 1);
@@ -450,49 +840,646 @@ int cF_RHS(realtype t, N_Vector y_in, N_Vector ydot_in,
       /* rho MKS */ 
       realtype rho = 0.0;
       for (int i = 0; i < NUM_SPECIES; i++){
-          rho = rho + yvec_d[offset + i];
+          rho = rho + ydata[offset + i];
       }
 
       /* temp */
-      temp = yvec_d[offset + NUM_SPECIES];
+      temp = ydata[offset + NUM_SPECIES];
 
       /* Yks */
       for (int i = 0; i < NUM_SPECIES; i++){
-          massfrac[i] = yvec_d[offset + i] / rho;
+          massfrac[i] = ydata[offset + i] / rho;
       }
 
-      /* NRG CGS */
-      energy = (data_wk->rhoX_init[data->boxcell + tid] + data_wk->rhoXsrc_ext[data_wk->boxcell + tid] * dt) /rho;
-
-      if (data_wk->ireactor_type == eint_rho){
-          /* UV REACTOR */
-          EOS::EY2T(energy, massfrac, temp);
-          EOS::TY2Cv(temp, massfrac, cX);
-          EOS::T2Ei(temp, Xi);
-      } else if (data_wk->ireactor_type == enth_rho) {
-          /* HP REACTOR */
-          EOS::HY2T(energy, massfrac, temp);
-          EOS::TY2Cp(temp, massfrac, cX);
-          EOS::T2Hi(temp, Xi);
+      /* Jac */
+      int consP;
+      if (data_wk->ireactor_type == eint_rho) {
+          consP = 0;
+      } else {
+          consP = 1;
       }
-      EOS::RTY2WDOT(rho, temp, massfrac, cdot);
-
-      /* Fill ydot vect */
-      ydot_d[offset + NUM_SPECIES] = data_wk->rhoXsrc_ext[data_wk->boxcell + tid];
+      EOS::RTY2JAC(rho, temp, massfrac, Jmat_tmp, consP);
+      /* fill the sunMat */
+      for (int k = 0; k < NUM_SPECIES; k++){
+          J_col_k = SM_COLUMN_D(J,offset + k);
+          for (int i = 0; i < NUM_SPECIES; i++){
+              J_col_k[offset + i] = Jmat_tmp[k*(NUM_SPECIES+1)+i] * molecular_weight[i] / molecular_weight[k]; 
+          }
+          J_col_k[offset + NUM_SPECIES] = Jmat_tmp[k*(NUM_SPECIES+1)+NUM_SPECIES] / molecular_weight[k]; 
+      }
+      J_col_k = SM_COLUMN_D(J,offset + NUM_SPECIES);
       for (int i = 0; i < NUM_SPECIES; i++){
-          ydot_d[offset + i] = cdot[i] + data_wk->rYsrc[(data_wk->boxcell + tid) * (NUM_SPECIES) + i];
-          ydot_d[offset + NUM_SPECIES] = ydot_d[offset + NUM_SPECIES]  - ydot_d[offset + i] * Xi[i];
+          J_col_k[offset + i] = Jmat_tmp[NUM_SPECIES*(NUM_SPECIES+1)+i] * molecular_weight[i]; 
       }
-      ydot_d[offset + NUM_SPECIES] = ydot_d[offset + NUM_SPECIES] /(rho * cX);
+      J_col_k = SM_COLUMN_D(J,offset);
   }
-    BL_PROFILE_VAR_STOP(fKernelSpec);
+  BL_PROFILE_VAR_STOP(DenseJac);
 
-    return(0);
+  return(0);
+
 }
+
+/* Analytical SPARSE Jacobian evaluation */
+int ReactorCVODE_CPU::cJac_sps(realtype /* tn */, N_Vector u, N_Vector /* fu */, SUNMatrix J,
+             void *user_data, N_Vector /* tmp1 */, N_Vector /* tmp2 */, N_Vector /* tmp3 */){
+  /* Make local copies of pointers to input data (big M) */
+  realtype *ydata           = N_VGetArrayPointer(u);
+  sunindextype *rowPtrs_tmp = SUNSparseMatrix_IndexPointers(J);
+  sunindextype *colIndx_tmp = SUNSparseMatrix_IndexValues(J);
+  realtype *Jdata           = SUNSparseMatrix_Data(J);
+
+  /* Make local copies of pointers in user_data (cell M)*/
+  UserData data_wk = (UserData) user_data;
+
+  /* MW CGS */
+  realtype molecular_weight[NUM_SPECIES];
+  CKWT(molecular_weight);
+
+  BL_PROFILE_VAR("FillSparseData", FillSpsData);
+  /* Fixed colVals*/
+  for (int i=0;i<data_wk->NNZ*data_wk->ncells;i++) {
+      colIndx_tmp[i] = (sunindextype) data_wk->colVals_c[i];
+  }
+  rowPtrs_tmp[0] = (sunindextype) data_wk->rowPtrs_c[0];
+  /* Fixed rowPtrs */
+  for (int i=0;i<data_wk->ncells*(NUM_SPECIES + 1);i++) {
+      rowPtrs_tmp[i+1] = (sunindextype) data_wk->rowPtrs_c[i+1];
+  }
+  BL_PROFILE_VAR_STOP(FillSpsData);
+
+
+  BL_PROFILE_VAR("SparseJac", SpsJac);
+  /* Temp vectors */
+  realtype temp_save_lcl, temp;
+  realtype massfrac[NUM_SPECIES];
+  realtype Jmat_tmp[(NUM_SPECIES+1)*(NUM_SPECIES+1)];
+  /* Save Jac from cell to cell if more than one */
+  temp_save_lcl  = 0.0;
+  for (int tid = 0; tid < data_wk->ncells; tid ++) {
+      /* Offset in case several cells */
+      int offset   = tid * (NUM_SPECIES + 1);
+      int offset_J = tid * data_wk->NNZ;
+      /* rho MKS */ 
+      realtype rho = 0.0;
+      for (int i = 0; i < NUM_SPECIES; i++){
+          rho = rho + ydata[offset + i];
+      }
+      /* Yks */
+      realtype rhoinv = 1.0 / rho;
+      for (int i = 0; i < NUM_SPECIES; i++){
+          massfrac[i] = ydata[offset + i] * rhoinv;
+      }
+      /* temp */
+      temp = ydata[offset + NUM_SPECIES];
+      /* Do we recompute Jac ? */
+      if (fabs(temp - temp_save_lcl) > 1.0) {
+          int consP = data_wk->ireactor_type == eint_rho ? 0 : 1;
+          EOS::RTY2JAC(rho, temp, massfrac, Jmat_tmp, consP);
+          temp_save_lcl = temp;
+          /* rescale */
+          for (int i = 0; i < NUM_SPECIES; i++) {
+              for (int k = 0; k < NUM_SPECIES; k++) {
+                  Jmat_tmp[k*(NUM_SPECIES+1) + i] = Jmat_tmp[k*(NUM_SPECIES+1) + i] * molecular_weight[i] / molecular_weight[k];
+              }
+              Jmat_tmp[i*(NUM_SPECIES+1) + NUM_SPECIES] = Jmat_tmp[i*(NUM_SPECIES+1) + NUM_SPECIES] / molecular_weight[i];
+          }
+          for (int i = 0; i < NUM_SPECIES; i++) {
+              Jmat_tmp[NUM_SPECIES*(NUM_SPECIES+1) + i] = Jmat_tmp[NUM_SPECIES*(NUM_SPECIES+1) + i] * molecular_weight[i];
+          }
+      }
+      /* Go from Dense to Sparse */
+      for (int i = 1; i < NUM_SPECIES+2; i++) {
+          int nbVals = data_wk->rowPtrs_c[i]-data_wk->rowPtrs_c[i - 1];
+          for (int j = 0; j < nbVals; j++) {
+              int idx = data_wk->colVals_c[ data_wk->rowPtrs_c[i - 1] + j ];
+              Jdata[ offset_J + data_wk->rowPtrs_c[i - 1] + j ] = Jmat_tmp[(i - 1) + (NUM_SPECIES + 1)*idx];
+          }
+      }
+  }
+  BL_PROFILE_VAR_STOP(SpsJac);
+
+  return(0);
+}
+
+/* PSolve for GMRES solver when custom sparse mode is activated */
+int ReactorCVODE_CPU::PSolve_custom(realtype /* tn */, N_Vector /* u */, N_Vector /* fu */, N_Vector r, N_Vector z,
+                  realtype /* gamma */, realtype /* delta */, int /* lr */, void *user_data)
+{
+  /* Make local copies of pointers in user_data */
+  UserData data_wk = (UserData) user_data;
+
+  /* Make local copies of pointers to input data (big M) */
+  realtype *zdata = N_VGetArrayPointer(z);
+  realtype *rdata = N_VGetArrayPointer(r);
+  
+  N_VScale(1.0, r, z);
+
+  /* Solve the block-diagonal system Pz = r using LU factors stored
+     in P and pivot data in pivot, and return the solution in z. */
+  BL_PROFILE_VAR("GaussSolver", GaussSolver);
+  for (int tid = 0; tid < data_wk->ncells; tid ++) {
+      int offset          = tid * (NUM_SPECIES + 1);
+      double *z_d_offset  = zdata  + offset;
+      double *r_d_offset  = rdata  + offset;
+      sgjsolve_simplified(data_wk->Jdata[tid], z_d_offset, r_d_offset);
+  }
+  BL_PROFILE_VAR_STOP(GaussSolver);
+
+  return(0);
+}
+
+/* Preconditioner setup routine for GMRES solver when custom sparse mode is activated 
+ * Generate and preprocess P 
+ */
+int ReactorCVODE_CPU::Precond_custom(realtype /* tn */, N_Vector u, N_Vector /* fu */, booleantype jok, 
+                   booleantype *jcurPtr, realtype gamma, void *user_data)
+{
+  /* Make local copies of pointers to input data (big M) */
+  realtype *udata   = N_VGetArrayPointer(u);
+  /* Make local copies of pointers in user_data (cell M)*/
+  UserData data_wk = (UserData) user_data;
+
+  /* MW CGS */
+  realtype molecular_weight[NUM_SPECIES];
+  CKWT(molecular_weight);
+
+  /* Check if Jac is stale */
+  if (jok) {
+      /* jok = SUNTRUE: Copy Jbd to P */
+      *jcurPtr = SUNFALSE;
+  } else {
+      /* Temp vectors */
+      realtype temp, temp_save_lcl;
+      realtype activity[NUM_SPECIES], massfrac[NUM_SPECIES];
+      /* Save Jac from cell to cell if more than one */
+      temp_save_lcl = 0.0;
+      for (int tid = 0; tid < data_wk->ncells; tid ++) {
+          /* Offset in case several cells */
+          int offset = tid * (NUM_SPECIES + 1);
+          /* rho MKS */ 
+          realtype rho = 0.0;
+          for (int i = 0; i < NUM_SPECIES; i++){
+              rho = rho + udata[offset + i];
+          }
+          /* Yks */
+          for (int i = 0; i < NUM_SPECIES; i++){
+              massfrac[i] = udata[offset + i] / rho;
+          }
+          /* temp */
+          temp = udata[offset + NUM_SPECIES];
+          /* Activities */
+          EOS::RTY2C(rho, temp, massfrac, activity);
+          /* Do we recompute Jac ? */
+          if (fabs(temp - temp_save_lcl) > 1.0) {
+              /* Formalism */
+              int consP;
+              if (data_wk->ireactor_type == eint_rho) {
+                  consP = 0;
+              } else {
+                  consP = 1;
+              }
+              DWDOT_SIMPLIFIED(data_wk->JSPSmat[tid], activity, &temp, &consP);
+
+              for (int i = 0; i < NUM_SPECIES; i++) {
+                  for (int k = 0; k < NUM_SPECIES; k++) {
+                      (data_wk->JSPSmat[tid])[k*(NUM_SPECIES+1) + i] = (data_wk->JSPSmat[tid])[k*(NUM_SPECIES+1) + i] * molecular_weight[i] / molecular_weight[k];
+                  }
+                  (data_wk->JSPSmat[tid])[i*(NUM_SPECIES+1) + NUM_SPECIES] = (data_wk->JSPSmat[tid])[i*(NUM_SPECIES+1) + NUM_SPECIES] / molecular_weight[i];
+              }
+              for (int i = 0; i < NUM_SPECIES; i++) {
+                  (data_wk->JSPSmat[tid])[NUM_SPECIES*(NUM_SPECIES+1) + i] = (data_wk->JSPSmat[tid])[NUM_SPECIES*(NUM_SPECIES+1) + i] * molecular_weight[i];
+              }
+              temp_save_lcl = temp;
+          } else {
+              /* if not: copy the one from prev cell */
+              for (int i = 0; i < NUM_SPECIES+1; i++) {
+                  for (int k = 0; k < NUM_SPECIES+1; k++) {
+                      (data_wk->JSPSmat[tid])[k*(NUM_SPECIES+1) + i] = (data_wk->JSPSmat[tid-1])[k*(NUM_SPECIES+1) + i];
+                  }
+              }
+          }
+      }
+
+      *jcurPtr = SUNTRUE;
+  }
+
+  int nbVals;
+  for (int i = 1; i < NUM_SPECIES+2; i++) {
+      /* nb non zeros elem should be the same for all cells */
+      nbVals = data_wk->rowPtrs[0][i]-data_wk->rowPtrs[0][i-1];
+      for (int j = 0; j < nbVals; j++) {
+          /* row of non zero elem should be the same for all cells */
+          int idx = data_wk->colVals[0][ data_wk->rowPtrs[0][i-1] + j ];
+          /* Scale by -gamma */
+          /* Add identity matrix */
+          for (int tid = 0; tid < data_wk->ncells; tid ++) {
+              if (idx == (i-1)) {
+                  data_wk->Jdata[tid][ data_wk->rowPtrs[tid][i-1] + j ] = 1.0 - gamma * (data_wk->JSPSmat[tid])[ idx * (NUM_SPECIES+1) + idx]; 
+              } else {
+                  data_wk->Jdata[tid][ data_wk->rowPtrs[tid][i-1] + j ] = - gamma * (data_wk->JSPSmat[tid])[ (i - 1) + (NUM_SPECIES+1)*idx ]; 
+              }
+          }
+      }
+  }
+
+  return(0);
+}
+
+
+#ifdef USE_KLU_PP 
+/* Analytical SPARSE Jacobian evaluation */
+int ReactorCVODE_CPU::cJac_KLU(realtype /* tn */, N_Vector u, N_Vector /* fu */, SUNMatrix J,
+             void *user_data, N_Vector /* tmp1 */, N_Vector /* tmp2 */, N_Vector /* tmp3 */){
+
+  BL_PROFILE_VAR("SparseKLUJac", SpsKLUJac);
+  /* Make local copies of pointers to input data (big M) */
+  realtype *ydata           = N_VGetArrayPointer(u);
+  sunindextype *colptrs_tmp = SUNSparseMatrix_IndexPointers(J);
+  sunindextype *rowvals_tmp = SUNSparseMatrix_IndexValues(J);
+  realtype *Jdata           = SUNSparseMatrix_Data(J);
+
+  /* Make local copies of pointers in user_data (cell M)*/
+  UserData data_wk = (UserData) user_data;
+
+  /* MW CGS */
+  realtype molecular_weight[NUM_SPECIES];
+  CKWT(molecular_weight);
+
+  /* Fixed RowVals */
+  for (int i=0;i<data_wk->NNZ;i++) {
+      rowvals_tmp[i] = data_wk->rowVals[0][i];
+  }
+  /* Fixed colPtrs */
+  colptrs_tmp[0] = data_wk->colPtrs[0][0];
+  for (int i=0;i<data_wk->ncells*(NUM_SPECIES + 1);i++) {
+      colptrs_tmp[i+1] = data_wk->colPtrs[0][i+1];
+  }
+
+  /* Temp vectors */
+  realtype temp_save_lcl, temp;
+  realtype massfrac[NUM_SPECIES];
+  realtype Jmat_tmp[(NUM_SPECIES+1)*(NUM_SPECIES+1)];
+  /* Save Jac from cell to cell if more than one */
+  temp_save_lcl = 0.0;
+  for (int tid = 0; tid < data_wk->ncells; tid ++) {
+      /* Offset in case several cells */
+      int offset = tid * (NUM_SPECIES + 1);
+      /* rho MKS */ 
+      realtype rho = 0.0;
+      for (int i = 0; i < NUM_SPECIES; i++){
+          rho = rho + ydata[offset + i];
+      }
+      /* Yks */
+      realtype rhoinv = 1.0 / rho;
+      for (int i = 0; i < NUM_SPECIES; i++){
+          massfrac[i] = ydata[offset + i] * rhoinv;
+      }
+      /* temp */
+      temp = ydata[offset + NUM_SPECIES];
+      /* Do we recompute Jac ? */
+      if (fabs(temp - temp_save_lcl) > 1.0) {
+          /* NRG CGS */
+          int consP = data_wk->ireactor_type == eint_rho ? 0 : 1;
+          EOS::RTY2JAC(rho, temp, massfrac, Jmat_tmp, consP);
+          temp_save_lcl = temp;
+          /* rescale */
+          for (int i = 0; i < NUM_SPECIES; i++) {
+              for (int k = 0; k < NUM_SPECIES; k++) {
+                  Jmat_tmp[k*(NUM_SPECIES+1) + i] = Jmat_tmp[k*(NUM_SPECIES+1) + i] * molecular_weight[i] / molecular_weight[k];
+              }
+              Jmat_tmp[i*(NUM_SPECIES+1) + NUM_SPECIES] = Jmat_tmp[i*(NUM_SPECIES+1) + NUM_SPECIES] / molecular_weight[i];
+          }
+          for (int i = 0; i < NUM_SPECIES; i++) {
+              Jmat_tmp[NUM_SPECIES*(NUM_SPECIES+1) + i] = Jmat_tmp[NUM_SPECIES*(NUM_SPECIES+1) + i] * molecular_weight[i];
+          }
+      }
+      /* Go from Dense to Sparse */
+      BL_PROFILE_VAR("DensetoSps", DtoS);
+      for (int i = 1; i < NUM_SPECIES+2; i++) {
+          int nbVals = data_wk->colPtrs[0][i]-data_wk->colPtrs[0][i - 1];
+          for (int j = 0; j < nbVals; j++) {
+              int idx = data_wk->rowVals[0][ data_wk->colPtrs[0][i - 1] + j ];
+              Jdata[ data_wk->colPtrs[0][offset + i - 1] + j ] = Jmat_tmp[(i - 1) * (NUM_SPECIES + 1) + idx];
+          }
+      }
+      BL_PROFILE_VAR_STOP(DtoS);
+  }
+
+  BL_PROFILE_VAR_STOP(SpsKLUJac);
+
+  return(0);
+
+}
+
+/* PSolve for GMRES solver when KLU sparse mode is activated */
+int ReactorCVODE_CPU::PSolve_sparse(realtype /* tn */, N_Vector /* u */, N_Vector /* fu */, N_Vector r, N_Vector z,
+                  realtype /* gamma */, realtype /* delta */, int /* lr */, void *user_data)
+{
+  /* Make local copies of pointers in user_data */
+  UserData data_wk = (UserData) user_data;
+
+  /* Make local copies of pointers to input data (big M) */
+  realtype *zdata = N_VGetArrayPointer(z);
+
+  BL_PROFILE_VAR("KLU_inversion", PSolve_sparse);
+  N_VScale(1.0, r, z);
+
+  /* Solve the block-diagonal system Pz = r using LU factors stored
+     in P and pivot data in pivot, and return the solution in z. */
+  realtype zdata_cell[NUM_SPECIES+1];
+  for (int tid = 0; tid < data_wk->ncells; tid ++) {
+      int offset_beg = tid * (NUM_SPECIES + 1);
+      std::memcpy(zdata_cell, zdata+offset_beg, (NUM_SPECIES+1)*sizeof(realtype));
+      klu_solve(data_wk->Symbolic[tid], data_wk->Numeric[tid], NUM_SPECIES+1, 1, zdata_cell, &(data_wk->Common[tid])) ; 
+      std::memcpy(zdata+offset_beg, zdata_cell, (NUM_SPECIES+1)*sizeof(realtype));
+  }
+  BL_PROFILE_VAR_STOP(PSolve_sparse);
+
+  return(0);
+}
+
+/* Preconditioner setup routine for GMRES solver when KLU sparse mode is activated 
+ * Generate and preprocess P
+*/
+int ReactorCVODE_CPU::Precond_sparse(realtype /* tn */, N_Vector u, N_Vector /* fu */, booleantype jok, 
+                   booleantype *jcurPtr, realtype gamma, void *user_data)
+{
+  /* Make local copies of pointers to input data (big M) */
+  realtype *udata = N_VGetArrayPointer(u);
+  /* Make local copies of pointers in user_data (cell M)*/
+  UserData data_wk = (UserData) user_data;
+
+  /* MW CGS */
+  realtype molecular_weight[NUM_SPECIES];
+  CKWT(molecular_weight);
+
+  /* Check if Jac is stale */
+  if (jok) {
+      /* jok = SUNTRUE: Copy Jbd to P */
+      *jcurPtr = SUNFALSE;
+  } else {
+      /* Temp vectors */
+      realtype activity[NUM_SPECIES], massfrac[NUM_SPECIES];
+      /* Save Jac from cell to cell if more than one */
+      realtype temp_save_lcl = 0.0;
+      for (int tid = 0; tid < data_wk->ncells; tid ++) {
+          /* Offset in case several cells */
+          int offset = tid * (NUM_SPECIES + 1);
+          /* rho MKS */ 
+          realtype rho = 0.0;
+          for (int i = 0; i < NUM_SPECIES; i++){
+              rho = rho + udata[offset + i];
+          }
+          /* Yks */
+          for (int i = 0; i < NUM_SPECIES; i++){
+              massfrac[i] = udata[offset + i] / rho;
+          }
+          /* temp */
+          realtype temp = udata[offset + NUM_SPECIES];
+          /* Activities */
+          EOS::RTY2C(rho, temp, massfrac, activity);
+          /* Do we recompute Jac ? */
+          if (fabs(temp - temp_save_lcl) > 1.0) {
+              /* Formalism */
+              int consP = data_wk->ireactor_type == eint_rho ? 0 : 1;
+              DWDOT_SIMPLIFIED(data_wk->JSPSmat[tid], activity, &temp, &consP);
+
+              for (int i = 0; i < NUM_SPECIES; i++) {
+                  for (int k = 0; k < NUM_SPECIES; k++) {
+                      (data_wk->JSPSmat[tid])[k*(NUM_SPECIES+1) + i] = (data_wk->JSPSmat[tid])[k*(NUM_SPECIES+1) + i] * molecular_weight[i] / molecular_weight[k];
+                  }
+                  (data_wk->JSPSmat[tid])[i*(NUM_SPECIES+1) + NUM_SPECIES] = (data_wk->JSPSmat[tid])[i*(NUM_SPECIES+1) + NUM_SPECIES] / molecular_weight[i];
+              }
+              for (int i = 0; i < NUM_SPECIES; i++) {
+                  (data_wk->JSPSmat[tid])[NUM_SPECIES*(NUM_SPECIES+1) + i] = (data_wk->JSPSmat[tid])[NUM_SPECIES*(NUM_SPECIES+1) + i] * molecular_weight[i];
+              }
+              temp_save_lcl = temp;
+          } else {
+              /* if not: copy the one from prev cell */
+              for (int i = 0; i < NUM_SPECIES+1; i++) {
+                  for (int k = 0; k < NUM_SPECIES+1; k++) {
+                      (data_wk->JSPSmat[tid])[k*(NUM_SPECIES+1) + i] = (data_wk->JSPSmat[tid-1])[k*(NUM_SPECIES+1) + i];
+                  }
+              }
+          }
+      }
+
+      *jcurPtr = SUNTRUE;
+  }
+
+  for (int i = 1; i < NUM_SPECIES+2; i++) {
+      /* nb non zeros elem should be the same for all cells */
+      int nbVals = data_wk->colPtrs[0][i]-data_wk->colPtrs[0][i-1];
+      for (int j = 0; j < nbVals; j++) {
+          /* row of non zero elem should be the same for all cells */
+          int idx = data_wk->rowVals[0][ data_wk->colPtrs[0][i-1] + j ];
+          /* Scale by -gamma */
+          /* Add identity matrix */
+          for (int tid = 0; tid < data_wk->ncells; tid ++) {
+              if (idx == (i-1)) {
+                  data_wk->Jdata[tid][ data_wk->colPtrs[tid][i-1] + j ] = 1.0 - gamma * (data_wk->JSPSmat[tid])[ idx * (NUM_SPECIES+1) + idx]; 
+              } else {
+                  data_wk->Jdata[tid][ data_wk->colPtrs[tid][i-1] + j ] = - gamma * (data_wk->JSPSmat[tid])[ (i-1) * (NUM_SPECIES+1) + idx ]; 
+              }
+          }
+      }
+  }
+  
+  BL_PROFILE_VAR("KLU_factorization", KLU_factor);
+  if (!(data_wk->FirstTimePrecond)) {
+      for (int tid = 0; tid < data_wk->ncells; tid ++) {
+          klu_refactor(data_wk->colPtrs[tid], data_wk->rowVals[tid], data_wk->Jdata[tid], data_wk->Symbolic[tid], data_wk->Numeric[tid], &(data_wk->Common[tid]));
+      }
+  } else {
+      for (int tid = 0; tid < data_wk->ncells; tid ++) {
+          data_wk->Numeric[tid] = klu_factor(data_wk->colPtrs[tid], data_wk->rowVals[tid], data_wk->Jdata[tid], data_wk->Symbolic[tid], &(data_wk->Common[tid])) ; 
+      }
+      data_wk->FirstTimePrecond = false;
+  }
+  BL_PROFILE_VAR_STOP(KLU_factor);
+
+  return(0);
+}
+
+#else
+
+/* PSolve for GMRES solver when no sparse mode is activated */
+int ReactorCVODE_CPU::PSolve(realtype /* tn */, N_Vector /* u */, N_Vector /* fu */, N_Vector r, N_Vector z,
+           realtype /* gamma */, realtype /* delta */, int /* lr */, void *user_data)
+{
+  /* Make local copies of pointers to input data (big M) */
+  realtype *zdata = N_VGetArrayPointer(z);
+
+  /* Extract the P and pivot arrays from user_data. */
+  UserData data_wk = (UserData) user_data;
+  realtype **(**P);
+  sunindextype *(**pivot);
+  P     = data_wk->P;
+  pivot = data_wk->pivot;
+  
+  N_VScale(1.0, r, z);
+  
+  /* Solve the block-diagonal system Pz = r using LU factors stored
+     in P and pivot data in pivot, and return the solution in z. */
+  realtype *v = zdata;
+  denseGETRS(P[0][0], NUM_SPECIES+1, pivot[0][0], v);
+
+  return(0);
+}
+
+/* Preconditioner setup routine for GMRES solver when no sparse mode is activated 
+ * Generate and preprocess P
+*/
+int ReactorCVODE_CPU::Precond(realtype /* tn */, N_Vector u, N_Vector /* fu */, booleantype jok, 
+            booleantype *jcurPtr, realtype gamma, void *user_data)
+{
+  /* Make local copies of pointers to input data (big M) */
+  realtype *udata = N_VGetArrayPointer(u);
+
+  /* Make local copies of pointers in user_data */
+  UserData data_wk = (UserData) user_data;
+  realtype **(**P), **(**Jbd);
+  sunindextype *(**pivot);
+  P     = (data_wk->P);
+  Jbd   = (data_wk->Jbd);
+  pivot = (data_wk->pivot);
+
+  /* Tmp arrays */
+  realtype molecular_weight[NUM_SPECIES];
+  realtype Jmat[(NUM_SPECIES+1)*(NUM_SPECIES+1)];
+  realtype massfrac[NUM_SPECIES], activity[NUM_SPECIES];
+  realtype temp;
+  sunindextype ierr;
+
+  /* MW CGS */
+  CKWT(molecular_weight);
+
+  if (jok) {
+      /* jok = SUNTRUE: Copy Jbd to P */
+      denseCopy(Jbd[0][0], P[0][0], NUM_SPECIES+1, NUM_SPECIES+1);
+      *jcurPtr = SUNFALSE;
+  } else {
+      /* rho MKS */ 
+      realtype rho = 0.0;
+      for (int i = 0; i < NUM_SPECIES; i++){
+          rho = rho + udata[i];
+      }
+      /* Yks */
+      for (int i = 0; i < NUM_SPECIES; i++){
+          massfrac[i] = udata[i] / rho;
+      }
+      /* temp */
+      temp = udata[NUM_SPECIES];
+      /* Activities */
+      EOS::RTY2C(rho, temp, massfrac, activity);
+      /* jok = SUNFALSE: Generate Jbd from scratch and copy to P */
+      /* Make local copies of problem variables, for efficiency. */
+      int consP;
+      if (data_wk->ireactor_type == eint_rho) { 
+          consP = 0;
+      } else {
+          consP = 1;
+      }
+      DWDOT_SIMPLIFIED(Jmat, activity, &temp, &consP);
+
+      /* Compute Jacobian.  Load into P. */
+      denseScale(0.0, Jbd[0][0], NUM_SPECIES+1, NUM_SPECIES+1);
+      for (int i = 0; i < NUM_SPECIES; i++) {
+          for (int k = 0; k < NUM_SPECIES; k++) {
+              (Jbd[0][0])[k][i] = Jmat[k*(NUM_SPECIES+1) + i] * molecular_weight[i] / molecular_weight[k];
+          }
+          (Jbd[0][0])[i][NUM_SPECIES] = Jmat[i*(NUM_SPECIES+1) + NUM_SPECIES] / molecular_weight[i];
+      }
+      for (int i = 0; i < NUM_SPECIES; i++) {
+          (Jbd[0][0])[NUM_SPECIES][i] = Jmat[NUM_SPECIES*(NUM_SPECIES+1) + i] * molecular_weight[i];
+      }
+      (Jbd[0][0])[NUM_SPECIES][NUM_SPECIES] = Jmat[(NUM_SPECIES+1)*(NUM_SPECIES+1)-1];
+
+      denseCopy(Jbd[0][0], P[0][0], NUM_SPECIES+1, NUM_SPECIES+1);
+
+      *jcurPtr = SUNTRUE;
+  }
+  
+  /* Scale by -gamma */
+  denseScale(-gamma, P[0][0], NUM_SPECIES+1, NUM_SPECIES+1);
+  //denseScale(0.0, P[0][0], NUM_SPECIES+1, NUM_SPECIES+1);
+  
+  /* Add identity matrix and do LU decompositions on blocks in place. */
+  denseAddIdentity(P[0][0], NUM_SPECIES+1);
+  ierr = denseGETRF(P[0][0], NUM_SPECIES+1, NUM_SPECIES+1, pivot[0][0]);
+  if (ierr != 0) return(1);
+  
+  return(0);
+}
+#endif
 /**********************************/
 
 /**********************************/
 /* Helper functions */
+
+/* Get and print some final statistics */
+void ReactorCVODE_CPU::PrintFinalStats(void *cvodeMem, realtype Temp)
+{
+  long int nst, nfe, nsetups, nje, nfeLS, nni, ncfn;
+  long int nli, npe, nps, ncfl, netfails;
+  int flag;
+  realtype hlast, hinused, hcur;
+
+  flag = CVodeGetNumSteps(cvodeMem, &nst);
+  ReactorCVODE_CPU::check_flag(&flag, "CVodeGetNumSteps", 1);
+  flag = CVodeGetNumRhsEvals(cvodeMem, &nfe);
+  ReactorCVODE_CPU::check_flag(&flag, "CVodeGetNumRhsEvals", 1);
+  flag = CVodeGetNumNonlinSolvIters(cvodeMem, &nni);
+  ReactorCVODE_CPU::check_flag(&flag, "CVodeGetNumNonlinSolvIters", 1);
+  flag = CVodeGetNumLinSolvSetups(cvodeMem, &nsetups);
+  ReactorCVODE_CPU::check_flag(&flag, "CVodeGetNumLinSolvSetups", 1);
+  flag = CVodeGetNumNonlinSolvConvFails(cvodeMem, &ncfn);
+  ReactorCVODE_CPU::check_flag(&flag, "CVodeGetNumNonlinSolvConvFails", 1);
+  flag = CVodeGetNumErrTestFails(cvodeMem, &netfails);
+  ReactorCVODE_CPU::check_flag(&flag, "CVodeGetNumErrTestFails", 1);
+  flag = CVodeGetLastStep(cvodeMem, &hlast);
+  ReactorCVODE_CPU::check_flag(&flag, "CVodeGetLastStep", 1);
+  flag = CVodeGetActualInitStep(cvodeMem, &hinused);
+  ReactorCVODE_CPU::check_flag(&flag, "CVodeGetActualInitStep", 1);
+  flag = CVodeGetCurrentTime(cvodeMem, &hcur);
+  ReactorCVODE_CPU::check_flag(&flag, "CVodeGetCurrentTime", 1);
+
+  if (data->isolve_type == dense_solve){
+      flag = CVDlsGetNumRhsEvals(cvodeMem, &nfeLS);
+      ReactorCVODE_CPU::check_flag(&flag, "CVDlsGetNumRhsEvals", 1);
+      flag = CVDlsGetNumJacEvals(cvodeMem, &nje);
+      ReactorCVODE_CPU::check_flag(&flag, "CVDlsGetNumJacEvals", 1);
+  } else if (data->isolve_type == iterative_gmres_solve){
+      flag = CVSpilsGetNumRhsEvals(cvode_mem, &nfeLS);
+      ReactorCVODE_CPU::check_flag(&flag, "CVSpilsGetNumRhsEvals", 1);
+      flag = CVSpilsGetNumJtimesEvals(cvodeMem, &nje);
+      //flag = CVSpilsGetNumJTSetupEvals(cvodeMem, &nje);
+      ReactorCVODE_CPU::check_flag(&flag, "CVSpilsGetNumJtimesEvals", 1);
+      flag = CVSpilsGetNumPrecEvals(cvodeMem, &npe);
+      ReactorCVODE_CPU::check_flag(&flag, "CVSpilsGetNumPrecEvals", 1);
+      flag = CVSpilsGetNumPrecSolves(cvodeMem, &nps);
+      ReactorCVODE_CPU::check_flag(&flag, "CVSpilsGetNumPrecSolves", 1);
+      flag = CVSpilsGetNumLinIters(cvodeMem, &nli);
+      ReactorCVODE_CPU::check_flag(&flag, "CVSpilsGetNumLinIters", 1);
+      flag = CVSpilsGetNumConvFails(cvodeMem, &ncfl); 
+      ReactorCVODE_CPU::check_flag(&flag, "CVSpilsGetNumConvFails", 1);
+  }
+
+  Print() << "-- Final Statistics --\n";
+  Print() << "NonLinear (Newton) related --\n";
+  Print() << Temp << " |DT(dt, dtcur) = " << nst << "(" << hlast << "," << hcur << "), RHS = " << nfe << ", Iterations = " << nni << ", ErrTestFails = " << netfails << ", LinSolvSetups = " << nsetups << "\n";
+  if (data->isolve_type == dense_solve){
+      Print() <<"Linear (Dense Direct Solve) related --\n";
+      Print()<<Temp << " |FD RHS = "<< nfeLS<<", NumJacEvals = "<< nje <<" \n";
+  } else if (data->isolve_type == iterative_gmres_solve){
+      // LinSolvSetups actually reflects the number of time the LinSolver has been called. 
+      // NonLinIterations can be taken without the need for LinItes
+      Print() << "Linear (Krylov GMRES Solve) related --\n";
+      Print() << Temp << " |RHSeval = "<< nfeLS << ", jtvEval = "<<nje << ", NumPrecEvals = "<< npe << ", NumPrecSolves = "<< nps <<"\n";
+      Print() <<Temp << " |Iterations = "<< nli <<", ConvFails = "<< ncfl<<"\n";
+  }
+}
+
 
 /* Check function return value...
      opt == 0 means SUNDIALS function allocates memory so check if
@@ -562,9 +1549,64 @@ void ReactorCVODE_CPU::SetTypValsODE(const std::vector<double>& ExtTypVals) {
     }
 }
 
+/* Set or update the rel/abs tolerances  */
+void ReactorCVODE_CPU::SetTolFactODE(double relative_tol,double absolute_tol) {
+    relTol = relative_tol;
+    absTol = absolute_tol;
+    int omp_thread = 0;
+#ifdef _OPENMP
+    omp_thread = omp_get_thread_num();
+#endif
+
+    if (omp_thread == 0){
+        Print() << "Set RTOL, ATOL = "<<relTol<< " "<<absTol<<  " in PelePhysics\n";
+    }
+}
+
+/* Function to ReSet the tol of the cvode object directly */
+void ReactorCVODE_CPU::ReSetTolODE() {
+    int omp_thread = 0;
+#ifdef _OPENMP
+    omp_thread = omp_get_thread_num();
+#endif
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data != NULL, "Reactor object is not initialized !!");
+
+    int neq_tot     = (NUM_SPECIES + 1) * data->ncells;
+    N_Vector atol   = N_VNew_Serial(neq_tot);
+    realtype *ratol = N_VGetArrayPointer(atol);
+
+    if (typVals[0] > 0) {
+        if ((data->iverbose > 0) && (omp_thread == 0)) {
+            Print() << "Setting CVODE tolerances rtol = " << relTol << " atolfact = " << absTol << " in PelePhysics \n";
+        }
+        for  (int i = 0; i < data->ncells; i++) {
+            int offset = i * (NUM_SPECIES + 1);
+            for  (int k = 0; k < NUM_SPECIES + 1; k++) {
+                ratol[offset + k] = typVals[k]*absTol;
+            }
+        }
+    } else {
+        if ((data->iverbose > 0) && (omp_thread == 0)) {
+            Print() << "Setting CVODE tolerances rtol = " << relTol << " atol = " << absTol << " in PelePhysics \n";
+        }
+        for (int i=0; i<neq_tot; i++) {
+            ratol[i] = absTol;
+        }
+    }
+    /* Call CVodeSVtolerances to specify the scalar relative tolerance
+     * and vector absolute tolerances */
+    int flag = CVodeSVtolerances(cvode_mem, relTol, atol);
+    if (check_flag(&flag, "CVodeSVtolerances", 1)) { 
+        Abort("Problem in ReactorCVODE_CPU::ReSetTolODE");
+    }
+
+    N_VDestroy(atol);
+}
+
 
 /* Alloc Data for CVODE */
-UserData AllocUserData(int reactor_type, int num_cells)
+UserData ReactorCVODE_CPU::AllocUserData(int reactor_type, int num_cells)
 {
   /* Make local copies of pointers in user_data */
   UserData data_wk = (UserData) malloc(sizeof *data_wk);
@@ -842,6 +1884,160 @@ UserData AllocUserData(int reactor_type, int num_cells)
   }
 
   return(data_wk);
+}
+
+
+/* Free data memory 
+ * Probably not complete, how about the stuff allocated in KLU mode ? */
+void ReactorCVODE_CPU::FreeUserData(UserData data_wk)
+{
+  delete[] (data_wk->Yvect_full);
+  delete[] (data_wk->rYsrc);
+  delete[] (data_wk->rhoX_init);
+  delete[] (data_wk->rhoXsrc_ext);
+  delete[] (data_wk->FCunt);
+  delete[] (data_wk->mask);
+
+  delete[] data_wk->colPtrs;
+  delete[] data_wk->rowVals;
+  delete[] data_wk->Jdata;
+#ifndef USE_KLU_PP
+  if (data_wk->isolve_type == iterative_gmres_solve) {
+      for(int i = 0; i < data_wk->ncells; ++i) {
+          destroyMat((data_wk->P)[i][i]);
+          destroyMat((data_wk->Jbd)[i][i]);
+          destroyArray((data_wk->pivot)[i][i]);
+      }
+      for(int i = 0; i < data_wk->ncells; ++i) {
+          delete[] (data_wk->P)[i];
+          delete[] (data_wk->Jbd)[i];
+          delete[] (data_wk->pivot)[i];
+      }
+      delete[] (data_wk->P);
+      delete[] (data_wk->Jbd);
+      delete[] (data_wk->pivot);
+  //} 
+
+#else
+  if (data_wk->isolve_type == sparse_solve) {
+      SUNMatDestroy(A);
+      SUNMatDestroy((data_wk->PS)[0]);
+      delete[] (data_wk->PS);
+  } else if (data_wk->isolve_type == iterative_gmres_solve) {
+      delete[] data_wk->indx;
+      for(int i = 0; i < data_wk->ncells; ++i) {
+          klu_free_symbolic(&(data_wk->Symbolic[i]),&(data_wk->Common[i]));
+          klu_free_numeric(&(data_wk->Numeric[i]),&(data_wk->Common[i]));
+          delete[] data_wk->JSPSmat[i];
+          SUNMatDestroy((data_wk->PS)[i]);
+      }
+      delete[] data_wk->JSPSmat;
+      delete[] data_wk->Common;
+      delete[] data_wk->Symbolic;
+      delete[] data_wk->Numeric;
+      delete[] data_wk->PS;
+  //}
+#endif
+
+  } else if (data_wk->isolve_type == iterative_gmres_solve_custom) {
+      for(int i = 0; i < data_wk->ncells; ++i) {
+          delete[] data_wk->JSPSmat[i];
+          SUNMatDestroy((data_wk->PS)[i]);
+      }
+      delete[] data_wk->colVals;
+      delete[] data_wk->rowPtrs;
+      delete[] data_wk->PS;
+      delete[] data_wk->JSPSmat;
+  } else if (data_wk->isolve_type == sparse_solve_custom) {
+      SUNMatDestroy(A);
+      SUNMatDestroy(data_wk->PSc);
+  }  else if (data_wk->isolve_type == hack_dump_sparsity_pattern) {
+  }
+
+  free(data_wk);
+} 
+
+/**********************************/
+
+/* 
+ * CUSTOM SOLVER STUFF
+ */
+SUNLinearSolver SUNLinSol_sparse_custom(N_Vector a_y, SUNMatrix a_A, int reactor_type,
+        int nsubsys, int subsys_size, int subsys_nnz) 
+{
+  SUNLinearSolver S;
+  SUNLinearSolverContent_Sparse_custom content;
+
+  /* Check that required arguments are not NULL */
+  if (a_y == NULL || a_A == NULL) return(NULL);
+  if (SUNMatGetID(a_A) != SUNMATRIX_SPARSE) return(NULL); 
+
+  /* Matrix should be square */
+  if (SUNSparseMatrix_Columns(a_A) != SUNSparseMatrix_Rows(a_A)) return(NULL);
+
+  /* Check that it is a CSR matrix */
+  if (SUNSparseMatrix_SparseType(a_A) != CSR_MAT) return(NULL);
+
+  /* Matrix and vector dimensions must agree */
+  if (N_VGetLength(a_y) != SUNSparseMatrix_Columns(a_A)) return(NULL);
+
+  /* All subsystems must be the same size */ 
+  if (SUNSparseMatrix_Columns(a_A) != (subsys_size * nsubsys)) return(NULL);
+
+  /* Number of nonzeros per subsys must be the same */
+  if (SUNSparseMatrix_NNZ(a_A) != (subsys_nnz * nsubsys)) return(NULL);
+
+  /* Create an empty linear solver */
+  S = SUNLinSolNewEmpty(); 
+  if (S == NULL) return(NULL);
+
+  /* Attach operations */ 
+  S->ops->gettype    = SUNLinSolGetType_Sparse_custom;
+  S->ops->solve      = SUNLinSolSolve_Sparse_custom;
+
+  /* Create content */
+  content = (SUNLinearSolverContent_Sparse_custom) malloc(sizeof *content);
+  if (content == NULL) { SUNLinSolFree(S); return(NULL); }
+
+  /* Attach content */
+  S->content = content; 
+
+  /* Fill content */ 
+  content->last_flag    = 0;
+  content->reactor_type = reactor_type;
+  content->nsubsys      = nsubsys;
+  content->subsys_size  = subsys_size;
+  content->subsys_nnz   = subsys_nnz;
+
+  return(S);
+}
+
+
+SUNLinearSolver_Type SUNLinSolGetType_Sparse_custom(SUNLinearSolver /* S */) 
+{
+  return(SUNLINEARSOLVER_DIRECT);
+}
+
+int SUNLinSolSolve_Sparse_custom(SUNLinearSolver S, SUNMatrix a_A, N_Vector x,
+                                 N_Vector b, realtype /* tol */)
+{
+  realtype *x_d      = N_VGetArrayPointer(x);
+  realtype *b_d      = N_VGetArrayPointer(b);
+
+  double *Data = (double*) SUNSparseMatrix_Data(a_A);
+
+  BL_PROFILE_VAR("GaussSolver", GaussSolver);
+  for (int tid = 0; tid < SUN_CUSP_NUM_SUBSYS(S); tid ++) {
+      int offset          = tid * SUN_CUSP_SUBSYS_NNZ(S);
+      int offset_RHS      = tid * SUN_CUSP_SUBSYS_SIZE(S);
+      double *Data_offset = Data + offset;
+      double *x_d_offset  = x_d  + offset_RHS;
+      double *b_d_offset  = b_d  + offset_RHS;
+      sgjsolve(Data_offset, x_d_offset, b_d_offset);
+  }
+  BL_PROFILE_VAR_STOP(GaussSolver);
+
+  return(SUNLS_SUCCESS);
 }
 
 /* End of file  */
