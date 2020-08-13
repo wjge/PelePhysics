@@ -8,9 +8,13 @@
 
 using namespace amrex;
 
+Real ReactorCVODE_CPU::time_init; 
+int ReactorCVODE_CPU::eint_rho;
+int ReactorCVODE_CPU::enth_rho;
+
 /**********************************/
 /* Class functions */
-ReactorCVODE_CPU::ReactorCVODE_CPU () 
+ReactorCVODE_CPU::ReactorCVODE_CPU() 
 {
     // CVODE
     y  = NULL; 
@@ -18,7 +22,7 @@ ReactorCVODE_CPU::ReactorCVODE_CPU ()
     A  = NULL;
     cvode_mem  = NULL;
     data       = NULL;
-    time_init  = 0.0;
+    ReactorCVODE_CPU::time_init  = 0.0;
     // Scaling
     typVals = {-1};
     relTol  = 1.0e-10;
@@ -30,15 +34,17 @@ ReactorCVODE_CPU::ReactorCVODE_CPU ()
     sparse_solve_custom   = 101;
     iterative_gmres_solve_custom = 199;
     hack_dump_sparsity_pattern = -5;
-    eint_rho = 1; // in/out = rhoE/rhoY
-    enth_rho = 2; // in/out = rhoH/rhoY 
+    ReactorCVODE_CPU::eint_rho = 1; // in/out = rhoE/rhoY
+    ReactorCVODE_CPU::enth_rho = 2; // in/out = rhoH/rhoY 
 }
+
+ReactorCVODE_CPU::~ReactorCVODE_CPU() { ; }
 
 /**********************************/
 /* Functions Called by the Program */
 
 /* Initialization routine, called once at the begining of the problem */
-void ReactorCVODE_CPU::reactor_init(int reactor_type, int ode_ncells)
+int ReactorCVODE_CPU::reactor_init(int reactor_type, int ode_ncells)
 {
 
     BL_PROFILE_VAR("reactInit", reactInit);
@@ -785,7 +791,7 @@ int ReactorCVODE_CPU::cF_RHS(realtype t, N_Vector y_in, N_Vector ydot_in,
         }
 
         /* NRG CGS */
-        energy = (data_wk->rhoX_init[data->boxcell + tid] + data_wk->rhoXsrc_ext[data_wk->boxcell + tid] * dt) /rho;
+        energy = (data_wk->rhoX_init[data_wk->boxcell + tid] + data_wk->rhoXsrc_ext[data_wk->boxcell + tid] * dt) /rho;
 
         if (data_wk->ireactor_type == eint_rho){
             /* UV REACTOR */
@@ -1606,7 +1612,7 @@ void ReactorCVODE_CPU::ReSetTolODE() {
 
 
 /* Alloc Data for CVODE */
-UserData ReactorCVODE_CPU::AllocUserData(int reactor_type, int num_cells)
+ReactorCVODE_CPU::UserData ReactorCVODE_CPU::AllocUserData(int reactor_type, int num_cells)
 {
   /* Make local copies of pointers in user_data */
   UserData data_wk = (UserData) malloc(sizeof *data_wk);

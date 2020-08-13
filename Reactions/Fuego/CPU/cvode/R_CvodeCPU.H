@@ -35,35 +35,16 @@
 
 #include <ReactorBase.H>
 
+using namespace amrex;
+
 class ReactorCVODE_CPU
     : public ReactorBase
 {
 
-/**********************************/
-/* Global Variables */
-    // CVODE
-    N_Vector  y; 
-    SUNLinearSolver LS;
-    SUNMatrix A;
-    void *cvode_mem;
-    UserData data;
-    Real time_init;
-    // Scaling
-    Array<double,NUM_SPECIES+1> typVals = {-1};
-    double relTol;
-    double absTol;
-    /* OPTIONS -- should be static */
-    int dense_solve;
-    int sparse_solve;
-    int iterative_gmres_solve;
-    int sparse_solve_custom;
-    int iterative_gmres_solve_custom;
-    int hack_dump_sparsity_pattern;
-    int eint_rho; // in/out = rhoE/rhoY
-    int enth_rho; // in/out = rhoH/rhoY 
+public:
 
 /**********************************/
-
+/* main CVODE helper */
     typedef struct {
         /* hacks */
         bool FirstTimePrecond;
@@ -83,6 +64,7 @@ class ReactorCVODE_CPU
         amrex::Real *rhoXsrc_ext = NULL;
         amrex::Real *rYsrc = NULL;
         int *FCunt = NULL;
+        int *mask = NULL;
     
         /* Options */
         int NNZ; 
@@ -115,10 +97,35 @@ class ReactorCVODE_CPU
         int *rowPtrs_c;
     } *UserData;
 
+
+/**********************************/
+/* Global Variables */
+    // CVODE
+    N_Vector  y; 
+    SUNLinearSolver LS;
+    SUNMatrix A;
+    void *cvode_mem;
+    UserData data;
+    static Real time_init;
+    // Scaling
+    Array<double,NUM_SPECIES+1> typVals = {-1};
+    double relTol;
+    double absTol;
+    /* OPTIONS -- should be static */
+    int dense_solve;
+    int sparse_solve;
+    int iterative_gmres_solve;
+    int sparse_solve_custom;
+    int iterative_gmres_solve_custom;
+    int hack_dump_sparsity_pattern;
+    static int eint_rho; // in/out = rhoE/rhoY
+    static int enth_rho; // in/out = rhoH/rhoY 
+
+
 /**********************************/
 /* Class functions */
     ReactorCVODE_CPU();
-    //virtual ~ReactorCVODE_CPU();
+    virtual ~ReactorCVODE_CPU();
 
 /**********************************/
 /* Functions Called by the Program */
@@ -156,34 +163,34 @@ class ReactorCVODE_CPU
 /**********************************/
 /* Functions Called by the Solver */
 
-    int cF_RHS(realtype t, N_Vector y_in, N_Vector ydot, void *user_data);
+    static int cF_RHS(realtype t, N_Vector y_in, N_Vector ydot, void *user_data);
 
-    int cJac(realtype tn, N_Vector y, N_Vector fy, SUNMatrix J,
+    static int cJac(realtype tn, N_Vector y, N_Vector fy, SUNMatrix J,
 		void *user_data, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 
-    int cJac_sps(realtype tn, N_Vector y, N_Vector fy, SUNMatrix J,
+    static int cJac_sps(realtype tn, N_Vector y, N_Vector fy, SUNMatrix J,
 		void *user_data, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 
-    int PSolve_custom(realtype tn, N_Vector u, N_Vector fu, N_Vector r, 
+    static int PSolve_custom(realtype tn, N_Vector u, N_Vector fu, N_Vector r, 
 		N_Vector z, realtype gamma, realtype delta, int lr, void *user_data);
 
-    int Precond_custom(realtype tn, N_Vector u, N_Vector fu, booleantype jok,
+    static int Precond_custom(realtype tn, N_Vector u, N_Vector fu, booleantype jok,
 		booleantype *jcurPtr, realtype gamma, void *user_data);
 
 #ifdef USE_KLU_PP 
-    int cJac_KLU(realtype tn, N_Vector y, N_Vector fy, SUNMatrix J,
+    static int cJac_KLU(realtype tn, N_Vector y, N_Vector fy, SUNMatrix J,
 		void *user_data, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 
-    int PSolve_sparse(realtype tn, N_Vector u, N_Vector fu, N_Vector r, 
+    static int PSolve_sparse(realtype tn, N_Vector u, N_Vector fu, N_Vector r, 
 		N_Vector z, realtype gamma, realtype delta, int lr, void *user_data);
 
-    int Precond_sparse(realtype tn, N_Vector u, N_Vector fu, booleantype jok,
+    static int Precond_sparse(realtype tn, N_Vector u, N_Vector fu, booleantype jok,
 		booleantype *jcurPtr, realtype gamma, void *user_data);
 #else
-    int PSolve(realtype tn, N_Vector u, N_Vector fu, N_Vector r, 
+    static int PSolve(realtype tn, N_Vector u, N_Vector fu, N_Vector r, 
 		N_Vector z, realtype gamma, realtype delta, int lr, void *user_data);
 
-    int Precond(realtype tn, N_Vector u, N_Vector fu, booleantype jok,
+    static int Precond(realtype tn, N_Vector u, N_Vector fu, booleantype jok,
 		booleantype *jcurPtr, realtype gamma, void *user_data);
 #endif
 
@@ -204,29 +211,29 @@ class ReactorCVODE_CPU
 
     void FreeUserData(UserData data);
 
+};
 
 /**********************************/
 /* custom solver */
 
-    struct _SUNLinearSolverContent_Sparse_custom {
-    	sunindextype       last_flag;
-    	int                reactor_type;
-    	int                nsubsys;       /* number of subsystems */
-    	int                subsys_size;   /* size of each subsystem */
-    	int                subsys_nnz;
-    
-    };
+struct _SUNLinearSolverContent_Sparse_custom {
+	sunindextype       last_flag;
+	int                reactor_type;
+	int                nsubsys;       /* number of subsystems */
+	int                subsys_size;   /* size of each subsystem */
+	int                subsys_nnz;
 
-    typedef struct _SUNLinearSolverContent_Sparse_custom *SUNLinearSolverContent_Sparse_custom; 
+};
 
-    SUNLinearSolver SUNLinSol_sparse_custom(N_Vector y, SUNMatrix A, int reactor_type,
-		int nsubsys, int subsys_size, int subsys_nnz);
+typedef struct _SUNLinearSolverContent_Sparse_custom *SUNLinearSolverContent_Sparse_custom; 
 
-    SUNLinearSolver_Type SUNLinSolGetType_Sparse_custom(SUNLinearSolver S); 
+SUNLinearSolver SUNLinSol_sparse_custom(N_Vector y, SUNMatrix A, int reactor_type,
+	int nsubsys, int subsys_size, int subsys_nnz);
 
-    int SUNLinSolSolve_Sparse_custom(SUNLinearSolver S, SUNMatrix A, N_Vector x,
-		N_Vector b, realtype tol);
+SUNLinearSolver_Type SUNLinSolGetType_Sparse_custom(SUNLinearSolver S); 
 
-}
+int SUNLinSolSolve_Sparse_custom(SUNLinearSolver S, SUNMatrix A, N_Vector x,
+	N_Vector b, realtype tol);
+
 
 #endif
