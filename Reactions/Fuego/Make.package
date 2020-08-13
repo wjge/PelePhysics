@@ -5,16 +5,19 @@ ifeq ($(USE_SUNDIALS_PP), TRUE)
         else
             Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/GPU/cvode
         endif
+        CEXE_headers += reactor.h  
+        CEXE_sources += reactor.cpp
     else
         ifeq ($(USE_ARKODE_PP), TRUE)
             Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/CPU/arkode
+            CEXE_headers += R_CvodeCPU.h  
+            CEXE_sources += R_CvodeCPU.cpp
         else
             Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/CPU/cvode
-            f90EXE_sources += mod_cvode.f90
+            CEXE_headers += reactor.h  
+            CEXE_sources += reactor.cpp
         endif
     endif
-    CEXE_headers += reactor.h  
-    CEXE_sources += reactor.cpp
 else 
     ifeq ($(USE_RK64_PP), TRUE)
         Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/CPU/RK64
