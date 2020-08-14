@@ -24,7 +24,7 @@ contains
         
 !*** INITIALISATION ROUTINES ***!
   !DVODE VERSION
-  subroutine reactor_init(iE_in, Ncells) bind(C, name="reactor_init")
+  subroutine reactor_init_F(iE_in, Ncells) bind(C, name="reactor_init_F")
 
     use, intrinsic :: iso_c_binding
     use vode_module, only : vode_init
@@ -79,12 +79,11 @@ contains
 
     reactor_initialized = .true.
 
-  end subroutine reactor_init
+  end subroutine reactor_init_F
 
 !*** REACTION ROUTINES ***!
   ! Original DVODE version
-  !function react(react_state_in, react_state_out, dt_react, time) bind(C, name="react") result(stat)
-  function react(rY_in,rY_src_in,rX_in,rX_src_in,P_in,dt_react,time) bind(C, name="react") result(cost_value)
+  function react_F(rY_in,rY_src_in,rX_in,rX_src_in,P_in,dt_react,time) bind(C, name="react_F") result(cost_value)
     
     use amrex_error_module
     use vode_module, only : verbose, itol, rtol, atol, vode_MF=>MF, always_new_j, &
@@ -134,7 +133,7 @@ contains
 
 
     if (.not. reactor_initialized) then
-       call amrex_error('reactor::react called before initialized')
+       call amrex_error('reactor::react_F called before initialized')
     endif
 
     if ( .not. ok_to_react(react_state_in) ) then
@@ -319,7 +318,7 @@ contains
        call amrex_error('vode failed')
 
     end if
-  end function react
+  end function react_F
 
   ! Original DVODE version
   subroutine f_rhs(neq, time, y, ydot, rpar, ipar)
@@ -399,7 +398,7 @@ contains
   end subroutine f_jac
 
 !*** FINALIZE ROUTINES ***!
-  subroutine reactor_close() bind(C, name="reactor_close")
+  subroutine reactor_close_F() bind(C, name="reactor_close_F")
 
     implicit none
 
@@ -411,7 +410,7 @@ contains
 
     reactor_initialized = .false.
    
-  end subroutine reactor_close
+  end subroutine reactor_close_F
 
 
 !*** SPECIFIC ROUTINES ***!
