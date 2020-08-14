@@ -64,9 +64,6 @@ public:
 /**********************************/
 /* Functions Called by the Program */
 
-    int reactor_init(int reactor_type, int Ncells,double rk64_errtol=1e-16,
-        int rk64_nsubsteps_guess=10,int rk64_nsusbteps_min=5,int rk64_nsubsteps_max=500);
-
     virtual int reactor_init(int reactor_type, int Ncells) override;
 
     virtual int react(amrex::Real *rY_in, amrex::Real *rY_src_in, 

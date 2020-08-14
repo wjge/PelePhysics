@@ -25,43 +25,13 @@ ReactorRK64_CPU::~ReactorRK64_CPU() { ; }
 /* Functions Called by the Program */
 
 /* Initialization routine, called once at the begining of the problem */
-int ReactorRK64_CPU::reactor_init(int reactor_type, int ode_ncells,
-                                  double rk64_errtol, int rk64_nsubsteps_guess,
-                                  int rk64_nsubsteps_min,int rk64_nsubsteps_max) {
-
-    int omp_thread = 0;
-#ifdef _OPENMP
-    omp_thread = omp_get_thread_num(); 
-#endif
-    data = AllocUserData(reactor_type, ode_ncells, 
-                         rk64_errtol, rk64_nsubsteps_guess,
-                         rk64_nsubsteps_min, rk64_nsubsteps_max);
-
-    /* Number of species and cells in mechanism */
-    if ((data->iverbose > 0) && (omp_thread == 0)) {
-        Print() << "Number of species in mech is " << NUM_SPECIES << "\n";
-        Print() << "Number of cells in one solve is " << data->ncells << "\n";
-    }
-
-    return(0);
-}
-
-/* Initialization routine, called once at the begining of the problem */
 int ReactorRK64_CPU::reactor_init(int reactor_type, int ode_ncells) {
 
-    double rk64_errtol       = 1e-16;
-    int rk64_nsubsteps_guess = 10; 
-    int rk64_nsubsteps_min   = 5;
-    int rk64_nsubsteps_max   = 500;
-
     int omp_thread = 0;
 #ifdef _OPENMP
-    /* omp thread if applicable */
     omp_thread = omp_get_thread_num(); 
 #endif
-    data = AllocUserData(reactor_type, ode_ncells,
-                         rk64_errtol, rk64_nsubsteps_guess,
-                         rk64_nsubsteps_min, rk64_nsubsteps_max);
+    data = AllocUserData(reactor_type, ode_ncells);
 
     /* Number of species and cells in mechanism */
     if ((data->iverbose > 0) && (omp_thread == 0)) {
@@ -282,9 +252,7 @@ void ReactorRK64_CPU::SetTolFactODE(double relative_tol,double absolute_tol) {
     }
 }
 
-ReactorRK64_CPU::UserData ReactorRK64_CPU::AllocUserData(int reactor_type, int num_cells,
-                                                   double rk64_errtol, int rk64_nsubsteps_guess,
-                                                   int rk64_nsubsteps_min, int rk64_nsubsteps_max)
+ReactorRK64_CPU::UserData ReactorRK64_CPU::AllocUserData(int reactor_type, int num_cells)
 {
     /* Make local copies of pointers in user_data */
     UserData data_wk = (UserData) malloc(sizeof *data_wk);
@@ -293,14 +261,30 @@ ReactorRK64_CPU::UserData ReactorRK64_CPU::AllocUserData(int reactor_type, int n
     omp_thread = omp_get_thread_num(); 
 #endif
 
-    (data_wk->ncells)        = num_cells;
-    (data_wk->iverbose)      = 1;
+    /* RK specific */
+    ParmParse pprk("rk64");
+
+    data_wk->errtol       = 1e-16;
+    pprk.query("errtol",data_wk->errtol);
+
+    data_wk->nsubsteps_guess = 10; 
+    pprk.query("nsubsteps_guess",data_wk->nsubsteps_guess);
+
+    data_wk->nsubsteps_min   = 5;
+    pprk.query("nsubsteps_min",data_wk->nsubsteps_min);
+
+    data_wk->nsubsteps_max   = 500;
+    pprk.query("nsubsteps_max",data_wk->nsubsteps_max);
+
+    /* ODE common */
+    ParmParse pp("ode");
+
+    data_wk->iverbose      = 1;
+    pp.query("verbose",data_wk->iverbose);
+
     (data_wk->ireactor_type) = reactor_type;
 
-    (data_wk->errtol) = rk64_errtol;
-    (data_wk->nsubsteps_guess) = rk64_nsubsteps_guess;
-    (data_wk->nsubsteps_min)   = rk64_nsubsteps_min;
-    (data_wk->nsubsteps_max)   = rk64_nsubsteps_max;
+    (data_wk->ncells)        = num_cells;
 
     (data_wk->rYsrc)       = new  amrex::Real[data_wk->ncells*(NUM_SPECIES)];
     (data_wk->rhoX_init)   = new  amrex::Real[data_wk->ncells];
