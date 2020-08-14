@@ -69,9 +69,9 @@ public:
 
     virtual int reactor_init(int reactor_type, int Ncells) override;
 
-    virtual int react(realtype *rY_in, realtype *rY_src_in, 
-              realtype *rX_in, drealtype *rX_src_in, 
-              realtype &dt_react, realtype &time) override;
+    virtual int react(amrex::Real *rY_in, amrex::Real *rY_src_in, 
+              amrex::Real *rX_in, amrex::Real *rX_src_in, 
+              amrex::Real &dt_react, amrex::Real &time) override;
 
     virtual void reactor_close() override;
 

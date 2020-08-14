@@ -15,8 +15,8 @@ ReactorRK64_CPU::ReactorRK64_CPU()
     relTol  = 1.0e-10;
     absTol  = 1.0e-10;
     /* OPTIONS -- should be static */
-    ReactorARKODE_CPU::eint_rho = 1; // in/out = rhoE/rhoY
-    ReactorARKODE_CPU::enth_rho = 2; // in/out = rhoH/rhoY 
+    ReactorRK64_CPU::eint_rho = 1; // in/out = rhoE/rhoY
+    ReactorRK64_CPU::enth_rho = 2; // in/out = rhoH/rhoY 
 }
 
 ReactorRK64_CPU::~ReactorRK64_CPU() { ; }
@@ -51,11 +51,11 @@ int ReactorRK64_CPU::reactor_init(int reactor_type, int ode_ncells) {
 
     double rk64_errtol       = 1e-16;
     int rk64_nsubsteps_guess = 10; 
-    int rk64_nsusbteps_min   = 5;
+    int rk64_nsubsteps_min   = 5;
     int rk64_nsubsteps_max   = 500;
 
+    int omp_thread = 0;
 #ifdef _OPENMP
-    int omp_thread;
     /* omp thread if applicable */
     omp_thread = omp_get_thread_num(); 
 #endif
@@ -151,10 +151,10 @@ int ReactorRK64_CPU::react(double *rY_in, double *rY_src_in,
     std::memcpy(soln_reg,      rY_in, sizeof(double) * neq_tot);
     std::memcpy(carryover_reg, rY_in, sizeof(double) * neq_tot);
     /* rhoY_src_ext */
-    std::memcpy(data_wk->rYsrc, rY_src_in, (NUM_SPECIES * data->ncells)*sizeof(double));
+    std::memcpy(data->rYsrc, rY_src_in, (NUM_SPECIES * data->ncells)*sizeof(double));
     /* rhoE/rhoH */
-    std::memcpy(data_wk->rhoX_init, rX_in, sizeof(double) * data->ncells);
-    std::memcpy(data_wk->rhoXsrc_ext, rX_src_in, sizeof(double) * data->ncells);
+    std::memcpy(data->rhoX_init, rX_in, sizeof(double) * data->ncells);
+    std::memcpy(data->rhoXsrc_ext, rX_src_in, sizeof(double) * data->ncells);
 
     dt_rk     = dt_react/double(data->nsubsteps_guess);
     dt_rk_min = dt_react/double(data->nsubsteps_max);
@@ -310,7 +310,7 @@ ReactorRK64_CPU::UserData ReactorRK64_CPU::AllocUserData(int reactor_type, int n
 }
 
 /* Free data memory */
-void ReactorRK64_CPU:FreeUserData(UserData data_wk)
+void ReactorRK64_CPU::FreeUserData(UserData data_wk)
 {
     delete[] (data_wk->rYsrc);
     delete[] (data_wk->rhoX_init);
@@ -320,7 +320,7 @@ void ReactorRK64_CPU:FreeUserData(UserData data_wk)
 } 
 /******************************************************************************************/
 /* RHS source terms evaluation */
-void ReactorRK64_CPU:cF_RHS(realtype &t, double *yvec_d, double *ydot_d,  
+void ReactorRK64_CPU::cF_RHS(double &t, double *yvec_d, double *ydot_d,  
         void *user_data)
 {
     /* Make local copies of pointers in user_data (cell M)*/
