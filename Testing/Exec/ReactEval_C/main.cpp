@@ -149,13 +149,15 @@ main (int   argc,
     EOS::init();
     transport_init();
 
+    ReactorBase *reactor;
 #ifndef AMREX_USE_CUDA
     if (ode_solver == ARKODE_SOLVER) {
-        ReactorARKODE_CPU reactor;
+        reactor = new ReactorARKODE_CPU;
     } else if (ode_solver == CVODE_SOLVER) {
-        ReactorCVODE_CPU reactor; 
+        Print() << "GOOD " << std::endl;
+        reactor = new ReactorCVODE_CPU; 
     } else if (ode_solver == RK64_SOLVER) {
-        ReactorRK64_CPU reactor; 
+        reactor = new ReactorRK64_CPU; 
     } else {
       Abort("wrong choice of ode_solver");
     }
@@ -167,13 +169,13 @@ main (int   argc,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-      // Set ODE tolerances
-      reactor.SetTolFactODE(rtol,atol);
-
 #ifdef AMREX_USE_CUDA
       reactor_info(ode_iE, ode_ncells);
 #else
-      reactor.reactor_init(ode_iE, ode_ncells);
+      // Set ODE tolerances
+      reactor->SetTolFactODE(rtol,atol);
+
+      reactor->reactor_init(ode_iE, ode_ncells);
 #endif
     }
     BL_PROFILE_VAR_STOP(reactInfo);
@@ -244,6 +246,7 @@ main (int   argc,
     }
     BL_PROFILE_VAR_STOP(InitData);
 
+#ifndef AMREX_USE_CUDA
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -256,9 +259,10 @@ main (int   argc,
         for (int i = 0; i < NUM_SPECIES; ++i) {
           typ_vals[i] = std::max(typ_vals[i],1.e-10);
         }
-        reactor.SetTypValsODE(typ_vals);
+        reactor->SetTypValsODE(typ_vals);
       }
     }
+#endif
 
     BL_PROFILE_VAR_NS("PlotFile",PlotFile);
     if (do_plt) {
@@ -354,7 +358,7 @@ main (int   argc,
           Real time = 0.0;
           Real dt_incr = dt/ndt;
           for (int ii = 0; ii < ndt; ++ii) {
-            tmp_fc[i] += reactor.react(tmp_vect + i*(NUM_SPECIES+1), tmp_src_vect + i*NUM_SPECIES,
+            tmp_fc[i] += reactor->react(tmp_vect + i*(NUM_SPECIES+1), tmp_src_vect + i*NUM_SPECIES,
                                tmp_vect_energy + i, tmp_src_vect_energy + i,
                                dt_incr, time);
             dt_incr =  dt/ndt;
@@ -375,7 +379,7 @@ main (int   argc,
                 dt_incr, time,
                 ode_iE, Gpu::gpuStream());
 #else
-          reactor.react(box,
+          reactor->react(box,
                   rhoY, frcExt, T,
                   rhoE, frcEExt,
                   fc, mask,
@@ -433,10 +437,12 @@ main (int   argc,
     }
     
 #ifndef AMREX_USE_CUDA
-    reactor.reactor_close();
+    reactor->reactor_close();
 #endif
     transport_close();
     EOS::close();
+
+    delete reactor;
     
     BL_PROFILE_VAR_STOP(pmain);
   }
