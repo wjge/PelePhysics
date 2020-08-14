@@ -112,11 +112,6 @@ public:
 
     void FreeUserData(UserData data);
 
-///**********************************/
-///* Main Kernel fct called in solver RHS */
-//void fKernelSpec(realtype *dt, realtype *yvec_d, realtype *ydot_d,
-//		void *user_data);
-
 };
 
 #endif

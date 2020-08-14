@@ -1,39 +1,22 @@
-ifeq ($(USE_SUNDIALS_PP), TRUE)
-    ifeq ($(USE_CUDA), TRUE)
-        ifeq ($(USE_ARKODE_PP), TRUE)
-            Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/GPU/arkode
-        else
-            Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/GPU/cvode
-        endif
-        CEXE_headers += reactor.h  
-        CEXE_sources += reactor.cpp
+ifeq ($(USE_CUDA), TRUE)
+    ifeq ($(USE_ARKODE_PP), TRUE)
+        Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/GPU/arkode
     else
-        Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/
-        CEXE_headers += ReactorBase.H   
-        CEXE_sources += ReactorBase.cpp
-        ifeq ($(USE_ARKODE_PP), TRUE)
-            Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/CPU/arkode
-            CEXE_headers += R_ArkodeCPU.H  
-            CEXE_sources += R_ArkodeCPU.cpp
-        else
-            Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/CPU/cvode
-            CEXE_headers += R_CvodeCPU.H  
-            CEXE_sources += R_CvodeCPU.cpp
-        endif
+        Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/GPU/cvode
     endif
-else 
-    ifeq ($(USE_RK64_PP), TRUE)
-        Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/CPU/RK64
-        CEXE_headers += reactor.h  
-        CEXE_sources += reactor.cpp
-    else
-        ifeq ($(USE_F90_PP),TRUE)
-            Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/F90
-            F90EXE_sources += react_type.F90
-            F90EXE_sources += reactor.F90
-            FEXE_headers   += reactor_F.H
-        else
-            $(error Activate USE_F90_PP to use dvode)
-        endif
+    CEXE_headers += reactor.h  
+    CEXE_sources += reactor.cpp
+else
+    Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego \
+               $(PELE_PHYSICS_HOME)/Reactions/Fuego/CPU/cvode \
+               $(PELE_PHYSICS_HOME)/Reactions/Fuego/CPU/arkode \
+               $(PELE_PHYSICS_HOME)/Reactions/Fuego/CPU/RK64
+    CEXE_headers += ReactorBase.H R_CvodeCPU.H R_ArkodeCPU.H R_RK64CPU.H
+    CEXE_sources += ReactorBase.cpp R_CvodeCPU.cpp R_ArkodeCPU.cpp R_RK64CPU.cpp
+    ifeq ($(USE_F90_PP),TRUE)
+        Blocs   += $(PELE_PHYSICS_HOME)/Reactions/Fuego/F90
+        F90EXE_sources += react_type.F90
+        F90EXE_sources += reactor.F90
+        FEXE_headers   += reactor_F.H
     endif
 endif
