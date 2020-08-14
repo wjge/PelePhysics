@@ -82,8 +82,7 @@ public:
 
     virtual void SetTolFactODE(double relative_tol,double absolute_tol) override;
 
-    UserData AllocUserData(int reactor_type, int num_cells,double rk64_errtol,
-            int rk64_nsubsteps_guess,int rk64_nsubsteps_min,int rk64_nsubsteps_max);
+    UserData AllocUserData(int reactor_type, int num_cells);
 
     void FreeUserData(UserData data);
 };
