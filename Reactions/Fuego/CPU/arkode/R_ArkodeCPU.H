@@ -22,7 +22,6 @@
 #include <AMReX_ParmParse.H>
 #include <chemistry_file.H>
 #include "mechanism.h"
-#include <AMREX_misc.H>
 
 #include <ReactorBase.H>
 
@@ -47,10 +46,9 @@ public:
       int iimplicit_solve;
       int iuse_erkode;
       /* external forcing */
-      //amrex::Real *Yvect_full = NULL;
-      //amrex::Real *rhoX_init = NULL;
-      //amrex::Real *rhoXsrc_ext = NULL;
-      //amrex::Real *rYsrc = NULL;
+      amrex::Real *rhoX_init = NULL;
+      amrex::Real *rhoXsrc_ext = NULL;
+      amrex::Real *rYsrc = NULL;
       //int *FCunt = NULL;
       //int *mask = NULL;
     } *UserData;
@@ -68,10 +66,6 @@ public:
     Array<double,NUM_SPECIES+1> typVals;
     double relTol;
     double absTol;
-    /* energy -- Should be moved in struct */
-    double *rhoX_init;
-    double *rhoXsrc_ext;
-    double *rYsrc;
     /* OPTIONS -- should be static */
     int dense_solve;
     static int eint_rho; // in/out = rhoE/rhoY
