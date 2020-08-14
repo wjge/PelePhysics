@@ -3,6 +3,8 @@ max_grid_size  = 16
 plotfile = plt
 fuel_name = CH4
 
+ode.solver = cvode 
+
 ode.dt  = 1.e-05
 ode.ndt = 1
 ode.reactor_type  = 1 # 1=full e, 2=full h

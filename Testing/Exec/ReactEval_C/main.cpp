@@ -12,17 +12,17 @@
 #include <PlotFileFromMF.H>
 #include <EOS.H>
 #include <Transport.H>
+#ifdef AMREX_USE_CUDA
+#include <reactor.h>
+#else
 #include <R_CvodeCPU.H>
+#include <R_ArkodeCPU.H>
+#include <R_RK64CPU.H>
+#endif
 
-//#ifndef USE_RK64_PP
-//#ifdef USE_ARKODE_PP 
-//static std::string ODE_SOLVER = "ARKODE";
-//#else
-static std::string ODE_SOLVER = "CVODE";
-//#endif
-//#else
-//static std::string ODE_SOLVER = "RK64";
-//#endif
+static std::string ARKODE_SOLVER = "arkode";
+static std::string CVODE_SOLVER = "cvode";
+static std::string RK64_SOLVER = "RK64";
 
 using namespace amrex;
 
@@ -103,6 +103,10 @@ main (int   argc,
 
     /* ODE inputs */
     ParmParse ppode("ode");
+
+    std::string ode_solver;
+    ppode.get("solver", ode_solver);
+
     int ode_ncells = 1;
     ppode.query("ode_ncells",ode_ncells); // number of cells to integrate per call
 
@@ -124,7 +128,7 @@ main (int   argc,
     int use_typ_vals = 0;
     ppode.query("use_typ_vals",use_typ_vals);
 
-    Print() << "ODE solver: " << ODE_SOLVER << std::endl;
+    Print() << "ODE solver: " << ode_solver << std::endl;
     Print() << "Type of reactor: " << (ode_iE == 1 ? "e (PeleC)" : "h (PeleLM)") << std::endl; // <---- FIXME
     Print() << "Fuel: " << fuel_name << ", Oxy: O2"  << std::endl;
 
@@ -145,10 +149,19 @@ main (int   argc,
     EOS::init();
     transport_init();
 
-    ReactorCVODE_CPU reactor;
+#ifndef AMREX_USE_CUDA
+    if (ode_solver == ARKODE_SOLVER) {
+        ReactorARKODE_CPU reactor;
+    } else if (ode_solver == CVODE_SOLVER) {
+        ReactorCVODE_CPU reactor; 
+    } else if (ode_solver == RK64_SOLVER) {
+        ReactorRK64_CPU reactor; 
+    } else {
+      Abort("wrong choice of ode_solver");
+    }
+#endif
 
     BL_PROFILE_VAR("main::reactor_info()", reactInfo);
-
     /* Initialize reactor object inside OMP region, including tolerances */
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -157,11 +170,11 @@ main (int   argc,
       // Set ODE tolerances
       reactor.SetTolFactODE(rtol,atol);
 
-//#ifdef AMREX_USE_CUDA
-//      reactor_info(ode_iE, ode_ncells);
-//#else
+#ifdef AMREX_USE_CUDA
+      reactor_info(ode_iE, ode_ncells);
+#else
       reactor.reactor_init(ode_iE, ode_ncells);
-//#endif
+#endif
     }
     BL_PROFILE_VAR_STOP(reactInfo);
 
@@ -235,6 +248,7 @@ main (int   argc,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
+      // Not adapted to GPU 
       if (use_typ_vals) {
         Print() << "Using user-defined typical values for the absolute tolerances of the ode solver.\n";
         Vector<double> typ_vals(NUM_SPECIES+1);
@@ -353,20 +367,20 @@ main (int   argc,
         Real dt_incr = dt/ndt;
         for (int ii = 0; ii < ndt; ++ii)
         {
-//#ifdef AMREX_USE_CUDA
-//          ReactorCVODE_CPU::react(box,
-//                rhoY, frcExt, T,
-//                rhoE, frcEExt,
-//                fc, mask,
-//                dt_incr, time,
-//                ode_iE, Gpu::gpuStream());
-//#else
+#ifdef AMREX_USE_CUDA
+          react(box,
+                rhoY, frcExt, T,
+                rhoE, frcEExt,
+                fc, mask,
+                dt_incr, time,
+                ode_iE, Gpu::gpuStream());
+#else
           reactor.react(box,
                   rhoY, frcExt, T,
                   rhoE, frcEExt,
                   fc, mask,
                   dt_incr, time);
-//#endif
+#endif
           dt_incr =  dt/ndt;
         }
       }

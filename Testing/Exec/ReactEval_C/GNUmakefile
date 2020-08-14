@@ -25,22 +25,14 @@ PELE_PHYSICS_HOME    ?= ../../..
 DEFINES  += -DMOD_REACTOR
 
 #######################
-# ODE solver OPTIONS: DVODE (default) / SUNDIALS / RK explicit
+# ODE solver OPTIONS: SUNDIALS: cvode, arkode, erkode / RK64 explicit / DVODE
 #######################
-# Activates use of SUNDIALS: CVODE (default) / ARKODE
-USE_SUNDIALS_PP = TRUE
-ifeq ($(USE_SUNDIALS_PP), TRUE)
-  USE_ARKODE_PP = FALSE
-  ifeq ($(USE_CUDA), TRUE)
-      DEFINES += -DCVODE_BOXINTEG
-      USE_KLU_PP = FALSE
-  else
-      USE_KLU_PP = TRUE
-  endif
+ifeq ($(USE_CUDA), TRUE)
+    USE_ARKODE_PP = FALSE
+    DEFINES += -DCVODE_BOXINTEG
+    USE_KLU_PP = FALSE
 else
-  # Activates use of Hari explicit RK
-  # will only work if USE_SUNDIALS_PP = FALSE
-  USE_RK64_PP = TRUE
+    USE_KLU_PP = TRUE
 endif
 
 #######################
