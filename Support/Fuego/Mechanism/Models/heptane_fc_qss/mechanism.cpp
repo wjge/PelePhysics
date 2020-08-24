@@ -31,13 +31,13 @@ static AMREX_GPU_DEVICE_MANAGED double imw[25] = {
     1.0 / 31.998800,  /*O2 */
     1.0 / 33.006770,  /*HO2 */
     1.0 / 34.014740,  /*H2O2 */
+    1.0 / 30.026490,  /*CH2O */
     1.0 / 44.009950,  /*CO2 */
     1.0 / 28.010550,  /*CO */
-    1.0 / 30.026490,  /*CH2O */
     1.0 / 15.035060,  /*CH3 */
+    1.0 / 30.070120,  /*C2H6 */
     1.0 / 16.043030,  /*CH4 */
     1.0 / 32.042430,  /*CH3OH */
-    1.0 / 30.070120,  /*C2H6 */
     1.0 / 42.037640,  /*CH2CO */
     1.0 / 46.025890,  /*HOCHO */
     1.0 / 26.038240,  /*C2H2 */
@@ -59,13 +59,13 @@ static AMREX_GPU_DEVICE_MANAGED double molecular_weights[25] = {
     31.998800,  /*O2 */
     33.006770,  /*HO2 */
     34.014740,  /*H2O2 */
+    30.026490,  /*CH2O */
     44.009950,  /*CO2 */
     28.010550,  /*CO */
-    30.026490,  /*CH2O */
     15.035060,  /*CH3 */
+    30.070120,  /*C2H6 */
     16.043030,  /*CH4 */
     32.042430,  /*CH3OH */
-    30.070120,  /*C2H6 */
     42.037640,  /*CH2CO */
     46.025890,  /*HOCHO */
     26.038240,  /*C2H2 */
@@ -169,10 +169,10 @@ void CKINIT()
     nTB[11] = 4;
     TB[11] = (double *) malloc(4 * sizeof(double));
     TBid[11] = (int *) malloc(4 * sizeof(int));
-    TBid[11][0] = 10; TB[11][0] = 1.8999999999999999; // CO
+    TBid[11][0] = 11; TB[11][0] = 1.8999999999999999; // CO
     TBid[11][1] = 2; TB[11][1] = 2.5; // H2
     TBid[11][2] = 5; TB[11][2] = 12; // H2O
-    TBid[11][3] = 9; TB[11][3] = 3.7999999999999998; // CO2
+    TBid[11][3] = 10; TB[11][3] = 3.7999999999999998; // CO2
 
     // (5):  O + H2O => 2.000000 OH
     kiv[22] = {1,5,4};
@@ -228,10 +228,10 @@ void CKINIT()
     nTB[0] = 4;
     TB[0] = (double *) malloc(4 * sizeof(double));
     TBid[0] = (int *) malloc(4 * sizeof(int));
-    TBid[0][0] = 10; TB[0][0] = 1.8999999999999999; // CO
+    TBid[0][0] = 11; TB[0][0] = 1.8999999999999999; // CO
     TBid[0][1] = 2; TB[0][1] = 2.5; // H2
     TBid[0][2] = 5; TB[0][2] = 12; // H2O
-    TBid[0][3] = 9; TB[0][3] = 3.7999999999999998; // CO2
+    TBid[0][3] = 10; TB[0][3] = 3.7999999999999998; // CO2
 
     // (8):  H + O2 => O + OH
     kiv[24] = {3,6,1,4};
@@ -392,10 +392,10 @@ void CKINIT()
     nTB[1] = 4;
     TB[1] = (double *) malloc(4 * sizeof(double));
     TBid[1] = (int *) malloc(4 * sizeof(int));
-    TBid[1][0] = 10; TB[1][0] = 1.8999999999999999; // CO
+    TBid[1][0] = 11; TB[1][0] = 1.8999999999999999; // CO
     TBid[1][1] = 2; TB[1][1] = 2.5; // H2
     TBid[1][2] = 5; TB[1][2] = 12; // H2O
-    TBid[1][3] = 9; TB[1][3] = 3.7999999999999998; // CO2
+    TBid[1][3] = 10; TB[1][3] = 3.7999999999999998; // CO2
 
     // (18):  CH + O2 => HCO + O
     kiv[33] = {6,1};
@@ -413,7 +413,7 @@ void CKINIT()
     nTB[33] = 0;
 
     // (19):  CH2 + O2 => CO2 + 2.000000 H
-    kiv[34] = {6,9,3};
+    kiv[34] = {6,10,3};
     nuv[34] = {-1,1,2.0};
     kiv_qss[34] = {2};
     nuv_qss[34] = {-1};
@@ -428,7 +428,7 @@ void CKINIT()
     nTB[34] = 0;
 
     // (20):  CH2 + O2 => CO + H2O
-    kiv[35] = {6,10,5};
+    kiv[35] = {6,11,5};
     nuv[35] = {-1,1,1};
     kiv_qss[35] = {2};
     nuv_qss[35] = {-1};
@@ -443,7 +443,7 @@ void CKINIT()
     nTB[35] = 0;
 
     // (21):  CH2 + O => CO + 2.000000 H
-    kiv[36] = {1,10,3};
+    kiv[36] = {1,11,3};
     nuv[36] = {-1,1,2.0};
     kiv_qss[36] = {2};
     nuv_qss[36] = {-1};
@@ -458,7 +458,7 @@ void CKINIT()
     nTB[36] = 0;
 
     // (22):  CH2 + O2 => CH2O + O
-    kiv[37] = {6,11,1};
+    kiv[37] = {6,9,1};
     nuv[37] = {-1,1,1};
     kiv_qss[37] = {2};
     nuv_qss[37] = {-1};
@@ -533,7 +533,7 @@ void CKINIT()
     nTB[41] = 0;
 
     // (27):  CH2 + O2 => CO2 + H2
-    kiv[42] = {6,9,2};
+    kiv[42] = {6,10,2};
     nuv[42] = {-1,1,1};
     kiv_qss[42] = {2};
     nuv_qss[42] = {-1};
@@ -623,7 +623,7 @@ void CKINIT()
     nTB[45] = 0;
 
     // (33):  CH2GSG + O2 => CO + OH + H
-    kiv[46] = {6,10,4,3};
+    kiv[46] = {6,11,4,3};
     nuv[46] = {-1,1,1,1};
     kiv_qss[46] = {3};
     nuv_qss[46] = {-1};
@@ -638,7 +638,7 @@ void CKINIT()
     nTB[46] = 0;
 
     // (34):  CH2GSG + OH => CH2O + H
-    kiv[47] = {4,11,3};
+    kiv[47] = {4,9,3};
     nuv[47] = {-1,1,1};
     kiv_qss[47] = {3};
     nuv_qss[47] = {-1};
@@ -653,7 +653,7 @@ void CKINIT()
     nTB[47] = 0;
 
     // (35):  CH3 + OH => CH2O + H2
-    kiv[48] = {12,4,11,2};
+    kiv[48] = {12,4,9,2};
     nuv[48] = {-1,-1,1,1};
     kiv_qss[48] = {};
     nuv_qss[48] = {};
@@ -698,7 +698,7 @@ void CKINIT()
     nTB[50] = 0;
 
     // (38):  CH3 + O => CH2O + H
-    kiv[51] = {12,1,11,3};
+    kiv[51] = {12,1,9,3};
     nuv[51] = {-1,-1,1,1};
     kiv_qss[51] = {};
     nuv_qss[51] = {};
@@ -728,7 +728,7 @@ void CKINIT()
     nTB[52] = 0;
 
     // (40):  CH3 + HO2 => CH4 + O2
-    kiv[53] = {12,7,13,6};
+    kiv[53] = {12,7,14,6};
     nuv[53] = {-1,-1,1,1};
     kiv_qss[53] = {};
     nuv_qss[53] = {};
@@ -743,7 +743,7 @@ void CKINIT()
     nTB[53] = 0;
 
     // (41):  OH + CH3 (+M) => CH3OH (+M)
-    kiv[2] = {4,12,14};
+    kiv[2] = {4,12,15};
     nuv[2] = {-1,-1,1};
     kiv_qss[2] = {};
     nuv_qss[2] = {};
@@ -766,15 +766,15 @@ void CKINIT()
     nTB[2] = 6;
     TB[2] = (double *) malloc(6 * sizeof(double));
     TBid[2] = (int *) malloc(6 * sizeof(int));
-    TBid[2][0] = 10; TB[2][0] = 1.5; // CO
+    TBid[2][0] = 11; TB[2][0] = 1.5; // CO
     TBid[2][1] = 2; TB[2][1] = 2; // H2
     TBid[2][2] = 5; TB[2][2] = 6; // H2O
-    TBid[2][3] = 9; TB[2][3] = 2; // CO2
-    TBid[2][4] = 13; TB[2][4] = 2; // CH4
-    TBid[2][5] = 15; TB[2][5] = 3; // C2H6
+    TBid[2][3] = 10; TB[2][3] = 2; // CO2
+    TBid[2][4] = 14; TB[2][4] = 2; // CH4
+    TBid[2][5] = 13; TB[2][5] = 3; // C2H6
 
     // (42):  CH3 + O2 => CH2O + OH
-    kiv[54] = {12,6,11,4};
+    kiv[54] = {12,6,9,4};
     nuv[54] = {-1,-1,1,1};
     kiv_qss[54] = {};
     nuv_qss[54] = {};
@@ -789,7 +789,7 @@ void CKINIT()
     nTB[54] = 0;
 
     // (43):  CH3 + H (+M) => CH4 (+M)
-    kiv[3] = {12,3,13};
+    kiv[3] = {12,3,14};
     nuv[3] = {-1,-1,1};
     kiv_qss[3] = {};
     nuv_qss[3] = {};
@@ -812,10 +812,10 @@ void CKINIT()
     nTB[3] = 4;
     TB[3] = (double *) malloc(4 * sizeof(double));
     TBid[3] = (int *) malloc(4 * sizeof(int));
-    TBid[3][0] = 10; TB[3][0] = 2; // CO
+    TBid[3][0] = 11; TB[3][0] = 2; // CO
     TBid[3][1] = 2; TB[3][1] = 2; // H2
     TBid[3][2] = 5; TB[3][2] = 5; // H2O
-    TBid[3][3] = 9; TB[3][3] = 3; // CO2
+    TBid[3][3] = 10; TB[3][3] = 3; // CO2
 
     // (44):  CH3 + H => CH2 + H2
     kiv[55] = {12,3,2};
@@ -848,7 +848,7 @@ void CKINIT()
     nTB[56] = 0;
 
     // (46):  2.000000 CH3 (+M) => C2H6 (+M)
-    kiv[4] = {12,15};
+    kiv[4] = {12,13};
     nuv[4] = {-2.0,1};
     kiv_qss[4] = {};
     nuv_qss[4] = {};
@@ -871,10 +871,10 @@ void CKINIT()
     nTB[4] = 4;
     TB[4] = (double *) malloc(4 * sizeof(double));
     TBid[4] = (int *) malloc(4 * sizeof(int));
-    TBid[4][0] = 10; TB[4][0] = 2; // CO
+    TBid[4][0] = 11; TB[4][0] = 2; // CO
     TBid[4][1] = 2; TB[4][1] = 2; // H2
     TBid[4][2] = 5; TB[4][2] = 5; // H2O
-    TBid[4][3] = 9; TB[4][3] = 3; // CO2
+    TBid[4][3] = 10; TB[4][3] = 3; // CO2
 
     // (47):  2.000000 CH3 <=> H + C2H5
     kiv[57] = {12,3};
@@ -922,7 +922,7 @@ void CKINIT()
     nTB[59] = 0;
 
     // (50):  CH4 + O => CH3 + OH
-    kiv[60] = {13,1,12,4};
+    kiv[60] = {14,1,12,4};
     nuv[60] = {-1,-1,1,1};
     kiv_qss[60] = {};
     nuv_qss[60] = {};
@@ -937,7 +937,7 @@ void CKINIT()
     nTB[60] = 0;
 
     // (51):  CH4 + H => CH3 + H2
-    kiv[61] = {13,3,12,2};
+    kiv[61] = {14,3,12,2};
     nuv[61] = {-1,-1,1,1};
     kiv_qss[61] = {};
     nuv_qss[61] = {};
@@ -952,7 +952,7 @@ void CKINIT()
     nTB[61] = 0;
 
     // (52):  CH3 + H2 => CH4 + H
-    kiv[62] = {12,2,13,3};
+    kiv[62] = {12,2,14,3};
     nuv[62] = {-1,-1,1,1};
     kiv_qss[62] = {};
     nuv_qss[62] = {};
@@ -967,7 +967,7 @@ void CKINIT()
     nTB[62] = 0;
 
     // (53):  CH4 + OH => CH3 + H2O
-    kiv[63] = {13,4,12,5};
+    kiv[63] = {14,4,12,5};
     nuv[63] = {-1,-1,1,1};
     kiv_qss[63] = {};
     nuv_qss[63] = {};
@@ -982,7 +982,7 @@ void CKINIT()
     nTB[63] = 0;
 
     // (54):  CH3 + H2O => CH4 + OH
-    kiv[64] = {12,5,13,4};
+    kiv[64] = {12,5,14,4};
     nuv[64] = {-1,-1,1,1};
     kiv_qss[64] = {};
     nuv_qss[64] = {};
@@ -997,7 +997,7 @@ void CKINIT()
     nTB[64] = 0;
 
     // (55):  CO + CH2 (+M) => CH2CO (+M)
-    kiv[5] = {10,16};
+    kiv[5] = {11,16};
     nuv[5] = {-1,1};
     kiv_qss[5] = {2};
     nuv_qss[5] = {-1};
@@ -1020,7 +1020,7 @@ void CKINIT()
     nTB[5] = 0;
 
     // (56):  CO + O (+M) => CO2 (+M)
-    kiv[6] = {10,1,9};
+    kiv[6] = {11,1,10};
     nuv[6] = {-1,-1,1};
     kiv_qss[6] = {};
     nuv_qss[6] = {};
@@ -1043,13 +1043,13 @@ void CKINIT()
     nTB[6] = 4;
     TB[6] = (double *) malloc(4 * sizeof(double));
     TBid[6] = (int *) malloc(4 * sizeof(int));
-    TBid[6][0] = 10; TB[6][0] = 1.8999999999999999; // CO
+    TBid[6][0] = 11; TB[6][0] = 1.8999999999999999; // CO
     TBid[6][1] = 2; TB[6][1] = 2.5; // H2
     TBid[6][2] = 5; TB[6][2] = 12; // H2O
-    TBid[6][3] = 9; TB[6][3] = 3.7999999999999998; // CO2
+    TBid[6][3] = 10; TB[6][3] = 3.7999999999999998; // CO2
 
     // (57):  CO + OH => CO2 + H
-    kiv[65] = {10,4,9,3};
+    kiv[65] = {11,4,10,3};
     nuv[65] = {-1,-1,1,1};
     kiv_qss[65] = {};
     nuv_qss[65] = {};
@@ -1064,7 +1064,7 @@ void CKINIT()
     nTB[65] = 0;
 
     // (58):  CO2 + H => CO + OH
-    kiv[66] = {9,3,10,4};
+    kiv[66] = {10,3,11,4};
     nuv[66] = {-1,-1,1,1};
     kiv_qss[66] = {};
     nuv_qss[66] = {};
@@ -1079,7 +1079,7 @@ void CKINIT()
     nTB[66] = 0;
 
     // (59):  HCO + O2 => CO + HO2
-    kiv[67] = {6,10,7};
+    kiv[67] = {6,11,7};
     nuv[67] = {-1,1,1};
     kiv_qss[67] = {1};
     nuv_qss[67] = {-1};
@@ -1094,7 +1094,7 @@ void CKINIT()
     nTB[67] = 0;
 
     // (60):  HCO + O => CO2 + H
-    kiv[68] = {1,9,3};
+    kiv[68] = {1,10,3};
     nuv[68] = {-1,1,1};
     kiv_qss[68] = {1};
     nuv_qss[68] = {-1};
@@ -1109,7 +1109,7 @@ void CKINIT()
     nTB[68] = 0;
 
     // (61):  HCO + OH => CO + H2O
-    kiv[69] = {4,10,5};
+    kiv[69] = {4,11,5};
     nuv[69] = {-1,1,1};
     kiv_qss[69] = {1};
     nuv_qss[69] = {-1};
@@ -1124,7 +1124,7 @@ void CKINIT()
     nTB[69] = 0;
 
     // (62):  HCO + H => CO + H2
-    kiv[70] = {3,10,2};
+    kiv[70] = {3,11,2};
     nuv[70] = {-1,1,1};
     kiv_qss[70] = {1};
     nuv_qss[70] = {-1};
@@ -1139,7 +1139,7 @@ void CKINIT()
     nTB[70] = 0;
 
     // (63):  HCO + O => CO + OH
-    kiv[71] = {1,10,4};
+    kiv[71] = {1,11,4};
     nuv[71] = {-1,1,1};
     kiv_qss[71] = {1};
     nuv_qss[71] = {-1};
@@ -1154,7 +1154,7 @@ void CKINIT()
     nTB[71] = 0;
 
     // (64):  HCO + M => H + CO + M
-    kiv[14] = {3,10};
+    kiv[14] = {3,11};
     nuv[14] = {1,1};
     kiv_qss[14] = {1};
     nuv_qss[14] = {-1};
@@ -1169,13 +1169,13 @@ void CKINIT()
     nTB[14] = 4;
     TB[14] = (double *) malloc(4 * sizeof(double));
     TBid[14] = (int *) malloc(4 * sizeof(int));
-    TBid[14][0] = 10; TB[14][0] = 1.8999999999999999; // CO
+    TBid[14][0] = 11; TB[14][0] = 1.8999999999999999; // CO
     TBid[14][1] = 2; TB[14][1] = 2.5; // H2
     TBid[14][2] = 5; TB[14][2] = 6; // H2O
-    TBid[14][3] = 9; TB[14][3] = 3.7999999999999998; // CO2
+    TBid[14][3] = 10; TB[14][3] = 3.7999999999999998; // CO2
 
     // (65):  HCO + CH3 => CH4 + CO
-    kiv[72] = {12,13,10};
+    kiv[72] = {12,14,11};
     nuv[72] = {-1,1,1};
     kiv_qss[72] = {1};
     nuv_qss[72] = {-1};
@@ -1190,7 +1190,7 @@ void CKINIT()
     nTB[72] = 0;
 
     // (66):  CH2O + OH => HCO + H2O
-    kiv[73] = {11,4,5};
+    kiv[73] = {9,4,5};
     nuv[73] = {-1,-1,1};
     kiv_qss[73] = {1};
     nuv_qss[73] = {1};
@@ -1205,7 +1205,7 @@ void CKINIT()
     nTB[73] = 0;
 
     // (67):  CH2O + O => HCO + OH
-    kiv[74] = {11,1,4};
+    kiv[74] = {9,1,4};
     nuv[74] = {-1,-1,1};
     kiv_qss[74] = {1};
     nuv_qss[74] = {1};
@@ -1220,7 +1220,7 @@ void CKINIT()
     nTB[74] = 0;
 
     // (68):  CH2O + H => HCO + H2
-    kiv[75] = {11,3,2};
+    kiv[75] = {9,3,2};
     nuv[75] = {-1,-1,1};
     kiv_qss[75] = {1};
     nuv_qss[75] = {1};
@@ -1235,7 +1235,7 @@ void CKINIT()
     nTB[75] = 0;
 
     // (69):  CH2O + CH3 => HCO + CH4
-    kiv[76] = {11,12,13};
+    kiv[76] = {9,12,14};
     nuv[76] = {-1,-1,1};
     kiv_qss[76] = {1};
     nuv_qss[76] = {1};
@@ -1250,7 +1250,7 @@ void CKINIT()
     nTB[76] = 0;
 
     // (70):  2.000000 CH3O => CH3OH + CH2O
-    kiv[77] = {14,11};
+    kiv[77] = {15,9};
     nuv[77] = {1,1};
     kiv_qss[77] = {4};
     nuv_qss[77] = {-2.0};
@@ -1265,7 +1265,7 @@ void CKINIT()
     nTB[77] = 0;
 
     // (71):  CH3O + O2 => CH2O + HO2
-    kiv[78] = {6,11,7};
+    kiv[78] = {6,9,7};
     nuv[78] = {-1,1,1};
     kiv_qss[78] = {4};
     nuv_qss[78] = {-1};
@@ -1280,7 +1280,7 @@ void CKINIT()
     nTB[78] = 0;
 
     // (72):  CH3O (+M) => CH2O + H (+M)
-    kiv[7] = {11,3};
+    kiv[7] = {9,3};
     nuv[7] = {1,1};
     kiv_qss[7] = {4};
     nuv_qss[7] = {-1};
@@ -1303,7 +1303,7 @@ void CKINIT()
     nTB[7] = 0;
 
     // (73):  CH3O + H2 => CH3OH + H
-    kiv[79] = {2,14,3};
+    kiv[79] = {2,15,3};
     nuv[79] = {-1,1,1};
     kiv_qss[79] = {4};
     nuv_qss[79] = {-1};
@@ -1318,7 +1318,7 @@ void CKINIT()
     nTB[79] = 0;
 
     // (74):  CH3OH + OH => CH3O + H2O
-    kiv[80] = {14,4,5};
+    kiv[80] = {15,4,5};
     nuv[80] = {-1,-1,1};
     kiv_qss[80] = {4};
     nuv_qss[80] = {1};
@@ -1333,7 +1333,7 @@ void CKINIT()
     nTB[80] = 0;
 
     // (75):  CH2GSG + CO2 => CH2O + CO
-    kiv[81] = {9,11,10};
+    kiv[81] = {10,9,11};
     nuv[81] = {-1,1,1};
     kiv_qss[81] = {3};
     nuv_qss[81] = {-1};
@@ -1348,7 +1348,7 @@ void CKINIT()
     nTB[81] = 0;
 
     // (76):  HOCHO + H => H2 + CO + OH
-    kiv[82] = {17,3,2,10,4};
+    kiv[82] = {17,3,2,11,4};
     nuv[82] = {-1,-1,1,1,1};
     kiv_qss[82] = {};
     nuv_qss[82] = {};
@@ -1363,7 +1363,7 @@ void CKINIT()
     nTB[82] = 0;
 
     // (77):  HOCHO + OH => H2O + CO + OH
-    kiv[83] = {17,4,5,10,4};
+    kiv[83] = {17,4,5,11,4};
     nuv[83] = {-1,-1,1,1,1};
     kiv_qss[83] = {};
     nuv_qss[83] = {};
@@ -1408,7 +1408,7 @@ void CKINIT()
     nTB[85] = 0;
 
     // (80):  HOCHO + H => H2 + CO2 + H
-    kiv[86] = {17,3,2,9,3};
+    kiv[86] = {17,3,2,10,3};
     nuv[86] = {-1,-1,1,1,1};
     kiv_qss[86] = {};
     nuv_qss[86] = {};
@@ -1423,7 +1423,7 @@ void CKINIT()
     nTB[86] = 0;
 
     // (81):  HOCHO + OH => H2O + CO2 + H
-    kiv[87] = {17,4,5,9,3};
+    kiv[87] = {17,4,5,10,3};
     nuv[87] = {-1,-1,1,1,1};
     kiv_qss[87] = {};
     nuv_qss[87] = {};
@@ -1513,7 +1513,7 @@ void CKINIT()
     nTB[90] = 0;
 
     // (87):  C2H2 + O => CH2 + CO
-    kiv[91] = {18,1,10};
+    kiv[91] = {18,1,11};
     nuv[91] = {-1,-1,1};
     kiv_qss[91] = {2};
     nuv_qss[91] = {1};
@@ -1603,7 +1603,7 @@ void CKINIT()
     nTB[96] = 0;
 
     // (93):  C2H3 + O2 => CH2O + HCO
-    kiv[97] = {6,11};
+    kiv[97] = {6,9};
     nuv[97] = {-1,1};
     kiv_qss[97] = {9,1};
     nuv_qss[97] = {-1,1};
@@ -1641,13 +1641,13 @@ void CKINIT()
     nTB[8] = 4;
     TB[8] = (double *) malloc(4 * sizeof(double));
     TBid[8] = (int *) malloc(4 * sizeof(int));
-    TBid[8][0] = 10; TB[8][0] = 2; // CO
+    TBid[8][0] = 11; TB[8][0] = 2; // CO
     TBid[8][1] = 2; TB[8][1] = 2; // H2
     TBid[8][2] = 5; TB[8][2] = 5; // H2O
-    TBid[8][3] = 9; TB[8][3] = 3; // CO2
+    TBid[8][3] = 10; TB[8][3] = 3; // CO2
 
     // (95):  C2H4 + CH3 => C2H3 + CH4
-    kiv[98] = {20,12,13};
+    kiv[98] = {20,12,14};
     nuv[98] = {-1,-1,1};
     kiv_qss[98] = {9};
     nuv_qss[98] = {1};
@@ -1760,7 +1760,7 @@ void CKINIT()
     nTB[103] = 0;
 
     // (102):  H + C2H5 => C2H6
-    kiv[104] = {3,15};
+    kiv[104] = {3,13};
     nuv[104] = {-1,1};
     kiv_qss[104] = {5};
     nuv_qss[104] = {-1};
@@ -1805,7 +1805,7 @@ void CKINIT()
     nTB[106] = 0;
 
     // (105):  C2H6 + O => C2H5 + OH
-    kiv[107] = {15,1,4};
+    kiv[107] = {13,1,4};
     nuv[107] = {-1,-1,1};
     kiv_qss[107] = {5};
     nuv_qss[107] = {1};
@@ -1820,7 +1820,7 @@ void CKINIT()
     nTB[107] = 0;
 
     // (106):  C2H6 + OH => C2H5 + H2O
-    kiv[108] = {15,4,5};
+    kiv[108] = {13,4,5};
     nuv[108] = {-1,-1,1};
     kiv_qss[108] = {5};
     nuv_qss[108] = {1};
@@ -1835,7 +1835,7 @@ void CKINIT()
     nTB[108] = 0;
 
     // (107):  C2H6 + H => C2H5 + H2
-    kiv[109] = {15,3,2};
+    kiv[109] = {13,3,2};
     nuv[109] = {-1,-1,1};
     kiv_qss[109] = {5};
     nuv_qss[109] = {1};
@@ -1850,7 +1850,7 @@ void CKINIT()
     nTB[109] = 0;
 
     // (108):  HCCO + O => H + 2.000000 CO
-    kiv[110] = {1,3,10};
+    kiv[110] = {1,3,11};
     nuv[110] = {-1,1,2.0};
     kiv_qss[110] = {8};
     nuv_qss[110] = {-1};
@@ -1880,7 +1880,7 @@ void CKINIT()
     nTB[111] = 0;
 
     // (110):  HCCO + O2 => CO2 + HCO
-    kiv[112] = {6,9};
+    kiv[112] = {6,10};
     nuv[112] = {-1,1};
     kiv_qss[112] = {8,1};
     nuv_qss[112] = {-1,1};
@@ -1895,7 +1895,7 @@ void CKINIT()
     nTB[112] = 0;
 
     // (111):  HCCO + H => CH2GSG + CO
-    kiv[113] = {3,10};
+    kiv[113] = {3,11};
     nuv[113] = {-1,1};
     kiv_qss[113] = {8,3};
     nuv_qss[113] = {-1,1};
@@ -1910,7 +1910,7 @@ void CKINIT()
     nTB[113] = 0;
 
     // (112):  CH2GSG + CO => HCCO + H
-    kiv[114] = {10,3};
+    kiv[114] = {11,3};
     nuv[114] = {-1,1};
     kiv_qss[114] = {3,8};
     nuv_qss[114] = {-1,1};
@@ -1970,7 +1970,7 @@ void CKINIT()
     nTB[117] = 0;
 
     // (116):  CH2CO + H => CH3 + CO
-    kiv[118] = {16,3,12,10};
+    kiv[118] = {16,3,12,11};
     nuv[118] = {-1,-1,1,1};
     kiv_qss[118] = {};
     nuv_qss[118] = {};
@@ -1985,7 +1985,7 @@ void CKINIT()
     nTB[118] = 0;
 
     // (117):  CH2CO + O => CH2 + CO2
-    kiv[119] = {16,1,9};
+    kiv[119] = {16,1,10};
     nuv[119] = {-1,-1,1};
     kiv_qss[119] = {2};
     nuv_qss[119] = {1};
@@ -2015,7 +2015,7 @@ void CKINIT()
     nTB[120] = 0;
 
     // (119):  CH2CHO + O2 => CH2O + CO + OH
-    kiv[121] = {6,11,10,4};
+    kiv[121] = {6,9,11,4};
     nuv[121] = {-1,1,1,1};
     kiv_qss[121] = {10};
     nuv_qss[121] = {-1};
@@ -2060,7 +2060,7 @@ void CKINIT()
     nTB[123] = 0;
 
     // (122):  CH3CO (+M) => CH3 + CO (+M)
-    kiv[10] = {12,10};
+    kiv[10] = {12,11};
     nuv[10] = {1,1};
     kiv_qss[10] = {12};
     nuv_qss[10] = {-1};
@@ -2083,7 +2083,7 @@ void CKINIT()
     nTB[10] = 0;
 
     // (123):  C2H5O + M => CH3 + CH2O + M
-    kiv[17] = {12,11};
+    kiv[17] = {12,9};
     nuv[17] = {1,1};
     kiv_qss[17] = {11};
     nuv_qss[17] = {-1};
@@ -2143,7 +2143,7 @@ void CKINIT()
     nTB[126] = 0;
 
     // (127):  C3H2 + O2 => HCCO + CO + H
-    kiv[127] = {6,10,3};
+    kiv[127] = {6,11,3};
     nuv[127] = {-1,1,1};
     kiv_qss[127] = {14,8};
     nuv_qss[127] = {-1,1};
@@ -2278,7 +2278,7 @@ void CKINIT()
     nTB[135] = 0;
 
     // (136):  C3H4XA + O => C2H4 + CO
-    kiv[136] = {21,1,20,10};
+    kiv[136] = {21,1,20,11};
     nuv[136] = {-1,-1,1,1};
     kiv_qss[136] = {};
     nuv_qss[136] = {};
@@ -2383,7 +2383,7 @@ void CKINIT()
     nTB[142] = 0;
 
     // (143):  C3H5XA + CH2O => C3H6 + HCO
-    kiv[143] = {11,19};
+    kiv[143] = {9,19};
     nuv[143] = {-1,1};
     kiv_qss[143] = {16,1};
     nuv_qss[143] = {-1,1};
@@ -2623,7 +2623,7 @@ void CKINIT()
     nTB[158] = 0;
 
     // (159):  C4H6 + OH => CH2O + C3H5XA
-    kiv[159] = {22,4,11};
+    kiv[159] = {22,4,9};
     nuv[159] = {-1,-1,1};
     kiv_qss[159] = {16};
     nuv_qss[159] = {1};
@@ -2683,7 +2683,7 @@ void CKINIT()
     nTB[162] = 0;
 
     // (163):  C4H6 + O => CH2O + C3H4XA
-    kiv[163] = {22,1,11,21};
+    kiv[163] = {22,1,9,21};
     nuv[163] = {-1,-1,1,1};
     kiv_qss[163] = {};
     nuv_qss[163] = {};
@@ -2743,7 +2743,7 @@ void CKINIT()
     nTB[166] = 0;
 
     // (167):  C4H7 + CH3 => C4H6 + CH4
-    kiv[167] = {12,22,13};
+    kiv[167] = {12,22,14};
     nuv[167] = {-1,1,1};
     kiv_qss[167] = {19};
     nuv_qss[167] = {-1};
@@ -2833,7 +2833,7 @@ void CKINIT()
     nTB[172] = 0;
 
     // (173):  C4H8X1 + OH => NXC3H7 + CH2O
-    kiv[173] = {23,4,11};
+    kiv[173] = {23,4,9};
     nuv[173] = {-1,-1,1};
     kiv_qss[173] = {17};
     nuv_qss[173] = {1};
@@ -2848,7 +2848,7 @@ void CKINIT()
     nTB[173] = 0;
 
     // (174):  C4H8X1 + OH => CH3CO + C2H6
-    kiv[174] = {23,4,15};
+    kiv[174] = {23,4,13};
     nuv[174] = {-1,-1,1};
     kiv_qss[174] = {12};
     nuv_qss[174] = {1};
@@ -2878,7 +2878,7 @@ void CKINIT()
     nTB[175] = 0;
 
     // (176):  C4H8X1 + O => C3H6 + CH2O
-    kiv[176] = {23,1,19,11};
+    kiv[176] = {23,1,19,9};
     nuv[176] = {-1,-1,1,1};
     kiv_qss[176] = {};
     nuv_qss[176] = {};
@@ -3163,7 +3163,7 @@ void CKINIT()
     nTB[194] = 0;
 
     // (195):  C6H12X1 + OH => C5H11X1 + CH2O
-    kiv[195] = {4,11};
+    kiv[195] = {4,9};
     nuv[195] = {-1,1};
     kiv_qss[195] = {25,24};
     nuv_qss[195] = {-1,1};
@@ -3343,7 +3343,7 @@ void CKINIT()
     nTB[206] = 0;
 
     // (207):  NXC7H16 + CH3O => C7H15X2 + CH3OH
-    kiv[207] = {24,14};
+    kiv[207] = {24,15};
     nuv[207] = {-1,1};
     kiv_qss[207] = {4,26};
     nuv_qss[207] = {-1,1};
@@ -3388,7 +3388,7 @@ void CKINIT()
     nTB[209] = 0;
 
     // (210):  NXC7H16 + CH3 => C7H15X2 + CH4
-    kiv[210] = {24,12,13};
+    kiv[210] = {24,12,14};
     nuv[210] = {-1,-1,1};
     kiv_qss[210] = {26};
     nuv_qss[210] = {1};
@@ -3491,13 +3491,13 @@ void CKSYMS_STR(amrex::Vector<std::string>& kname)
     kname[6] = "O2";
     kname[7] = "HO2";
     kname[8] = "H2O2";
-    kname[9] = "CO2";
-    kname[10] = "CO";
-    kname[11] = "CH2O";
+    kname[9] = "CH2O";
+    kname[10] = "CO2";
+    kname[11] = "CO";
     kname[12] = "CH3";
-    kname[13] = "CH4";
-    kname[14] = "CH3OH";
-    kname[15] = "C2H6";
+    kname[13] = "C2H6";
+    kname[14] = "CH4";
+    kname[15] = "CH3OH";
     kname[16] = "CH2CO";
     kname[17] = "HOCHO";
     kname[18] = "C2H2";
@@ -3567,23 +3567,23 @@ void CKSYMS(int * kname, int * plenkname )
     kname[ 8*lenkname + 3 ] = '2';
     kname[ 8*lenkname + 4 ] = ' ';
 
-    /* CO2  */
+    /* CH2O  */
     kname[ 9*lenkname + 0 ] = 'C';
-    kname[ 9*lenkname + 1 ] = 'O';
+    kname[ 9*lenkname + 1 ] = 'H';
     kname[ 9*lenkname + 2 ] = '2';
-    kname[ 9*lenkname + 3 ] = ' ';
+    kname[ 9*lenkname + 3 ] = 'O';
+    kname[ 9*lenkname + 4 ] = ' ';
 
-    /* CO  */
+    /* CO2  */
     kname[ 10*lenkname + 0 ] = 'C';
     kname[ 10*lenkname + 1 ] = 'O';
-    kname[ 10*lenkname + 2 ] = ' ';
+    kname[ 10*lenkname + 2 ] = '2';
+    kname[ 10*lenkname + 3 ] = ' ';
 
-    /* CH2O  */
+    /* CO  */
     kname[ 11*lenkname + 0 ] = 'C';
-    kname[ 11*lenkname + 1 ] = 'H';
-    kname[ 11*lenkname + 2 ] = '2';
-    kname[ 11*lenkname + 3 ] = 'O';
-    kname[ 11*lenkname + 4 ] = ' ';
+    kname[ 11*lenkname + 1 ] = 'O';
+    kname[ 11*lenkname + 2 ] = ' ';
 
     /* CH3  */
     kname[ 12*lenkname + 0 ] = 'C';
@@ -3591,26 +3591,26 @@ void CKSYMS(int * kname, int * plenkname )
     kname[ 12*lenkname + 2 ] = '3';
     kname[ 12*lenkname + 3 ] = ' ';
 
-    /* CH4  */
+    /* C2H6  */
     kname[ 13*lenkname + 0 ] = 'C';
-    kname[ 13*lenkname + 1 ] = 'H';
-    kname[ 13*lenkname + 2 ] = '4';
-    kname[ 13*lenkname + 3 ] = ' ';
+    kname[ 13*lenkname + 1 ] = '2';
+    kname[ 13*lenkname + 2 ] = 'H';
+    kname[ 13*lenkname + 3 ] = '6';
+    kname[ 13*lenkname + 4 ] = ' ';
 
-    /* CH3OH  */
+    /* CH4  */
     kname[ 14*lenkname + 0 ] = 'C';
     kname[ 14*lenkname + 1 ] = 'H';
-    kname[ 14*lenkname + 2 ] = '3';
-    kname[ 14*lenkname + 3 ] = 'O';
-    kname[ 14*lenkname + 4 ] = 'H';
-    kname[ 14*lenkname + 5 ] = ' ';
+    kname[ 14*lenkname + 2 ] = '4';
+    kname[ 14*lenkname + 3 ] = ' ';
 
-    /* C2H6  */
+    /* CH3OH  */
     kname[ 15*lenkname + 0 ] = 'C';
-    kname[ 15*lenkname + 1 ] = '2';
-    kname[ 15*lenkname + 2 ] = 'H';
-    kname[ 15*lenkname + 3 ] = '6';
-    kname[ 15*lenkname + 4 ] = ' ';
+    kname[ 15*lenkname + 1 ] = 'H';
+    kname[ 15*lenkname + 2 ] = '3';
+    kname[ 15*lenkname + 3 ] = 'O';
+    kname[ 15*lenkname + 4 ] = 'H';
+    kname[ 15*lenkname + 5 ] = ' ';
 
     /* CH2CO  */
     kname[ 16*lenkname + 0 ] = 'C';
@@ -3709,13 +3709,13 @@ void CKPX(double *  rho, double *  T, double *  x, double *  P)
     XW += x[6]*molecular_weights[6]; /*O2 */
     XW += x[7]*molecular_weights[7]; /*HO2 */
     XW += x[8]*molecular_weights[8]; /*H2O2 */
-    XW += x[9]*molecular_weights[9]; /*CO2 */
-    XW += x[10]*molecular_weights[10]; /*CO */
-    XW += x[11]*molecular_weights[11]; /*CH2O */
+    XW += x[9]*molecular_weights[9]; /*CH2O */
+    XW += x[10]*molecular_weights[10]; /*CO2 */
+    XW += x[11]*molecular_weights[11]; /*CO */
     XW += x[12]*molecular_weights[12]; /*CH3 */
-    XW += x[13]*molecular_weights[13]; /*CH4 */
-    XW += x[14]*molecular_weights[14]; /*CH3OH */
-    XW += x[15]*molecular_weights[15]; /*C2H6 */
+    XW += x[13]*molecular_weights[13]; /*C2H6 */
+    XW += x[14]*molecular_weights[14]; /*CH4 */
+    XW += x[15]*molecular_weights[15]; /*CH3OH */
     XW += x[16]*molecular_weights[16]; /*CH2CO */
     XW += x[17]*molecular_weights[17]; /*HOCHO */
     XW += x[18]*molecular_weights[18]; /*C2H2 */
@@ -3744,13 +3744,13 @@ AMREX_GPU_HOST_DEVICE void CKPY(double *  rho, double *  T, double *  y,  double
     YOW += y[6]*imw[6]; /*O2 */
     YOW += y[7]*imw[7]; /*HO2 */
     YOW += y[8]*imw[8]; /*H2O2 */
-    YOW += y[9]*imw[9]; /*CO2 */
-    YOW += y[10]*imw[10]; /*CO */
-    YOW += y[11]*imw[11]; /*CH2O */
+    YOW += y[9]*imw[9]; /*CH2O */
+    YOW += y[10]*imw[10]; /*CO2 */
+    YOW += y[11]*imw[11]; /*CO */
     YOW += y[12]*imw[12]; /*CH3 */
-    YOW += y[13]*imw[13]; /*CH4 */
-    YOW += y[14]*imw[14]; /*CH3OH */
-    YOW += y[15]*imw[15]; /*C2H6 */
+    YOW += y[13]*imw[13]; /*C2H6 */
+    YOW += y[14]*imw[14]; /*CH4 */
+    YOW += y[15]*imw[15]; /*CH3OH */
     YOW += y[16]*imw[16]; /*CH2CO */
     YOW += y[17]*imw[17]; /*HOCHO */
     YOW += y[18]*imw[18]; /*C2H2 */
@@ -3782,13 +3782,13 @@ void CKPC(double *  rho, double *  T, double *  c,  double *  P)
     W += c[6]*31.998800; /*O2 */
     W += c[7]*33.006770; /*HO2 */
     W += c[8]*34.014740; /*H2O2 */
-    W += c[9]*44.009950; /*CO2 */
-    W += c[10]*28.010550; /*CO */
-    W += c[11]*30.026490; /*CH2O */
+    W += c[9]*30.026490; /*CH2O */
+    W += c[10]*44.009950; /*CO2 */
+    W += c[11]*28.010550; /*CO */
     W += c[12]*15.035060; /*CH3 */
-    W += c[13]*16.043030; /*CH4 */
-    W += c[14]*32.042430; /*CH3OH */
-    W += c[15]*30.070120; /*C2H6 */
+    W += c[13]*30.070120; /*C2H6 */
+    W += c[14]*16.043030; /*CH4 */
+    W += c[15]*32.042430; /*CH3OH */
     W += c[16]*42.037640; /*CH2CO */
     W += c[17]*46.025890; /*HOCHO */
     W += c[18]*26.038240; /*C2H2 */
@@ -3821,13 +3821,13 @@ void CKRHOX(double *  P, double *  T, double *  x,  double *  rho)
     XW += x[6]*31.998800; /*O2 */
     XW += x[7]*33.006770; /*HO2 */
     XW += x[8]*34.014740; /*H2O2 */
-    XW += x[9]*44.009950; /*CO2 */
-    XW += x[10]*28.010550; /*CO */
-    XW += x[11]*30.026490; /*CH2O */
+    XW += x[9]*30.026490; /*CH2O */
+    XW += x[10]*44.009950; /*CO2 */
+    XW += x[11]*28.010550; /*CO */
     XW += x[12]*15.035060; /*CH3 */
-    XW += x[13]*16.043030; /*CH4 */
-    XW += x[14]*32.042430; /*CH3OH */
-    XW += x[15]*30.070120; /*C2H6 */
+    XW += x[13]*30.070120; /*C2H6 */
+    XW += x[14]*16.043030; /*CH4 */
+    XW += x[15]*32.042430; /*CH3OH */
     XW += x[16]*42.037640; /*CH2CO */
     XW += x[17]*46.025890; /*HOCHO */
     XW += x[18]*26.038240; /*C2H2 */
@@ -3879,13 +3879,13 @@ void CKRHOC(double *  P, double *  T, double *  c,  double *  rho)
     W += c[6]*31.998800; /*O2 */
     W += c[7]*33.006770; /*HO2 */
     W += c[8]*34.014740; /*H2O2 */
-    W += c[9]*44.009950; /*CO2 */
-    W += c[10]*28.010550; /*CO */
-    W += c[11]*30.026490; /*CH2O */
+    W += c[9]*30.026490; /*CH2O */
+    W += c[10]*44.009950; /*CO2 */
+    W += c[11]*28.010550; /*CO */
     W += c[12]*15.035060; /*CH3 */
-    W += c[13]*16.043030; /*CH4 */
-    W += c[14]*32.042430; /*CH3OH */
-    W += c[15]*30.070120; /*C2H6 */
+    W += c[13]*30.070120; /*C2H6 */
+    W += c[14]*16.043030; /*CH4 */
+    W += c[15]*32.042430; /*CH3OH */
     W += c[16]*42.037640; /*CH2CO */
     W += c[17]*46.025890; /*HOCHO */
     W += c[18]*26.038240; /*C2H2 */
@@ -3954,13 +3954,13 @@ void CKMMWX(double *  x,  double *  wtm)
     XW += x[6]*molecular_weights[6]; /*O2 */
     XW += x[7]*molecular_weights[7]; /*HO2 */
     XW += x[8]*molecular_weights[8]; /*H2O2 */
-    XW += x[9]*molecular_weights[9]; /*CO2 */
-    XW += x[10]*molecular_weights[10]; /*CO */
-    XW += x[11]*molecular_weights[11]; /*CH2O */
+    XW += x[9]*molecular_weights[9]; /*CH2O */
+    XW += x[10]*molecular_weights[10]; /*CO2 */
+    XW += x[11]*molecular_weights[11]; /*CO */
     XW += x[12]*molecular_weights[12]; /*CH3 */
-    XW += x[13]*molecular_weights[13]; /*CH4 */
-    XW += x[14]*molecular_weights[14]; /*CH3OH */
-    XW += x[15]*molecular_weights[15]; /*C2H6 */
+    XW += x[13]*molecular_weights[13]; /*C2H6 */
+    XW += x[14]*molecular_weights[14]; /*CH4 */
+    XW += x[15]*molecular_weights[15]; /*CH3OH */
     XW += x[16]*molecular_weights[16]; /*CH2CO */
     XW += x[17]*molecular_weights[17]; /*HOCHO */
     XW += x[18]*molecular_weights[18]; /*C2H2 */
@@ -3993,13 +3993,13 @@ void CKMMWC(double *  c,  double *  wtm)
     W += c[6]*molecular_weights[6]; /*O2 */
     W += c[7]*molecular_weights[7]; /*HO2 */
     W += c[8]*molecular_weights[8]; /*H2O2 */
-    W += c[9]*molecular_weights[9]; /*CO2 */
-    W += c[10]*molecular_weights[10]; /*CO */
-    W += c[11]*molecular_weights[11]; /*CH2O */
+    W += c[9]*molecular_weights[9]; /*CH2O */
+    W += c[10]*molecular_weights[10]; /*CO2 */
+    W += c[11]*molecular_weights[11]; /*CO */
     W += c[12]*molecular_weights[12]; /*CH3 */
-    W += c[13]*molecular_weights[13]; /*CH4 */
-    W += c[14]*molecular_weights[14]; /*CH3OH */
-    W += c[15]*molecular_weights[15]; /*C2H6 */
+    W += c[13]*molecular_weights[13]; /*C2H6 */
+    W += c[14]*molecular_weights[14]; /*CH4 */
+    W += c[15]*molecular_weights[15]; /*CH3OH */
     W += c[16]*molecular_weights[16]; /*CH2CO */
     W += c[17]*molecular_weights[17]; /*HOCHO */
     W += c[18]*molecular_weights[18]; /*C2H2 */
@@ -4097,13 +4097,13 @@ AMREX_GPU_HOST_DEVICE void CKXTY(double *  x,  double *  y)
     XW += x[6]*31.998800; /*O2 */
     XW += x[7]*33.006770; /*HO2 */
     XW += x[8]*34.014740; /*H2O2 */
-    XW += x[9]*44.009950; /*CO2 */
-    XW += x[10]*28.010550; /*CO */
-    XW += x[11]*30.026490; /*CH2O */
+    XW += x[9]*30.026490; /*CH2O */
+    XW += x[10]*44.009950; /*CO2 */
+    XW += x[11]*28.010550; /*CO */
     XW += x[12]*15.035060; /*CH3 */
-    XW += x[13]*16.043030; /*CH4 */
-    XW += x[14]*32.042430; /*CH3OH */
-    XW += x[15]*30.070120; /*C2H6 */
+    XW += x[13]*30.070120; /*C2H6 */
+    XW += x[14]*16.043030; /*CH4 */
+    XW += x[15]*32.042430; /*CH3OH */
     XW += x[16]*42.037640; /*CH2CO */
     XW += x[17]*46.025890; /*HOCHO */
     XW += x[18]*26.038240; /*C2H2 */
@@ -4125,13 +4125,13 @@ AMREX_GPU_HOST_DEVICE void CKXTY(double *  x,  double *  y)
     y[6] = x[6]*31.998800*XWinv; 
     y[7] = x[7]*33.006770*XWinv; 
     y[8] = x[8]*34.014740*XWinv; 
-    y[9] = x[9]*44.009950*XWinv; 
-    y[10] = x[10]*28.010550*XWinv; 
-    y[11] = x[11]*30.026490*XWinv; 
+    y[9] = x[9]*30.026490*XWinv; 
+    y[10] = x[10]*44.009950*XWinv; 
+    y[11] = x[11]*28.010550*XWinv; 
     y[12] = x[12]*15.035060*XWinv; 
-    y[13] = x[13]*16.043030*XWinv; 
-    y[14] = x[14]*32.042430*XWinv; 
-    y[15] = x[15]*30.070120*XWinv; 
+    y[13] = x[13]*30.070120*XWinv; 
+    y[14] = x[14]*16.043030*XWinv; 
+    y[15] = x[15]*32.042430*XWinv; 
     y[16] = x[16]*42.037640*XWinv; 
     y[17] = x[17]*46.025890*XWinv; 
     y[18] = x[18]*26.038240*XWinv; 
@@ -4177,13 +4177,13 @@ void CKXTCR(double *  rho, double *  T, double *  x, double *  c)
     XW += x[6]*31.998800; /*O2 */
     XW += x[7]*33.006770; /*HO2 */
     XW += x[8]*34.014740; /*H2O2 */
-    XW += x[9]*44.009950; /*CO2 */
-    XW += x[10]*28.010550; /*CO */
-    XW += x[11]*30.026490; /*CH2O */
+    XW += x[9]*30.026490; /*CH2O */
+    XW += x[10]*44.009950; /*CO2 */
+    XW += x[11]*28.010550; /*CO */
     XW += x[12]*15.035060; /*CH3 */
-    XW += x[13]*16.043030; /*CH4 */
-    XW += x[14]*32.042430; /*CH3OH */
-    XW += x[15]*30.070120; /*C2H6 */
+    XW += x[13]*30.070120; /*C2H6 */
+    XW += x[14]*16.043030; /*CH4 */
+    XW += x[15]*32.042430; /*CH3OH */
     XW += x[16]*42.037640; /*CH2CO */
     XW += x[17]*46.025890; /*HOCHO */
     XW += x[18]*26.038240; /*C2H2 */
@@ -4239,13 +4239,13 @@ void CKCTY(double *  c, double *  y)
     CW += c[6]*31.998800; /*O2 */
     CW += c[7]*33.006770; /*HO2 */
     CW += c[8]*34.014740; /*H2O2 */
-    CW += c[9]*44.009950; /*CO2 */
-    CW += c[10]*28.010550; /*CO */
-    CW += c[11]*30.026490; /*CH2O */
+    CW += c[9]*30.026490; /*CH2O */
+    CW += c[10]*44.009950; /*CO2 */
+    CW += c[11]*28.010550; /*CO */
     CW += c[12]*15.035060; /*CH3 */
-    CW += c[13]*16.043030; /*CH4 */
-    CW += c[14]*32.042430; /*CH3OH */
-    CW += c[15]*30.070120; /*C2H6 */
+    CW += c[13]*30.070120; /*C2H6 */
+    CW += c[14]*16.043030; /*CH4 */
+    CW += c[15]*32.042430; /*CH3OH */
     CW += c[16]*42.037640; /*CH2CO */
     CW += c[17]*46.025890; /*HOCHO */
     CW += c[18]*26.038240; /*C2H2 */
@@ -4266,13 +4266,13 @@ void CKCTY(double *  c, double *  y)
     y[6] = c[6]*31.998800*CWinv; 
     y[7] = c[7]*33.006770*CWinv; 
     y[8] = c[8]*34.014740*CWinv; 
-    y[9] = c[9]*44.009950*CWinv; 
-    y[10] = c[10]*28.010550*CWinv; 
-    y[11] = c[11]*30.026490*CWinv; 
+    y[9] = c[9]*30.026490*CWinv; 
+    y[10] = c[10]*44.009950*CWinv; 
+    y[11] = c[11]*28.010550*CWinv; 
     y[12] = c[12]*15.035060*CWinv; 
-    y[13] = c[13]*16.043030*CWinv; 
-    y[14] = c[14]*32.042430*CWinv; 
-    y[15] = c[15]*30.070120*CWinv; 
+    y[13] = c[13]*30.070120*CWinv; 
+    y[14] = c[14]*16.043030*CWinv; 
+    y[15] = c[15]*32.042430*CWinv; 
     y[16] = c[16]*42.037640*CWinv; 
     y[17] = c[17]*46.025890*CWinv; 
     y[18] = c[18]*26.038240*CWinv; 
@@ -4334,13 +4334,13 @@ AMREX_GPU_HOST_DEVICE void CKCVMS(double *  T,  double *  cvms)
     cvms[6] *= 2.598367006935648e+06; /*O2 */
     cvms[7] *= 2.519017346487778e+06; /*HO2 */
     cvms[8] *= 2.444370475315478e+06; /*H2O2 */
-    cvms[9] *= 1.889223372931176e+06; /*CO2 */
-    cvms[10] *= 2.968332509769797e+06; /*CO */
-    cvms[11] *= 2.769042474879095e+06; /*CH2O */
+    cvms[9] *= 2.769042474879095e+06; /*CH2O */
+    cvms[10] *= 1.889223372931176e+06; /*CO2 */
+    cvms[11] *= 2.968332509769797e+06; /*CO */
     cvms[12] *= 5.530049509714786e+06; /*CH3 */
-    cvms[13] *= 5.182601178301878e+06; /*CH4 */
-    cvms[14] *= 2.594828987112788e+06; /*CH3OH */
-    cvms[15] *= 2.765024754857393e+06; /*C2H6 */
+    cvms[13] *= 2.765024754857393e+06; /*C2H6 */
+    cvms[14] *= 5.182601178301878e+06; /*CH4 */
+    cvms[15] *= 2.594828987112788e+06; /*CH3OH */
     cvms[16] *= 1.977861416138784e+06; /*CH2CO */
     cvms[17] *= 1.806475142176118e+06; /*HOCHO */
     cvms[18] *= 3.193173815954242e+06; /*C2H2 */
@@ -4370,13 +4370,13 @@ AMREX_GPU_HOST_DEVICE void CKCPMS(double *  T,  double *  cpms)
     cpms[6] *= 2.598367006935648e+06; /*O2 */
     cpms[7] *= 2.519017346487778e+06; /*HO2 */
     cpms[8] *= 2.444370475315478e+06; /*H2O2 */
-    cpms[9] *= 1.889223372931176e+06; /*CO2 */
-    cpms[10] *= 2.968332509769797e+06; /*CO */
-    cpms[11] *= 2.769042474879095e+06; /*CH2O */
+    cpms[9] *= 2.769042474879095e+06; /*CH2O */
+    cpms[10] *= 1.889223372931176e+06; /*CO2 */
+    cpms[11] *= 2.968332509769797e+06; /*CO */
     cpms[12] *= 5.530049509714786e+06; /*CH3 */
-    cpms[13] *= 5.182601178301878e+06; /*CH4 */
-    cpms[14] *= 2.594828987112788e+06; /*CH3OH */
-    cpms[15] *= 2.765024754857393e+06; /*C2H6 */
+    cpms[13] *= 2.765024754857393e+06; /*C2H6 */
+    cpms[14] *= 5.182601178301878e+06; /*CH4 */
+    cpms[15] *= 2.594828987112788e+06; /*CH3OH */
     cpms[16] *= 1.977861416138784e+06; /*CH2CO */
     cpms[17] *= 1.806475142176118e+06; /*HOCHO */
     cpms[18] *= 3.193173815954242e+06; /*C2H2 */
@@ -4461,13 +4461,13 @@ void CKSMS(double *  T,  double *  sms)
     sms[6] *= 2.598367006935648e+06; /*O2 */
     sms[7] *= 2.519017346487778e+06; /*HO2 */
     sms[8] *= 2.444370475315478e+06; /*H2O2 */
-    sms[9] *= 1.889223372931176e+06; /*CO2 */
-    sms[10] *= 2.968332509769797e+06; /*CO */
-    sms[11] *= 2.769042474879095e+06; /*CH2O */
+    sms[9] *= 2.769042474879095e+06; /*CH2O */
+    sms[10] *= 1.889223372931176e+06; /*CO2 */
+    sms[11] *= 2.968332509769797e+06; /*CO */
     sms[12] *= 5.530049509714786e+06; /*CH3 */
-    sms[13] *= 5.182601178301878e+06; /*CH4 */
-    sms[14] *= 2.594828987112788e+06; /*CH3OH */
-    sms[15] *= 2.765024754857393e+06; /*C2H6 */
+    sms[13] *= 2.765024754857393e+06; /*C2H6 */
+    sms[14] *= 5.182601178301878e+06; /*CH4 */
+    sms[15] *= 2.594828987112788e+06; /*CH3OH */
     sms[16] *= 1.977861416138784e+06; /*CH2CO */
     sms[17] *= 1.806475142176118e+06; /*HOCHO */
     sms[18] *= 3.193173815954242e+06; /*C2H2 */
@@ -4558,13 +4558,13 @@ AMREX_GPU_HOST_DEVICE void CKCVBS(double *  T, double *  y,  double *  cvbs)
     result += cvor[6]*y[6]*imw[6]; /*O2 */
     result += cvor[7]*y[7]*imw[7]; /*HO2 */
     result += cvor[8]*y[8]*imw[8]; /*H2O2 */
-    result += cvor[9]*y[9]*imw[9]; /*CO2 */
-    result += cvor[10]*y[10]*imw[10]; /*CO */
-    result += cvor[11]*y[11]*imw[11]; /*CH2O */
+    result += cvor[9]*y[9]*imw[9]; /*CH2O */
+    result += cvor[10]*y[10]*imw[10]; /*CO2 */
+    result += cvor[11]*y[11]*imw[11]; /*CO */
     result += cvor[12]*y[12]*imw[12]; /*CH3 */
-    result += cvor[13]*y[13]*imw[13]; /*CH4 */
-    result += cvor[14]*y[14]*imw[14]; /*CH3OH */
-    result += cvor[15]*y[15]*imw[15]; /*C2H6 */
+    result += cvor[13]*y[13]*imw[13]; /*C2H6 */
+    result += cvor[14]*y[14]*imw[14]; /*CH4 */
+    result += cvor[15]*y[15]*imw[15]; /*CH3OH */
     result += cvor[16]*y[16]*imw[16]; /*CH2CO */
     result += cvor[17]*y[17]*imw[17]; /*HOCHO */
     result += cvor[18]*y[18]*imw[18]; /*C2H2 */
@@ -4659,13 +4659,13 @@ AMREX_GPU_HOST_DEVICE void CKUBMS(double *  T, double *  y,  double *  ubms)
     result += y[6]*ums[6]*imw[6]; /*O2 */
     result += y[7]*ums[7]*imw[7]; /*HO2 */
     result += y[8]*ums[8]*imw[8]; /*H2O2 */
-    result += y[9]*ums[9]*imw[9]; /*CO2 */
-    result += y[10]*ums[10]*imw[10]; /*CO */
-    result += y[11]*ums[11]*imw[11]; /*CH2O */
+    result += y[9]*ums[9]*imw[9]; /*CH2O */
+    result += y[10]*ums[10]*imw[10]; /*CO2 */
+    result += y[11]*ums[11]*imw[11]; /*CO */
     result += y[12]*ums[12]*imw[12]; /*CH3 */
-    result += y[13]*ums[13]*imw[13]; /*CH4 */
-    result += y[14]*ums[14]*imw[14]; /*CH3OH */
-    result += y[15]*ums[15]*imw[15]; /*C2H6 */
+    result += y[13]*ums[13]*imw[13]; /*C2H6 */
+    result += y[14]*ums[14]*imw[14]; /*CH4 */
+    result += y[15]*ums[15]*imw[15]; /*CH3OH */
     result += y[16]*ums[16]*imw[16]; /*CH2CO */
     result += y[17]*ums[17]*imw[17]; /*HOCHO */
     result += y[18]*ums[18]*imw[18]; /*C2H2 */
@@ -4722,13 +4722,13 @@ void CKSBMS(double *  P, double *  T, double *  y,  double *  sbms)
     YOW += y[6]*imw[6]; /*O2 */
     YOW += y[7]*imw[7]; /*HO2 */
     YOW += y[8]*imw[8]; /*H2O2 */
-    YOW += y[9]*imw[9]; /*CO2 */
-    YOW += y[10]*imw[10]; /*CO */
-    YOW += y[11]*imw[11]; /*CH2O */
+    YOW += y[9]*imw[9]; /*CH2O */
+    YOW += y[10]*imw[10]; /*CO2 */
+    YOW += y[11]*imw[11]; /*CO */
     YOW += y[12]*imw[12]; /*CH3 */
-    YOW += y[13]*imw[13]; /*CH4 */
-    YOW += y[14]*imw[14]; /*CH3OH */
-    YOW += y[15]*imw[15]; /*C2H6 */
+    YOW += y[13]*imw[13]; /*C2H6 */
+    YOW += y[14]*imw[14]; /*CH4 */
+    YOW += y[15]*imw[15]; /*CH3OH */
     YOW += y[16]*imw[16]; /*CH2CO */
     YOW += y[17]*imw[17]; /*HOCHO */
     YOW += y[18]*imw[18]; /*C2H2 */
@@ -4748,13 +4748,13 @@ void CKSBMS(double *  P, double *  T, double *  y,  double *  sbms)
     x[6] = y[6]/(31.998800*YOW); 
     x[7] = y[7]/(33.006770*YOW); 
     x[8] = y[8]/(34.014740*YOW); 
-    x[9] = y[9]/(44.009950*YOW); 
-    x[10] = y[10]/(28.010550*YOW); 
-    x[11] = y[11]/(30.026490*YOW); 
+    x[9] = y[9]/(30.026490*YOW); 
+    x[10] = y[10]/(44.009950*YOW); 
+    x[11] = y[11]/(28.010550*YOW); 
     x[12] = y[12]/(15.035060*YOW); 
-    x[13] = y[13]/(16.043030*YOW); 
-    x[14] = y[14]/(32.042430*YOW); 
-    x[15] = y[15]/(30.070120*YOW); 
+    x[13] = y[13]/(30.070120*YOW); 
+    x[14] = y[14]/(16.043030*YOW); 
+    x[15] = y[15]/(32.042430*YOW); 
     x[16] = y[16]/(42.037640*YOW); 
     x[17] = y[17]/(46.025890*YOW); 
     x[18] = y[18]/(26.038240*YOW); 
@@ -4841,13 +4841,13 @@ void CKGBMS(double *  P, double *  T, double *  y,  double *  gbms)
     YOW += y[6]*imw[6]; /*O2 */
     YOW += y[7]*imw[7]; /*HO2 */
     YOW += y[8]*imw[8]; /*H2O2 */
-    YOW += y[9]*imw[9]; /*CO2 */
-    YOW += y[10]*imw[10]; /*CO */
-    YOW += y[11]*imw[11]; /*CH2O */
+    YOW += y[9]*imw[9]; /*CH2O */
+    YOW += y[10]*imw[10]; /*CO2 */
+    YOW += y[11]*imw[11]; /*CO */
     YOW += y[12]*imw[12]; /*CH3 */
-    YOW += y[13]*imw[13]; /*CH4 */
-    YOW += y[14]*imw[14]; /*CH3OH */
-    YOW += y[15]*imw[15]; /*C2H6 */
+    YOW += y[13]*imw[13]; /*C2H6 */
+    YOW += y[14]*imw[14]; /*CH4 */
+    YOW += y[15]*imw[15]; /*CH3OH */
     YOW += y[16]*imw[16]; /*CH2CO */
     YOW += y[17]*imw[17]; /*HOCHO */
     YOW += y[18]*imw[18]; /*C2H2 */
@@ -4867,13 +4867,13 @@ void CKGBMS(double *  P, double *  T, double *  y,  double *  gbms)
     x[6] = y[6]/(31.998800*YOW); 
     x[7] = y[7]/(33.006770*YOW); 
     x[8] = y[8]/(34.014740*YOW); 
-    x[9] = y[9]/(44.009950*YOW); 
-    x[10] = y[10]/(28.010550*YOW); 
-    x[11] = y[11]/(30.026490*YOW); 
+    x[9] = y[9]/(30.026490*YOW); 
+    x[10] = y[10]/(44.009950*YOW); 
+    x[11] = y[11]/(28.010550*YOW); 
     x[12] = y[12]/(15.035060*YOW); 
-    x[13] = y[13]/(16.043030*YOW); 
-    x[14] = y[14]/(32.042430*YOW); 
-    x[15] = y[15]/(30.070120*YOW); 
+    x[13] = y[13]/(30.070120*YOW); 
+    x[14] = y[14]/(16.043030*YOW); 
+    x[15] = y[15]/(32.042430*YOW); 
     x[16] = y[16]/(42.037640*YOW); 
     x[17] = y[17]/(46.025890*YOW); 
     x[18] = y[18]/(26.038240*YOW); 
@@ -4960,13 +4960,13 @@ void CKABMS(double *  P, double *  T, double *  y,  double *  abms)
     YOW += y[6]*imw[6]; /*O2 */
     YOW += y[7]*imw[7]; /*HO2 */
     YOW += y[8]*imw[8]; /*H2O2 */
-    YOW += y[9]*imw[9]; /*CO2 */
-    YOW += y[10]*imw[10]; /*CO */
-    YOW += y[11]*imw[11]; /*CH2O */
+    YOW += y[9]*imw[9]; /*CH2O */
+    YOW += y[10]*imw[10]; /*CO2 */
+    YOW += y[11]*imw[11]; /*CO */
     YOW += y[12]*imw[12]; /*CH3 */
-    YOW += y[13]*imw[13]; /*CH4 */
-    YOW += y[14]*imw[14]; /*CH3OH */
-    YOW += y[15]*imw[15]; /*C2H6 */
+    YOW += y[13]*imw[13]; /*C2H6 */
+    YOW += y[14]*imw[14]; /*CH4 */
+    YOW += y[15]*imw[15]; /*CH3OH */
     YOW += y[16]*imw[16]; /*CH2CO */
     YOW += y[17]*imw[17]; /*HOCHO */
     YOW += y[18]*imw[18]; /*C2H2 */
@@ -4986,13 +4986,13 @@ void CKABMS(double *  P, double *  T, double *  y,  double *  abms)
     x[6] = y[6]/(31.998800*YOW); 
     x[7] = y[7]/(33.006770*YOW); 
     x[8] = y[8]/(34.014740*YOW); 
-    x[9] = y[9]/(44.009950*YOW); 
-    x[10] = y[10]/(28.010550*YOW); 
-    x[11] = y[11]/(30.026490*YOW); 
+    x[9] = y[9]/(30.026490*YOW); 
+    x[10] = y[10]/(44.009950*YOW); 
+    x[11] = y[11]/(28.010550*YOW); 
     x[12] = y[12]/(15.035060*YOW); 
-    x[13] = y[13]/(16.043030*YOW); 
-    x[14] = y[14]/(32.042430*YOW); 
-    x[15] = y[15]/(30.070120*YOW); 
+    x[13] = y[13]/(30.070120*YOW); 
+    x[14] = y[14]/(16.043030*YOW); 
+    x[15] = y[15]/(32.042430*YOW); 
     x[16] = y[16]/(42.037640*YOW); 
     x[17] = y[17]/(46.025890*YOW); 
     x[18] = y[18]/(26.038240*YOW); 
@@ -5073,13 +5073,13 @@ void CKWYP(double *  P, double *  T, double *  y,  double *  wdot)
     YOW += y[6]*imw[6]; /*O2 */
     YOW += y[7]*imw[7]; /*HO2 */
     YOW += y[8]*imw[8]; /*H2O2 */
-    YOW += y[9]*imw[9]; /*CO2 */
-    YOW += y[10]*imw[10]; /*CO */
-    YOW += y[11]*imw[11]; /*CH2O */
+    YOW += y[9]*imw[9]; /*CH2O */
+    YOW += y[10]*imw[10]; /*CO2 */
+    YOW += y[11]*imw[11]; /*CO */
     YOW += y[12]*imw[12]; /*CH3 */
-    YOW += y[13]*imw[13]; /*CH4 */
-    YOW += y[14]*imw[14]; /*CH3OH */
-    YOW += y[15]*imw[15]; /*C2H6 */
+    YOW += y[13]*imw[13]; /*C2H6 */
+    YOW += y[14]*imw[14]; /*CH4 */
+    YOW += y[15]*imw[15]; /*CH3OH */
     YOW += y[16]*imw[16]; /*CH2CO */
     YOW += y[17]*imw[17]; /*HOCHO */
     YOW += y[18]*imw[18]; /*C2H2 */
@@ -5214,13 +5214,13 @@ void CKWXR(double *  rho, double *  T, double *  x,  double *  wdot)
     XW += x[6]*31.998800; /*O2 */
     XW += x[7]*33.006770; /*HO2 */
     XW += x[8]*34.014740; /*H2O2 */
-    XW += x[9]*44.009950; /*CO2 */
-    XW += x[10]*28.010550; /*CO */
-    XW += x[11]*30.026490; /*CH2O */
+    XW += x[9]*30.026490; /*CH2O */
+    XW += x[10]*44.009950; /*CO2 */
+    XW += x[11]*28.010550; /*CO */
     XW += x[12]*15.035060; /*CH3 */
-    XW += x[13]*16.043030; /*CH4 */
-    XW += x[14]*32.042430; /*CH3OH */
-    XW += x[15]*30.070120; /*C2H6 */
+    XW += x[13]*30.070120; /*C2H6 */
+    XW += x[14]*16.043030; /*CH4 */
+    XW += x[15]*32.042430; /*CH3OH */
     XW += x[16]*42.037640; /*CH2CO */
     XW += x[17]*46.025890; /*HOCHO */
     XW += x[18]*26.038240; /*C2H2 */
@@ -5290,35 +5290,35 @@ void CKNCF(int * ncf)
     ncf[ 8 * kd + 2 ] = 2; /*H */
     ncf[ 8 * kd + 1 ] = 2; /*O */
 
-    /*CO2 */
+    /*CH2O */
     ncf[ 9 * kd + 3 ] = 1; /*C */
-    ncf[ 9 * kd + 1 ] = 2; /*O */
+    ncf[ 9 * kd + 2 ] = 2; /*H */
+    ncf[ 9 * kd + 1 ] = 1; /*O */
+
+    /*CO2 */
+    ncf[ 10 * kd + 3 ] = 1; /*C */
+    ncf[ 10 * kd + 1 ] = 2; /*O */
 
     /*CO */
-    ncf[ 10 * kd + 3 ] = 1; /*C */
-    ncf[ 10 * kd + 1 ] = 1; /*O */
-
-    /*CH2O */
     ncf[ 11 * kd + 3 ] = 1; /*C */
-    ncf[ 11 * kd + 2 ] = 2; /*H */
     ncf[ 11 * kd + 1 ] = 1; /*O */
 
     /*CH3 */
     ncf[ 12 * kd + 3 ] = 1; /*C */
     ncf[ 12 * kd + 2 ] = 3; /*H */
 
-    /*CH4 */
-    ncf[ 13 * kd + 3 ] = 1; /*C */
-    ncf[ 13 * kd + 2 ] = 4; /*H */
+    /*C2H6 */
+    ncf[ 13 * kd + 3 ] = 2; /*C */
+    ncf[ 13 * kd + 2 ] = 6; /*H */
 
-    /*CH3OH */
+    /*CH4 */
     ncf[ 14 * kd + 3 ] = 1; /*C */
     ncf[ 14 * kd + 2 ] = 4; /*H */
-    ncf[ 14 * kd + 1 ] = 1; /*O */
 
-    /*C2H6 */
-    ncf[ 15 * kd + 3 ] = 2; /*C */
-    ncf[ 15 * kd + 2 ] = 6; /*H */
+    /*CH3OH */
+    ncf[ 15 * kd + 3 ] = 1; /*C */
+    ncf[ 15 * kd + 2 ] = 4; /*H */
+    ncf[ 15 * kd + 1 ] = 1; /*O */
 
     /*CH2CO */
     ncf[ 16 * kd + 3 ] = 2; /*C */
@@ -5426,29 +5426,29 @@ void productionRate(double *  wdot, double *  sc, double T)
     qdot = q_f[2]-q_r[2];
     wdot[4] -= qdot;
     wdot[12] -= qdot;
-    wdot[14] += qdot;
+    wdot[15] += qdot;
 
     qdot = q_f[3]-q_r[3];
     wdot[3] -= qdot;
     wdot[12] -= qdot;
-    wdot[13] += qdot;
+    wdot[14] += qdot;
 
     qdot = q_f[4]-q_r[4];
     wdot[12] -= 2.000000 * qdot;
-    wdot[15] += qdot;
+    wdot[13] += qdot;
 
     qdot = q_f[5]-q_r[5];
-    wdot[10] -= qdot;
+    wdot[11] -= qdot;
     wdot[16] += qdot;
 
     qdot = q_f[6]-q_r[6];
     wdot[1] -= qdot;
-    wdot[9] += qdot;
-    wdot[10] -= qdot;
+    wdot[10] += qdot;
+    wdot[11] -= qdot;
 
     qdot = q_f[7]-q_r[7];
     wdot[3] += qdot;
-    wdot[11] += qdot;
+    wdot[9] += qdot;
 
     qdot = q_f[8]-q_r[8];
     wdot[3] += qdot;
@@ -5459,7 +5459,7 @@ void productionRate(double *  wdot, double *  sc, double T)
     wdot[20] -= qdot;
 
     qdot = q_f[10]-q_r[10];
-    wdot[10] += qdot;
+    wdot[11] += qdot;
     wdot[12] += qdot;
 
     qdot = q_f[11]-q_r[11];
@@ -5473,7 +5473,7 @@ void productionRate(double *  wdot, double *  sc, double T)
 
     qdot = q_f[14]-q_r[14];
     wdot[3] += qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
 
     qdot = q_f[15]-q_r[15];
     wdot[6] += qdot;
@@ -5484,7 +5484,7 @@ void productionRate(double *  wdot, double *  sc, double T)
     wdot[12] -= qdot;
 
     qdot = q_f[17]-q_r[17];
-    wdot[11] += qdot;
+    wdot[9] += qdot;
     wdot[12] += qdot;
 
     qdot = q_f[18]-q_r[18];
@@ -5579,22 +5579,22 @@ void productionRate(double *  wdot, double *  sc, double T)
     qdot = q_f[34]-q_r[34];
     wdot[3] += 2.000000 * qdot;
     wdot[6] -= qdot;
-    wdot[9] += qdot;
+    wdot[10] += qdot;
 
     qdot = q_f[35]-q_r[35];
     wdot[5] += qdot;
     wdot[6] -= qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
 
     qdot = q_f[36]-q_r[36];
     wdot[1] -= qdot;
     wdot[3] += 2.000000 * qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
 
     qdot = q_f[37]-q_r[37];
     wdot[1] += qdot;
     wdot[6] -= qdot;
-    wdot[11] += qdot;
+    wdot[9] += qdot;
 
     qdot = q_f[38]-q_r[38];
     wdot[2] += qdot;
@@ -5615,7 +5615,7 @@ void productionRate(double *  wdot, double *  sc, double T)
     qdot = q_f[42]-q_r[42];
     wdot[2] += qdot;
     wdot[6] -= qdot;
-    wdot[9] += qdot;
+    wdot[10] += qdot;
 
     qdot = q_f[43]-q_r[43];
     wdot[2] += qdot;
@@ -5635,17 +5635,17 @@ void productionRate(double *  wdot, double *  sc, double T)
     wdot[3] += qdot;
     wdot[4] += qdot;
     wdot[6] -= qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
 
     qdot = q_f[47]-q_r[47];
     wdot[3] += qdot;
     wdot[4] -= qdot;
-    wdot[11] += qdot;
+    wdot[9] += qdot;
 
     qdot = q_f[48]-q_r[48];
     wdot[2] += qdot;
     wdot[4] -= qdot;
-    wdot[11] += qdot;
+    wdot[9] += qdot;
     wdot[12] -= qdot;
 
     qdot = q_f[49]-q_r[49];
@@ -5661,7 +5661,7 @@ void productionRate(double *  wdot, double *  sc, double T)
     qdot = q_f[51]-q_r[51];
     wdot[1] -= qdot;
     wdot[3] += qdot;
-    wdot[11] += qdot;
+    wdot[9] += qdot;
     wdot[12] -= qdot;
 
     qdot = q_f[52]-q_r[52];
@@ -5673,12 +5673,12 @@ void productionRate(double *  wdot, double *  sc, double T)
     wdot[6] += qdot;
     wdot[7] -= qdot;
     wdot[12] -= qdot;
-    wdot[13] += qdot;
+    wdot[14] += qdot;
 
     qdot = q_f[54]-q_r[54];
     wdot[4] += qdot;
     wdot[6] -= qdot;
-    wdot[11] += qdot;
+    wdot[9] += qdot;
     wdot[12] -= qdot;
 
     qdot = q_f[55]-q_r[55];
@@ -5709,130 +5709,130 @@ void productionRate(double *  wdot, double *  sc, double T)
     wdot[1] -= qdot;
     wdot[4] += qdot;
     wdot[12] += qdot;
-    wdot[13] -= qdot;
+    wdot[14] -= qdot;
 
     qdot = q_f[61]-q_r[61];
     wdot[2] += qdot;
     wdot[3] -= qdot;
     wdot[12] += qdot;
-    wdot[13] -= qdot;
+    wdot[14] -= qdot;
 
     qdot = q_f[62]-q_r[62];
     wdot[2] -= qdot;
     wdot[3] += qdot;
     wdot[12] -= qdot;
-    wdot[13] += qdot;
+    wdot[14] += qdot;
 
     qdot = q_f[63]-q_r[63];
     wdot[4] -= qdot;
     wdot[5] += qdot;
     wdot[12] += qdot;
-    wdot[13] -= qdot;
+    wdot[14] -= qdot;
 
     qdot = q_f[64]-q_r[64];
     wdot[4] += qdot;
     wdot[5] -= qdot;
     wdot[12] -= qdot;
-    wdot[13] += qdot;
+    wdot[14] += qdot;
 
     qdot = q_f[65]-q_r[65];
     wdot[3] += qdot;
     wdot[4] -= qdot;
-    wdot[9] += qdot;
-    wdot[10] -= qdot;
+    wdot[10] += qdot;
+    wdot[11] -= qdot;
 
     qdot = q_f[66]-q_r[66];
     wdot[3] -= qdot;
     wdot[4] += qdot;
-    wdot[9] -= qdot;
-    wdot[10] += qdot;
+    wdot[10] -= qdot;
+    wdot[11] += qdot;
 
     qdot = q_f[67]-q_r[67];
     wdot[6] -= qdot;
     wdot[7] += qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
 
     qdot = q_f[68]-q_r[68];
     wdot[1] -= qdot;
     wdot[3] += qdot;
-    wdot[9] += qdot;
+    wdot[10] += qdot;
 
     qdot = q_f[69]-q_r[69];
     wdot[4] -= qdot;
     wdot[5] += qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
 
     qdot = q_f[70]-q_r[70];
     wdot[2] += qdot;
     wdot[3] -= qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
 
     qdot = q_f[71]-q_r[71];
     wdot[1] -= qdot;
     wdot[4] += qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
 
     qdot = q_f[72]-q_r[72];
-    wdot[10] += qdot;
+    wdot[11] += qdot;
     wdot[12] -= qdot;
-    wdot[13] += qdot;
+    wdot[14] += qdot;
 
     qdot = q_f[73]-q_r[73];
     wdot[4] -= qdot;
     wdot[5] += qdot;
-    wdot[11] -= qdot;
+    wdot[9] -= qdot;
 
     qdot = q_f[74]-q_r[74];
     wdot[1] -= qdot;
     wdot[4] += qdot;
-    wdot[11] -= qdot;
+    wdot[9] -= qdot;
 
     qdot = q_f[75]-q_r[75];
     wdot[2] += qdot;
     wdot[3] -= qdot;
-    wdot[11] -= qdot;
+    wdot[9] -= qdot;
 
     qdot = q_f[76]-q_r[76];
-    wdot[11] -= qdot;
+    wdot[9] -= qdot;
     wdot[12] -= qdot;
-    wdot[13] += qdot;
+    wdot[14] += qdot;
 
     qdot = q_f[77]-q_r[77];
-    wdot[11] += qdot;
-    wdot[14] += qdot;
+    wdot[9] += qdot;
+    wdot[15] += qdot;
 
     qdot = q_f[78]-q_r[78];
     wdot[6] -= qdot;
     wdot[7] += qdot;
-    wdot[11] += qdot;
+    wdot[9] += qdot;
 
     qdot = q_f[79]-q_r[79];
     wdot[2] -= qdot;
     wdot[3] += qdot;
-    wdot[14] += qdot;
+    wdot[15] += qdot;
 
     qdot = q_f[80]-q_r[80];
     wdot[4] -= qdot;
     wdot[5] += qdot;
-    wdot[14] -= qdot;
+    wdot[15] -= qdot;
 
     qdot = q_f[81]-q_r[81];
-    wdot[9] -= qdot;
-    wdot[10] += qdot;
+    wdot[9] += qdot;
+    wdot[10] -= qdot;
     wdot[11] += qdot;
 
     qdot = q_f[82]-q_r[82];
     wdot[2] += qdot;
     wdot[3] -= qdot;
     wdot[4] += qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
     wdot[17] -= qdot;
 
     qdot = q_f[83]-q_r[83];
     wdot[4] -= qdot;
     wdot[4] += qdot;
     wdot[5] += qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
     wdot[17] -= qdot;
 
     qdot = q_f[84]-q_r[84];
@@ -5847,14 +5847,14 @@ void productionRate(double *  wdot, double *  sc, double T)
     wdot[2] += qdot;
     wdot[3] -= qdot;
     wdot[3] += qdot;
-    wdot[9] += qdot;
+    wdot[10] += qdot;
     wdot[17] -= qdot;
 
     qdot = q_f[87]-q_r[87];
     wdot[3] += qdot;
     wdot[4] -= qdot;
     wdot[5] += qdot;
-    wdot[9] += qdot;
+    wdot[10] += qdot;
     wdot[17] -= qdot;
 
     qdot = q_f[88]-q_r[88];
@@ -5869,7 +5869,7 @@ void productionRate(double *  wdot, double *  sc, double T)
 
     qdot = q_f[91]-q_r[91];
     wdot[1] -= qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
     wdot[18] -= qdot;
 
     qdot = q_f[92]-q_r[92];
@@ -5897,11 +5897,11 @@ void productionRate(double *  wdot, double *  sc, double T)
 
     qdot = q_f[97]-q_r[97];
     wdot[6] -= qdot;
-    wdot[11] += qdot;
+    wdot[9] += qdot;
 
     qdot = q_f[98]-q_r[98];
     wdot[12] -= qdot;
-    wdot[13] += qdot;
+    wdot[14] += qdot;
     wdot[20] -= qdot;
 
     qdot = q_f[99]-q_r[99];
@@ -5931,7 +5931,7 @@ void productionRate(double *  wdot, double *  sc, double T)
 
     qdot = q_f[104]-q_r[104];
     wdot[3] -= qdot;
-    wdot[15] += qdot;
+    wdot[13] += qdot;
 
     qdot = q_f[105]-q_r[105];
     wdot[4] += qdot;
@@ -5945,37 +5945,37 @@ void productionRate(double *  wdot, double *  sc, double T)
     qdot = q_f[107]-q_r[107];
     wdot[1] -= qdot;
     wdot[4] += qdot;
-    wdot[15] -= qdot;
+    wdot[13] -= qdot;
 
     qdot = q_f[108]-q_r[108];
     wdot[4] -= qdot;
     wdot[5] += qdot;
-    wdot[15] -= qdot;
+    wdot[13] -= qdot;
 
     qdot = q_f[109]-q_r[109];
     wdot[2] += qdot;
     wdot[3] -= qdot;
-    wdot[15] -= qdot;
+    wdot[13] -= qdot;
 
     qdot = q_f[110]-q_r[110];
     wdot[1] -= qdot;
     wdot[3] += qdot;
-    wdot[10] += 2.000000 * qdot;
+    wdot[11] += 2.000000 * qdot;
 
     qdot = q_f[111]-q_r[111];
     wdot[4] -= qdot;
 
     qdot = q_f[112]-q_r[112];
     wdot[6] -= qdot;
-    wdot[9] += qdot;
+    wdot[10] += qdot;
 
     qdot = q_f[113]-q_r[113];
     wdot[3] -= qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
 
     qdot = q_f[114]-q_r[114];
     wdot[3] += qdot;
-    wdot[10] -= qdot;
+    wdot[11] -= qdot;
 
     qdot = q_f[115]-q_r[115];
     wdot[1] -= qdot;
@@ -5994,13 +5994,13 @@ void productionRate(double *  wdot, double *  sc, double T)
 
     qdot = q_f[118]-q_r[118];
     wdot[3] -= qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
     wdot[12] += qdot;
     wdot[16] -= qdot;
 
     qdot = q_f[119]-q_r[119];
     wdot[1] -= qdot;
-    wdot[9] += qdot;
+    wdot[10] += qdot;
     wdot[16] -= qdot;
 
     qdot = q_f[120]-q_r[120];
@@ -6011,7 +6011,7 @@ void productionRate(double *  wdot, double *  sc, double T)
     qdot = q_f[121]-q_r[121];
     wdot[4] += qdot;
     wdot[6] -= qdot;
-    wdot[10] += qdot;
+    wdot[9] += qdot;
     wdot[11] += qdot;
 
     qdot = q_f[122]-q_r[122];
@@ -6035,7 +6035,7 @@ void productionRate(double *  wdot, double *  sc, double T)
     qdot = q_f[127]-q_r[127];
     wdot[3] += qdot;
     wdot[6] -= qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
 
     qdot = q_f[128]-q_r[128];
     wdot[4] -= qdot;
@@ -6074,7 +6074,7 @@ void productionRate(double *  wdot, double *  sc, double T)
 
     qdot = q_f[136]-q_r[136];
     wdot[1] -= qdot;
-    wdot[10] += qdot;
+    wdot[11] += qdot;
     wdot[20] += qdot;
     wdot[21] -= qdot;
 
@@ -6105,7 +6105,7 @@ void productionRate(double *  wdot, double *  sc, double T)
     wdot[21] -= qdot;
 
     qdot = q_f[143]-q_r[143];
-    wdot[11] -= qdot;
+    wdot[9] -= qdot;
     wdot[19] += qdot;
 
     qdot = q_f[144]-q_r[144];
@@ -6175,7 +6175,7 @@ void productionRate(double *  wdot, double *  sc, double T)
 
     qdot = q_f[159]-q_r[159];
     wdot[4] -= qdot;
-    wdot[11] += qdot;
+    wdot[9] += qdot;
     wdot[22] -= qdot;
 
     qdot = q_f[160]-q_r[160];
@@ -6196,7 +6196,7 @@ void productionRate(double *  wdot, double *  sc, double T)
 
     qdot = q_f[163]-q_r[163];
     wdot[1] -= qdot;
-    wdot[11] += qdot;
+    wdot[9] += qdot;
     wdot[21] += qdot;
     wdot[22] -= qdot;
 
@@ -6214,7 +6214,7 @@ void productionRate(double *  wdot, double *  sc, double T)
 
     qdot = q_f[167]-q_r[167];
     wdot[12] -= qdot;
-    wdot[13] += qdot;
+    wdot[14] += qdot;
     wdot[22] += qdot;
 
     qdot = q_f[168]-q_r[168];
@@ -6242,12 +6242,12 @@ void productionRate(double *  wdot, double *  sc, double T)
 
     qdot = q_f[173]-q_r[173];
     wdot[4] -= qdot;
-    wdot[11] += qdot;
+    wdot[9] += qdot;
     wdot[23] -= qdot;
 
     qdot = q_f[174]-q_r[174];
     wdot[4] -= qdot;
-    wdot[15] += qdot;
+    wdot[13] += qdot;
     wdot[23] -= qdot;
 
     qdot = q_f[175]-q_r[175];
@@ -6256,7 +6256,7 @@ void productionRate(double *  wdot, double *  sc, double T)
 
     qdot = q_f[176]-q_r[176];
     wdot[1] -= qdot;
-    wdot[11] += qdot;
+    wdot[9] += qdot;
     wdot[19] += qdot;
     wdot[23] -= qdot;
 
@@ -6324,7 +6324,7 @@ void productionRate(double *  wdot, double *  sc, double T)
 
     qdot = q_f[195]-q_r[195];
     wdot[4] -= qdot;
-    wdot[11] += qdot;
+    wdot[9] += qdot;
 
     qdot = q_f[196]-q_r[196];
     wdot[12] += qdot;
@@ -6365,7 +6365,7 @@ void productionRate(double *  wdot, double *  sc, double T)
     wdot[24] -= qdot;
 
     qdot = q_f[207]-q_r[207];
-    wdot[14] += qdot;
+    wdot[15] += qdot;
     wdot[24] -= qdot;
 
     qdot = q_f[208]-q_r[208];
@@ -6380,7 +6380,7 @@ void productionRate(double *  wdot, double *  sc, double T)
 
     qdot = q_f[210]-q_r[210];
     wdot[12] -= qdot;
-    wdot[13] += qdot;
+    wdot[14] += qdot;
     wdot[24] -= qdot;
 
     return;
@@ -6407,22 +6407,22 @@ void comp_Kc(double *  tc, double invT, double *  Kc)
 
     Kc[0] = g_RT[3] + g_RT[6] - g_RT[7];
     Kc[1] = -2.000000*g_RT[4] + g_RT[8];
-    Kc[2] = g_RT[4] + g_RT[12] - g_RT[14];
-    Kc[3] = g_RT[3] + g_RT[12] - g_RT[13];
-    Kc[4] = 2.000000*g_RT[12] - g_RT[15];
-    Kc[5] = g_RT[10] - g_RT[16] + g_RT_qss[2];
-    Kc[6] = g_RT[1] - g_RT[9] + g_RT[10];
-    Kc[7] = -g_RT[3] - g_RT[11] + g_RT_qss[4];
+    Kc[2] = g_RT[4] + g_RT[12] - g_RT[15];
+    Kc[3] = g_RT[3] + g_RT[12] - g_RT[14];
+    Kc[4] = 2.000000*g_RT[12] - g_RT[13];
+    Kc[5] = g_RT[11] - g_RT[16] + g_RT_qss[2];
+    Kc[6] = g_RT[1] - g_RT[10] + g_RT[11];
+    Kc[7] = -g_RT[3] - g_RT[9] + g_RT_qss[4];
     Kc[8] = -g_RT[3] - g_RT[18] + g_RT_qss[9];
     Kc[9] = g_RT[3] + g_RT[20] - g_RT_qss[5];
-    Kc[10] = -g_RT[10] - g_RT[12] + g_RT_qss[12];
+    Kc[10] = -g_RT[11] - g_RT[12] + g_RT_qss[12];
     Kc[11] = g_RT[3] + g_RT[4] - g_RT[5];
     Kc[12] = -g_RT_qss[2] + g_RT_qss[3];
     Kc[13] = g_RT_qss[2] - g_RT_qss[3];
-    Kc[14] = -g_RT[3] - g_RT[10] + g_RT_qss[1];
+    Kc[14] = -g_RT[3] - g_RT[11] + g_RT_qss[1];
     Kc[15] = -g_RT[6] - g_RT[12] + g_RT_qss[6];
     Kc[16] = g_RT[6] + g_RT[12] - g_RT_qss[6];
-    Kc[17] = -g_RT[11] - g_RT[12] + g_RT_qss[11];
+    Kc[17] = -g_RT[9] - g_RT[12] + g_RT_qss[11];
     Kc[18] = g_RT[1] + g_RT[2] - g_RT[3] - g_RT[4];
     Kc[19] = -g_RT[1] - g_RT[2] + g_RT[3] + g_RT[4];
     Kc[20] = g_RT[2] - g_RT[3] + g_RT[4] - g_RT[5];
@@ -6439,100 +6439,100 @@ void comp_Kc(double *  tc, double invT, double *  Kc)
     Kc[31] = g_RT[3] - 2.000000*g_RT[4] + g_RT[7];
     Kc[32] = g_RT[4] - g_RT[5] - g_RT[7] + g_RT[8];
     Kc[33] = -g_RT[1] + g_RT[6] + g_RT_qss[0] - g_RT_qss[1];
-    Kc[34] = -2.000000*g_RT[3] + g_RT[6] - g_RT[9] + g_RT_qss[2];
-    Kc[35] = -g_RT[5] + g_RT[6] - g_RT[10] + g_RT_qss[2];
-    Kc[36] = g_RT[1] - 2.000000*g_RT[3] - g_RT[10] + g_RT_qss[2];
-    Kc[37] = -g_RT[1] + g_RT[6] - g_RT[11] + g_RT_qss[2];
+    Kc[34] = -2.000000*g_RT[3] + g_RT[6] - g_RT[10] + g_RT_qss[2];
+    Kc[35] = -g_RT[5] + g_RT[6] - g_RT[11] + g_RT_qss[2];
+    Kc[36] = g_RT[1] - 2.000000*g_RT[3] - g_RT[11] + g_RT_qss[2];
+    Kc[37] = -g_RT[1] + g_RT[6] - g_RT[9] + g_RT_qss[2];
     Kc[38] = -g_RT[2] + g_RT[3] - g_RT_qss[0] + g_RT_qss[2];
     Kc[39] = g_RT[2] - g_RT[3] + g_RT_qss[0] - g_RT_qss[2];
     Kc[40] = g_RT[4] - g_RT[5] - g_RT_qss[0] + g_RT_qss[2];
     Kc[41] = -g_RT[4] + g_RT[5] + g_RT_qss[0] - g_RT_qss[2];
-    Kc[42] = -g_RT[2] + g_RT[6] - g_RT[9] + g_RT_qss[2];
+    Kc[42] = -g_RT[2] + g_RT[6] - g_RT[10] + g_RT_qss[2];
     Kc[43] = -g_RT[2] + g_RT[3] - g_RT_qss[0] + g_RT_qss[3];
     Kc[44] = g_RT[2] - g_RT[3] - g_RT[12] + g_RT_qss[3];
     Kc[45] = -g_RT[2] + g_RT[3] + g_RT[12] - g_RT_qss[3];
-    Kc[46] = -g_RT[3] - g_RT[4] + g_RT[6] - g_RT[10] + g_RT_qss[3];
-    Kc[47] = -g_RT[3] + g_RT[4] - g_RT[11] + g_RT_qss[3];
-    Kc[48] = -g_RT[2] + g_RT[4] - g_RT[11] + g_RT[12];
+    Kc[46] = -g_RT[3] - g_RT[4] + g_RT[6] - g_RT[11] + g_RT_qss[3];
+    Kc[47] = -g_RT[3] + g_RT[4] - g_RT[9] + g_RT_qss[3];
+    Kc[48] = -g_RT[2] + g_RT[4] - g_RT[9] + g_RT[12];
     Kc[49] = g_RT[4] - g_RT[5] + g_RT[12] - g_RT_qss[3];
     Kc[50] = -g_RT[4] + g_RT[5] - g_RT[12] + g_RT_qss[3];
-    Kc[51] = g_RT[1] - g_RT[3] - g_RT[11] + g_RT[12];
+    Kc[51] = g_RT[1] - g_RT[3] - g_RT[9] + g_RT[12];
     Kc[52] = -g_RT[4] + g_RT[7] + g_RT[12] - g_RT_qss[4];
-    Kc[53] = -g_RT[6] + g_RT[7] + g_RT[12] - g_RT[13];
-    Kc[54] = -g_RT[4] + g_RT[6] - g_RT[11] + g_RT[12];
+    Kc[53] = -g_RT[6] + g_RT[7] + g_RT[12] - g_RT[14];
+    Kc[54] = -g_RT[4] + g_RT[6] - g_RT[9] + g_RT[12];
     Kc[55] = -g_RT[2] + g_RT[3] + g_RT[12] - g_RT_qss[2];
     Kc[56] = g_RT[2] - g_RT[3] - g_RT[12] + g_RT_qss[2];
     Kc[57] = -g_RT[3] + 2.000000*g_RT[12] - g_RT_qss[5];
     Kc[58] = g_RT[4] - g_RT[5] + g_RT[12] - g_RT_qss[2];
     Kc[59] = -g_RT[4] + g_RT[5] - g_RT[12] + g_RT_qss[2];
-    Kc[60] = g_RT[1] - g_RT[4] - g_RT[12] + g_RT[13];
-    Kc[61] = -g_RT[2] + g_RT[3] - g_RT[12] + g_RT[13];
-    Kc[62] = g_RT[2] - g_RT[3] + g_RT[12] - g_RT[13];
-    Kc[63] = g_RT[4] - g_RT[5] - g_RT[12] + g_RT[13];
-    Kc[64] = -g_RT[4] + g_RT[5] + g_RT[12] - g_RT[13];
-    Kc[65] = -g_RT[3] + g_RT[4] - g_RT[9] + g_RT[10];
-    Kc[66] = g_RT[3] - g_RT[4] + g_RT[9] - g_RT[10];
-    Kc[67] = g_RT[6] - g_RT[7] - g_RT[10] + g_RT_qss[1];
-    Kc[68] = g_RT[1] - g_RT[3] - g_RT[9] + g_RT_qss[1];
-    Kc[69] = g_RT[4] - g_RT[5] - g_RT[10] + g_RT_qss[1];
-    Kc[70] = -g_RT[2] + g_RT[3] - g_RT[10] + g_RT_qss[1];
-    Kc[71] = g_RT[1] - g_RT[4] - g_RT[10] + g_RT_qss[1];
-    Kc[72] = -g_RT[10] + g_RT[12] - g_RT[13] + g_RT_qss[1];
-    Kc[73] = g_RT[4] - g_RT[5] + g_RT[11] - g_RT_qss[1];
-    Kc[74] = g_RT[1] - g_RT[4] + g_RT[11] - g_RT_qss[1];
-    Kc[75] = -g_RT[2] + g_RT[3] + g_RT[11] - g_RT_qss[1];
-    Kc[76] = g_RT[11] + g_RT[12] - g_RT[13] - g_RT_qss[1];
-    Kc[77] = -g_RT[11] - g_RT[14] + 2.000000*g_RT_qss[4];
-    Kc[78] = g_RT[6] - g_RT[7] - g_RT[11] + g_RT_qss[4];
-    Kc[79] = g_RT[2] - g_RT[3] - g_RT[14] + g_RT_qss[4];
-    Kc[80] = g_RT[4] - g_RT[5] + g_RT[14] - g_RT_qss[4];
-    Kc[81] = g_RT[9] - g_RT[10] - g_RT[11] + g_RT_qss[3];
-    Kc[82] = -g_RT[2] + g_RT[3] - g_RT[4] - g_RT[10] + g_RT[17];
-    Kc[83] = g_RT[4] - g_RT[4] - g_RT[5] - g_RT[10] + g_RT[17];
+    Kc[60] = g_RT[1] - g_RT[4] - g_RT[12] + g_RT[14];
+    Kc[61] = -g_RT[2] + g_RT[3] - g_RT[12] + g_RT[14];
+    Kc[62] = g_RT[2] - g_RT[3] + g_RT[12] - g_RT[14];
+    Kc[63] = g_RT[4] - g_RT[5] - g_RT[12] + g_RT[14];
+    Kc[64] = -g_RT[4] + g_RT[5] + g_RT[12] - g_RT[14];
+    Kc[65] = -g_RT[3] + g_RT[4] - g_RT[10] + g_RT[11];
+    Kc[66] = g_RT[3] - g_RT[4] + g_RT[10] - g_RT[11];
+    Kc[67] = g_RT[6] - g_RT[7] - g_RT[11] + g_RT_qss[1];
+    Kc[68] = g_RT[1] - g_RT[3] - g_RT[10] + g_RT_qss[1];
+    Kc[69] = g_RT[4] - g_RT[5] - g_RT[11] + g_RT_qss[1];
+    Kc[70] = -g_RT[2] + g_RT[3] - g_RT[11] + g_RT_qss[1];
+    Kc[71] = g_RT[1] - g_RT[4] - g_RT[11] + g_RT_qss[1];
+    Kc[72] = -g_RT[11] + g_RT[12] - g_RT[14] + g_RT_qss[1];
+    Kc[73] = g_RT[4] - g_RT[5] + g_RT[9] - g_RT_qss[1];
+    Kc[74] = g_RT[1] - g_RT[4] + g_RT[9] - g_RT_qss[1];
+    Kc[75] = -g_RT[2] + g_RT[3] + g_RT[9] - g_RT_qss[1];
+    Kc[76] = g_RT[9] + g_RT[12] - g_RT[14] - g_RT_qss[1];
+    Kc[77] = -g_RT[9] - g_RT[15] + 2.000000*g_RT_qss[4];
+    Kc[78] = g_RT[6] - g_RT[7] - g_RT[9] + g_RT_qss[4];
+    Kc[79] = g_RT[2] - g_RT[3] - g_RT[15] + g_RT_qss[4];
+    Kc[80] = g_RT[4] - g_RT[5] + g_RT[15] - g_RT_qss[4];
+    Kc[81] = -g_RT[9] + g_RT[10] - g_RT[11] + g_RT_qss[3];
+    Kc[82] = -g_RT[2] + g_RT[3] - g_RT[4] - g_RT[11] + g_RT[17];
+    Kc[83] = g_RT[4] - g_RT[4] - g_RT[5] - g_RT[11] + g_RT[17];
     Kc[84] = -g_RT[4] + g_RT[17] - g_RT_qss[1];
     Kc[85] = g_RT[4] - g_RT[17] + g_RT_qss[1];
-    Kc[86] = -g_RT[2] + g_RT[3] - g_RT[3] - g_RT[9] + g_RT[17];
-    Kc[87] = -g_RT[3] + g_RT[4] - g_RT[5] - g_RT[9] + g_RT[17];
+    Kc[86] = -g_RT[2] + g_RT[3] - g_RT[3] - g_RT[10] + g_RT[17];
+    Kc[87] = -g_RT[3] + g_RT[4] - g_RT[5] - g_RT[10] + g_RT[17];
     Kc[88] = g_RT[12] - 2.000000*g_RT_qss[4] + g_RT_qss[6];
     Kc[89] = -g_RT[6] + g_RT[7] + g_RT_qss[6] - g_RT_qss[7];
     Kc[90] = -g_RT[4] - g_RT_qss[4] + g_RT_qss[7];
-    Kc[91] = g_RT[1] - g_RT[10] + g_RT[18] - g_RT_qss[2];
+    Kc[91] = g_RT[1] - g_RT[11] + g_RT[18] - g_RT_qss[2];
     Kc[92] = g_RT[1] - g_RT[3] + g_RT[18] - g_RT_qss[8];
     Kc[93] = -g_RT[2] + g_RT[3] - g_RT[18] + g_RT_qss[9];
     Kc[94] = -g_RT[1] + g_RT[6] + g_RT_qss[9] - g_RT_qss[10];
     Kc[95] = g_RT[12] - g_RT[19] + g_RT_qss[9];
     Kc[96] = g_RT[6] - g_RT[7] - g_RT[18] + g_RT_qss[9];
-    Kc[97] = g_RT[6] - g_RT[11] - g_RT_qss[1] + g_RT_qss[9];
-    Kc[98] = g_RT[12] - g_RT[13] + g_RT[20] - g_RT_qss[9];
+    Kc[97] = g_RT[6] - g_RT[9] - g_RT_qss[1] + g_RT_qss[9];
+    Kc[98] = g_RT[12] - g_RT[14] + g_RT[20] - g_RT_qss[9];
     Kc[99] = g_RT[1] - g_RT[12] + g_RT[20] - g_RT_qss[1];
     Kc[100] = g_RT[4] - g_RT[5] + g_RT[20] - g_RT_qss[9];
     Kc[101] = g_RT[1] - g_RT[3] + g_RT[20] - g_RT_qss[10];
     Kc[102] = -g_RT[2] + g_RT[3] + g_RT[20] - g_RT_qss[9];
     Kc[103] = g_RT[2] - g_RT[3] - g_RT[20] + g_RT_qss[9];
-    Kc[104] = g_RT[3] - g_RT[15] + g_RT_qss[5];
+    Kc[104] = g_RT[3] - g_RT[13] + g_RT_qss[5];
     Kc[105] = -g_RT[4] + g_RT[7] + g_RT_qss[5] - g_RT_qss[11];
     Kc[106] = g_RT[6] - g_RT[7] - g_RT[20] + g_RT_qss[5];
-    Kc[107] = g_RT[1] - g_RT[4] + g_RT[15] - g_RT_qss[5];
-    Kc[108] = g_RT[4] - g_RT[5] + g_RT[15] - g_RT_qss[5];
-    Kc[109] = -g_RT[2] + g_RT[3] + g_RT[15] - g_RT_qss[5];
-    Kc[110] = g_RT[1] - g_RT[3] - 2.000000*g_RT[10] + g_RT_qss[8];
+    Kc[107] = g_RT[1] - g_RT[4] + g_RT[13] - g_RT_qss[5];
+    Kc[108] = g_RT[4] - g_RT[5] + g_RT[13] - g_RT_qss[5];
+    Kc[109] = -g_RT[2] + g_RT[3] + g_RT[13] - g_RT_qss[5];
+    Kc[110] = g_RT[1] - g_RT[3] - 2.000000*g_RT[11] + g_RT_qss[8];
     Kc[111] = g_RT[4] - 2.000000*g_RT_qss[1] + g_RT_qss[8];
-    Kc[112] = g_RT[6] - g_RT[9] - g_RT_qss[1] + g_RT_qss[8];
-    Kc[113] = g_RT[3] - g_RT[10] - g_RT_qss[3] + g_RT_qss[8];
-    Kc[114] = -g_RT[3] + g_RT[10] + g_RT_qss[3] - g_RT_qss[8];
+    Kc[112] = g_RT[6] - g_RT[10] - g_RT_qss[1] + g_RT_qss[8];
+    Kc[113] = g_RT[3] - g_RT[11] - g_RT_qss[3] + g_RT_qss[8];
+    Kc[114] = -g_RT[3] + g_RT[11] + g_RT_qss[3] - g_RT_qss[8];
     Kc[115] = g_RT[1] - g_RT[4] + g_RT[16] - g_RT_qss[8];
     Kc[116] = -g_RT[2] + g_RT[3] + g_RT[16] - g_RT_qss[8];
     Kc[117] = g_RT[2] - g_RT[3] - g_RT[16] + g_RT_qss[8];
-    Kc[118] = g_RT[3] - g_RT[10] - g_RT[12] + g_RT[16];
-    Kc[119] = g_RT[1] - g_RT[9] + g_RT[16] - g_RT_qss[2];
+    Kc[118] = g_RT[3] - g_RT[11] - g_RT[12] + g_RT[16];
+    Kc[119] = g_RT[1] - g_RT[10] + g_RT[16] - g_RT_qss[2];
     Kc[120] = g_RT[4] - g_RT[5] + g_RT[16] - g_RT_qss[8];
-    Kc[121] = -g_RT[4] + g_RT[6] - g_RT[10] - g_RT[11] + g_RT_qss[10];
+    Kc[121] = -g_RT[4] + g_RT[6] - g_RT[9] - g_RT[11] + g_RT_qss[10];
     Kc[122] = -g_RT[3] - g_RT[16] + g_RT_qss[10];
     Kc[123] = g_RT[3] + g_RT[16] - g_RT_qss[10];
     Kc[124] = -g_RT[6] - g_RT_qss[5] + g_RT_qss[13];
     Kc[125] = g_RT[6] + g_RT_qss[5] - g_RT_qss[13];
     Kc[126] = -g_RT[7] - g_RT[20] + g_RT_qss[13];
-    Kc[127] = -g_RT[3] + g_RT[6] - g_RT[10] - g_RT_qss[8] + g_RT_qss[14];
+    Kc[127] = -g_RT[3] + g_RT[6] - g_RT[11] - g_RT_qss[8] + g_RT_qss[14];
     Kc[128] = g_RT[4] - g_RT[18] - g_RT_qss[1] + g_RT_qss[14];
     Kc[129] = g_RT[6] - g_RT[16] - g_RT_qss[1] + g_RT_qss[15];
     Kc[130] = -g_RT[6] + g_RT[7] - g_RT[21] + g_RT_qss[15];
@@ -6541,14 +6541,14 @@ void comp_Kc(double *  tc, double invT, double *  Kc)
     Kc[133] = -g_RT[4] + g_RT[5] + g_RT_qss[14] - g_RT_qss[15];
     Kc[134] = -g_RT[2] + g_RT[3] + g_RT[21] - g_RT_qss[15];
     Kc[135] = g_RT[4] - g_RT[5] + g_RT[21] - g_RT_qss[15];
-    Kc[136] = g_RT[1] - g_RT[10] - g_RT[20] + g_RT[21];
+    Kc[136] = g_RT[1] - g_RT[11] - g_RT[20] + g_RT[21];
     Kc[137] = -g_RT[2] + g_RT[3] - g_RT[21] + g_RT_qss[16];
     Kc[138] = -g_RT[6] + g_RT[7] - g_RT[19] + g_RT_qss[16];
     Kc[139] = g_RT[3] - g_RT[19] + g_RT_qss[16];
     Kc[140] = -g_RT[12] - g_RT[18] + g_RT_qss[16];
     Kc[141] = -g_RT[3] - g_RT[21] + g_RT_qss[16];
     Kc[142] = g_RT[3] + g_RT[21] - g_RT_qss[16];
-    Kc[143] = g_RT[11] - g_RT[19] - g_RT_qss[1] + g_RT_qss[16];
+    Kc[143] = g_RT[9] - g_RT[19] - g_RT_qss[1] + g_RT_qss[16];
     Kc[144] = g_RT[3] - g_RT[12] + g_RT[19] - g_RT[20];
     Kc[145] = -g_RT[2] + g_RT[3] + g_RT[19] - g_RT_qss[16];
     Kc[146] = g_RT[1] + g_RT[19] - g_RT_qss[1] - g_RT_qss[5];
@@ -6564,24 +6564,24 @@ void comp_Kc(double *  tc, double invT, double *  Kc)
     Kc[156] = g_RT[6] + g_RT_qss[17] - g_RT_qss[18];
     Kc[157] = g_RT[22] - 2.000000*g_RT_qss[9];
     Kc[158] = -g_RT[22] + 2.000000*g_RT_qss[9];
-    Kc[159] = g_RT[4] - g_RT[11] + g_RT[22] - g_RT_qss[16];
+    Kc[159] = g_RT[4] - g_RT[9] + g_RT[22] - g_RT_qss[16];
     Kc[160] = g_RT[4] - g_RT[16] + g_RT[22] - g_RT_qss[5];
     Kc[161] = g_RT[1] - g_RT[16] - g_RT[20] + g_RT[22];
     Kc[162] = g_RT[3] - g_RT[20] + g_RT[22] - g_RT_qss[9];
-    Kc[163] = g_RT[1] - g_RT[11] - g_RT[21] + g_RT[22];
+    Kc[163] = g_RT[1] - g_RT[9] - g_RT[21] + g_RT[22];
     Kc[164] = g_RT[3] - g_RT[23] + g_RT_qss[19];
     Kc[165] = -g_RT[3] - g_RT[22] + g_RT_qss[19];
     Kc[166] = g_RT[3] + g_RT[22] - g_RT_qss[19];
-    Kc[167] = g_RT[12] - g_RT[13] - g_RT[22] + g_RT_qss[19];
+    Kc[167] = g_RT[12] - g_RT[14] - g_RT[22] + g_RT_qss[19];
     Kc[168] = -g_RT[6] + g_RT[7] - g_RT[23] + g_RT_qss[19];
     Kc[169] = g_RT[6] - g_RT[7] - g_RT[22] + g_RT_qss[19];
     Kc[170] = -g_RT[20] - g_RT_qss[9] + g_RT_qss[19];
     Kc[171] = -g_RT[2] + g_RT[3] - g_RT[22] + g_RT_qss[19];
     Kc[172] = -g_RT[2] + g_RT[3] + g_RT[23] - g_RT_qss[19];
-    Kc[173] = g_RT[4] - g_RT[11] + g_RT[23] - g_RT_qss[17];
-    Kc[174] = g_RT[4] - g_RT[15] + g_RT[23] - g_RT_qss[12];
+    Kc[173] = g_RT[4] - g_RT[9] + g_RT[23] - g_RT_qss[17];
+    Kc[174] = g_RT[4] - g_RT[13] + g_RT[23] - g_RT_qss[12];
     Kc[175] = g_RT[1] + g_RT[23] - g_RT_qss[5] - g_RT_qss[12];
-    Kc[176] = g_RT[1] - g_RT[11] - g_RT[19] + g_RT[23];
+    Kc[176] = g_RT[1] - g_RT[9] - g_RT[19] + g_RT[23];
     Kc[177] = g_RT[4] - g_RT[5] + g_RT[23] - g_RT_qss[19];
     Kc[178] = -g_RT[12] + g_RT[23] - g_RT_qss[16];
     Kc[179] = g_RT[12] - g_RT[23] + g_RT_qss[16];
@@ -6600,7 +6600,7 @@ void comp_Kc(double *  tc, double invT, double *  Kc)
     Kc[192] = -g_RT[20] - g_RT_qss[17] + g_RT_qss[24];
     Kc[193] = -g_RT[3] - g_RT_qss[23] + g_RT_qss[24];
     Kc[194] = -g_RT_qss[16] - g_RT_qss[17] + g_RT_qss[25];
-    Kc[195] = g_RT[4] - g_RT[11] - g_RT_qss[24] + g_RT_qss[25];
+    Kc[195] = g_RT[4] - g_RT[9] - g_RT_qss[24] + g_RT_qss[25];
     Kc[196] = -g_RT[12] - g_RT_qss[25] + g_RT_qss[26];
     Kc[197] = -g_RT[19] - g_RT_qss[20] + g_RT_qss[26];
     Kc[198] = -g_RT[23] - g_RT_qss[17] + g_RT_qss[26];
@@ -6612,10 +6612,10 @@ void comp_Kc(double *  tc, double invT, double *  Kc)
     Kc[204] = g_RT[24] - g_RT_qss[17] - g_RT_qss[20];
     Kc[205] = g_RT[7] - g_RT[8] + g_RT[24] - g_RT_qss[26];
     Kc[206] = g_RT[24] - g_RT_qss[5] - g_RT_qss[24];
-    Kc[207] = -g_RT[14] + g_RT[24] + g_RT_qss[4] - g_RT_qss[26];
+    Kc[207] = -g_RT[15] + g_RT[24] + g_RT_qss[4] - g_RT_qss[26];
     Kc[208] = g_RT[1] - g_RT[4] + g_RT[24] - g_RT_qss[26];
     Kc[209] = g_RT[4] - g_RT[5] + g_RT[24] - g_RT_qss[26];
-    Kc[210] = g_RT[12] - g_RT[13] + g_RT[24] - g_RT_qss[26];
+    Kc[210] = g_RT[12] - g_RT[14] + g_RT[24] - g_RT_qss[26];
 
 #ifdef __INTEL_COMPILER
      #pragma simd
@@ -6730,11 +6730,11 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
     qr[4] = 0.0;
 
     /*reaction 6: CO + CH2 (+M) => CH2CO (+M) */
-    qf[5] = qss_sc[2]*sc[10];
+    qf[5] = sc[11]*qss_sc[2];
     qr[5] = 0.0;
 
     /*reaction 7: CO + O (+M) => CO2 (+M) */
-    qf[6] = sc[1]*sc[10];
+    qf[6] = sc[1]*sc[11];
     qr[6] = 0.0;
 
     /*reaction 8: CH3O (+M) => CH2O + H (+M) */
@@ -6950,11 +6950,11 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
     qr[59] = 0.0;
 
     /*reaction 61: CH4 + O => CH3 + OH */
-    qf[60] = sc[1]*sc[13];
+    qf[60] = sc[1]*sc[14];
     qr[60] = 0.0;
 
     /*reaction 62: CH4 + H => CH3 + H2 */
-    qf[61] = sc[3]*sc[13];
+    qf[61] = sc[3]*sc[14];
     qr[61] = 0.0;
 
     /*reaction 63: CH3 + H2 => CH4 + H */
@@ -6962,7 +6962,7 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
     qr[62] = 0.0;
 
     /*reaction 64: CH4 + OH => CH3 + H2O */
-    qf[63] = sc[4]*sc[13];
+    qf[63] = sc[4]*sc[14];
     qr[63] = 0.0;
 
     /*reaction 65: CH3 + H2O => CH4 + OH */
@@ -6970,11 +6970,11 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
     qr[64] = 0.0;
 
     /*reaction 66: CO + OH => CO2 + H */
-    qf[65] = sc[4]*sc[10];
+    qf[65] = sc[4]*sc[11];
     qr[65] = 0.0;
 
     /*reaction 67: CO2 + H => CO + OH */
-    qf[66] = sc[3]*sc[9];
+    qf[66] = sc[3]*sc[10];
     qr[66] = 0.0;
 
     /*reaction 68: HCO + O2 => CO + HO2 */
@@ -6998,23 +6998,23 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
     qr[71] = 0.0;
 
     /*reaction 73: HCO + CH3 => CH4 + CO */
-    qf[72] = qss_sc[1]*sc[12];
+    qf[72] = sc[12]*qss_sc[1];
     qr[72] = 0.0;
 
     /*reaction 74: CH2O + OH => HCO + H2O */
-    qf[73] = sc[4]*sc[11];
+    qf[73] = sc[4]*sc[9];
     qr[73] = 0.0;
 
     /*reaction 75: CH2O + O => HCO + OH */
-    qf[74] = sc[1]*sc[11];
+    qf[74] = sc[1]*sc[9];
     qr[74] = 0.0;
 
     /*reaction 76: CH2O + H => HCO + H2 */
-    qf[75] = sc[3]*sc[11];
+    qf[75] = sc[3]*sc[9];
     qr[75] = 0.0;
 
     /*reaction 77: CH2O + CH3 => HCO + CH4 */
-    qf[76] = sc[11]*sc[12];
+    qf[76] = sc[9]*sc[12];
     qr[76] = 0.0;
 
     /*reaction 78: 2.000000 CH3O => CH3OH + CH2O */
@@ -7030,11 +7030,11 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
     qr[79] = 0.0;
 
     /*reaction 81: CH3OH + OH => CH3O + H2O */
-    qf[80] = sc[4]*sc[14];
+    qf[80] = sc[4]*sc[15];
     qr[80] = 0.0;
 
     /*reaction 82: CH2GSG + CO2 => CH2O + CO */
-    qf[81] = sc[9]*qss_sc[3];
+    qf[81] = sc[10]*qss_sc[3];
     qr[81] = 0.0;
 
     /*reaction 83: HOCHO + H => H2 + CO + OH */
@@ -7138,15 +7138,15 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
     qr[106] = 0.0;
 
     /*reaction 108: C2H6 + O => C2H5 + OH */
-    qf[107] = sc[1]*sc[15];
+    qf[107] = sc[1]*sc[13];
     qr[107] = 0.0;
 
     /*reaction 109: C2H6 + OH => C2H5 + H2O */
-    qf[108] = sc[4]*sc[15];
+    qf[108] = sc[4]*sc[13];
     qr[108] = 0.0;
 
     /*reaction 110: C2H6 + H => C2H5 + H2 */
-    qf[109] = sc[3]*sc[15];
+    qf[109] = sc[3]*sc[13];
     qr[109] = 0.0;
 
     /*reaction 111: HCCO + O => H + 2.000000 CO */
@@ -7166,7 +7166,7 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
     qr[113] = 0.0;
 
     /*reaction 115: CH2GSG + CO => HCCO + H */
-    qf[114] = sc[10]*qss_sc[3];
+    qf[114] = sc[11]*qss_sc[3];
     qr[114] = 0.0;
 
     /*reaction 116: CH2CO + O => HCCO + OH */
@@ -7282,7 +7282,7 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
     qr[142] = 0.0;
 
     /*reaction 144: C3H5XA + CH2O => C3H6 + HCO */
-    qf[143] = sc[11]*qss_sc[16];
+    qf[143] = sc[9]*qss_sc[16];
     qr[143] = 0.0;
 
     /*reaction 145: C3H6 + H => C2H4 + CH3 */
@@ -7518,7 +7518,7 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
     qr[201] = 0.0;
 
     /*reaction 203: NXC7H16 + CH3O2 => C7H15X2 + CH3O2H */
-    qf[202] = qss_sc[6]*sc[24];
+    qf[202] = sc[24]*qss_sc[6];
     qr[202] = 0.0;
 
     /*reaction 204: NXC7H16 + H => C7H15X2 + H2 */
@@ -7538,7 +7538,7 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
     qr[206] = 0.0;
 
     /*reaction 208: NXC7H16 + CH3O => C7H15X2 + CH3OH */
-    qf[207] = qss_sc[4]*sc[24];
+    qf[207] = sc[24]*qss_sc[4];
     qr[207] = 0.0;
 
     /*reaction 209: NXC7H16 + O => C7H15X2 + OH */
@@ -7569,15 +7569,15 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
     /* troe */
     {
         double alpha[11];
-        alpha[0] = mixture + (TB[0][0] - 1)*sc[10] + (TB[0][1] - 1)*sc[2] + (TB[0][2] - 1)*sc[5] + (TB[0][3] - 1)*sc[9];
-        alpha[1] = mixture + (TB[1][0] - 1)*sc[10] + (TB[1][1] - 1)*sc[2] + (TB[1][2] - 1)*sc[5] + (TB[1][3] - 1)*sc[9];
-        alpha[2] = mixture + (TB[2][0] - 1)*sc[10] + (TB[2][1] - 1)*sc[2] + (TB[2][2] - 1)*sc[5] + (TB[2][3] - 1)*sc[9] + (TB[2][4] - 1)*sc[13] + (TB[2][5] - 1)*sc[15];
-        alpha[3] = mixture + (TB[3][0] - 1)*sc[10] + (TB[3][1] - 1)*sc[2] + (TB[3][2] - 1)*sc[5] + (TB[3][3] - 1)*sc[9];
-        alpha[4] = mixture + (TB[4][0] - 1)*sc[10] + (TB[4][1] - 1)*sc[2] + (TB[4][2] - 1)*sc[5] + (TB[4][3] - 1)*sc[9];
+        alpha[0] = mixture + (TB[0][0] - 1)*sc[11] + (TB[0][1] - 1)*sc[2] + (TB[0][2] - 1)*sc[5] + (TB[0][3] - 1)*sc[10];
+        alpha[1] = mixture + (TB[1][0] - 1)*sc[11] + (TB[1][1] - 1)*sc[2] + (TB[1][2] - 1)*sc[5] + (TB[1][3] - 1)*sc[10];
+        alpha[2] = mixture + (TB[2][0] - 1)*sc[11] + (TB[2][1] - 1)*sc[2] + (TB[2][2] - 1)*sc[5] + (TB[2][3] - 1)*sc[10] + (TB[2][4] - 1)*sc[14] + (TB[2][5] - 1)*sc[13];
+        alpha[3] = mixture + (TB[3][0] - 1)*sc[11] + (TB[3][1] - 1)*sc[2] + (TB[3][2] - 1)*sc[5] + (TB[3][3] - 1)*sc[10];
+        alpha[4] = mixture + (TB[4][0] - 1)*sc[11] + (TB[4][1] - 1)*sc[2] + (TB[4][2] - 1)*sc[5] + (TB[4][3] - 1)*sc[10];
         alpha[5] = mixture;
-        alpha[6] = mixture + (TB[6][0] - 1)*sc[10] + (TB[6][1] - 1)*sc[2] + (TB[6][2] - 1)*sc[5] + (TB[6][3] - 1)*sc[9];
+        alpha[6] = mixture + (TB[6][0] - 1)*sc[11] + (TB[6][1] - 1)*sc[2] + (TB[6][2] - 1)*sc[5] + (TB[6][3] - 1)*sc[10];
         alpha[7] = alpha[5];
-        alpha[8] = mixture + (TB[8][0] - 1)*sc[10] + (TB[8][1] - 1)*sc[2] + (TB[8][2] - 1)*sc[5] + (TB[8][3] - 1)*sc[9];
+        alpha[8] = mixture + (TB[8][0] - 1)*sc[11] + (TB[8][1] - 1)*sc[2] + (TB[8][2] - 1)*sc[5] + (TB[8][3] - 1)*sc[10];
         alpha[9] = alpha[5];
         alpha[10] = alpha[5];
 #ifdef __INTEL_COMPILER
@@ -7604,12 +7604,12 @@ void comp_qfqr(double *  qf, double *  qr, double *  sc, double * qss_sc, double
     /* simple three-body correction */
     {
         double alpha;
-        alpha = mixture + (TB[11][0] - 1)*sc[10] + (TB[11][1] - 1)*sc[2] + (TB[11][2] - 1)*sc[5] + (TB[11][3] - 1)*sc[9];
+        alpha = mixture + (TB[11][0] - 1)*sc[11] + (TB[11][1] - 1)*sc[2] + (TB[11][2] - 1)*sc[5] + (TB[11][3] - 1)*sc[10];
         Corr[11] = alpha;
         alpha = mixture;
         Corr[12] = alpha;
         Corr[13] = alpha;
-        alpha = mixture + (TB[14][0] - 1)*sc[10] + (TB[14][1] - 1)*sc[2] + (TB[14][2] - 1)*sc[5] + (TB[14][3] - 1)*sc[9];
+        alpha = mixture + (TB[14][0] - 1)*sc[11] + (TB[14][1] - 1)*sc[2] + (TB[14][2] - 1)*sc[5] + (TB[14][3] - 1)*sc[10];
         Corr[14] = alpha;
         alpha = mixture;
         Corr[15] = alpha;
@@ -7978,37 +7978,37 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     gibbs_qss(g_RT_qss, tc);
 
     /*Reaction 6 */
-    Kc[0] = g_RT[10] - g_RT[16] + g_RT_qss[2];
+    Kc[0] = g_RT[11] - g_RT[16] + g_RT_qss[2];
     /*Reaction 8 */
-    Kc[1] = -g_RT[3] - g_RT[11] + g_RT_qss[4];
+    Kc[1] = -g_RT[3] - g_RT[9] + g_RT_qss[4];
     /*Reaction 9 */
     Kc[2] = -g_RT[3] - g_RT[18] + g_RT_qss[9];
     /*Reaction 10 */
     Kc[3] = g_RT[3] + g_RT[20] - g_RT_qss[5];
     /*Reaction 11 */
-    Kc[4] = -g_RT[10] - g_RT[12] + g_RT_qss[12];
+    Kc[4] = -g_RT[11] - g_RT[12] + g_RT_qss[12];
     /*Reaction 13 */
     Kc[5] = -g_RT_qss[2] + g_RT_qss[3];
     /*Reaction 14 */
     Kc[6] = g_RT_qss[2] - g_RT_qss[3];
     /*Reaction 15 */
-    Kc[7] = -g_RT[3] - g_RT[10] + g_RT_qss[1];
+    Kc[7] = -g_RT[3] - g_RT[11] + g_RT_qss[1];
     /*Reaction 16 */
     Kc[8] = -g_RT[6] - g_RT[12] + g_RT_qss[6];
     /*Reaction 17 */
     Kc[9] = g_RT[6] + g_RT[12] - g_RT_qss[6];
     /*Reaction 18 */
-    Kc[10] = -g_RT[11] - g_RT[12] + g_RT_qss[11];
+    Kc[10] = -g_RT[9] - g_RT[12] + g_RT_qss[11];
     /*Reaction 34 */
     Kc[11] = -g_RT[1] + g_RT[6] + g_RT_qss[0] - g_RT_qss[1];
     /*Reaction 35 */
-    Kc[12] = -2.000000*g_RT[3] + g_RT[6] - g_RT[9] + g_RT_qss[2];
+    Kc[12] = -2.000000*g_RT[3] + g_RT[6] - g_RT[10] + g_RT_qss[2];
     /*Reaction 36 */
-    Kc[13] = -g_RT[5] + g_RT[6] - g_RT[10] + g_RT_qss[2];
+    Kc[13] = -g_RT[5] + g_RT[6] - g_RT[11] + g_RT_qss[2];
     /*Reaction 37 */
-    Kc[14] = g_RT[1] - 2.000000*g_RT[3] - g_RT[10] + g_RT_qss[2];
+    Kc[14] = g_RT[1] - 2.000000*g_RT[3] - g_RT[11] + g_RT_qss[2];
     /*Reaction 38 */
-    Kc[15] = -g_RT[1] + g_RT[6] - g_RT[11] + g_RT_qss[2];
+    Kc[15] = -g_RT[1] + g_RT[6] - g_RT[9] + g_RT_qss[2];
     /*Reaction 39 */
     Kc[16] = -g_RT[2] + g_RT[3] - g_RT_qss[0] + g_RT_qss[2];
     /*Reaction 40 */
@@ -8018,7 +8018,7 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     /*Reaction 42 */
     Kc[19] = -g_RT[4] + g_RT[5] + g_RT_qss[0] - g_RT_qss[2];
     /*Reaction 43 */
-    Kc[20] = -g_RT[2] + g_RT[6] - g_RT[9] + g_RT_qss[2];
+    Kc[20] = -g_RT[2] + g_RT[6] - g_RT[10] + g_RT_qss[2];
     /*Reaction 44 */
     Kc[21] = -g_RT[2] + g_RT[3] - g_RT_qss[0] + g_RT_qss[3];
     /*Reaction 45 */
@@ -8026,9 +8026,9 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     /*Reaction 46 */
     Kc[23] = -g_RT[2] + g_RT[3] + g_RT[12] - g_RT_qss[3];
     /*Reaction 47 */
-    Kc[24] = -g_RT[3] - g_RT[4] + g_RT[6] - g_RT[10] + g_RT_qss[3];
+    Kc[24] = -g_RT[3] - g_RT[4] + g_RT[6] - g_RT[11] + g_RT_qss[3];
     /*Reaction 48 */
-    Kc[25] = -g_RT[3] + g_RT[4] - g_RT[11] + g_RT_qss[3];
+    Kc[25] = -g_RT[3] + g_RT[4] - g_RT[9] + g_RT_qss[3];
     /*Reaction 50 */
     Kc[26] = g_RT[4] - g_RT[5] + g_RT[12] - g_RT_qss[3];
     /*Reaction 51 */
@@ -8046,35 +8046,35 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     /*Reaction 60 */
     Kc[33] = -g_RT[4] + g_RT[5] - g_RT[12] + g_RT_qss[2];
     /*Reaction 68 */
-    Kc[34] = g_RT[6] - g_RT[7] - g_RT[10] + g_RT_qss[1];
+    Kc[34] = g_RT[6] - g_RT[7] - g_RT[11] + g_RT_qss[1];
     /*Reaction 69 */
-    Kc[35] = g_RT[1] - g_RT[3] - g_RT[9] + g_RT_qss[1];
+    Kc[35] = g_RT[1] - g_RT[3] - g_RT[10] + g_RT_qss[1];
     /*Reaction 70 */
-    Kc[36] = g_RT[4] - g_RT[5] - g_RT[10] + g_RT_qss[1];
+    Kc[36] = g_RT[4] - g_RT[5] - g_RT[11] + g_RT_qss[1];
     /*Reaction 71 */
-    Kc[37] = -g_RT[2] + g_RT[3] - g_RT[10] + g_RT_qss[1];
+    Kc[37] = -g_RT[2] + g_RT[3] - g_RT[11] + g_RT_qss[1];
     /*Reaction 72 */
-    Kc[38] = g_RT[1] - g_RT[4] - g_RT[10] + g_RT_qss[1];
+    Kc[38] = g_RT[1] - g_RT[4] - g_RT[11] + g_RT_qss[1];
     /*Reaction 73 */
-    Kc[39] = -g_RT[10] + g_RT[12] - g_RT[13] + g_RT_qss[1];
+    Kc[39] = -g_RT[11] + g_RT[12] - g_RT[14] + g_RT_qss[1];
     /*Reaction 74 */
-    Kc[40] = g_RT[4] - g_RT[5] + g_RT[11] - g_RT_qss[1];
+    Kc[40] = g_RT[4] - g_RT[5] + g_RT[9] - g_RT_qss[1];
     /*Reaction 75 */
-    Kc[41] = g_RT[1] - g_RT[4] + g_RT[11] - g_RT_qss[1];
+    Kc[41] = g_RT[1] - g_RT[4] + g_RT[9] - g_RT_qss[1];
     /*Reaction 76 */
-    Kc[42] = -g_RT[2] + g_RT[3] + g_RT[11] - g_RT_qss[1];
+    Kc[42] = -g_RT[2] + g_RT[3] + g_RT[9] - g_RT_qss[1];
     /*Reaction 77 */
-    Kc[43] = g_RT[11] + g_RT[12] - g_RT[13] - g_RT_qss[1];
+    Kc[43] = g_RT[9] + g_RT[12] - g_RT[14] - g_RT_qss[1];
     /*Reaction 78 */
-    Kc[44] = -g_RT[11] - g_RT[14] + 2.000000*g_RT_qss[4];
+    Kc[44] = -g_RT[9] - g_RT[15] + 2.000000*g_RT_qss[4];
     /*Reaction 79 */
-    Kc[45] = g_RT[6] - g_RT[7] - g_RT[11] + g_RT_qss[4];
+    Kc[45] = g_RT[6] - g_RT[7] - g_RT[9] + g_RT_qss[4];
     /*Reaction 80 */
-    Kc[46] = g_RT[2] - g_RT[3] - g_RT[14] + g_RT_qss[4];
+    Kc[46] = g_RT[2] - g_RT[3] - g_RT[15] + g_RT_qss[4];
     /*Reaction 81 */
-    Kc[47] = g_RT[4] - g_RT[5] + g_RT[14] - g_RT_qss[4];
+    Kc[47] = g_RT[4] - g_RT[5] + g_RT[15] - g_RT_qss[4];
     /*Reaction 82 */
-    Kc[48] = g_RT[9] - g_RT[10] - g_RT[11] + g_RT_qss[3];
+    Kc[48] = -g_RT[9] + g_RT[10] - g_RT[11] + g_RT_qss[3];
     /*Reaction 85 */
     Kc[49] = -g_RT[4] + g_RT[17] - g_RT_qss[1];
     /*Reaction 86 */
@@ -8086,7 +8086,7 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     /*Reaction 91 */
     Kc[53] = -g_RT[4] - g_RT_qss[4] + g_RT_qss[7];
     /*Reaction 92 */
-    Kc[54] = g_RT[1] - g_RT[10] + g_RT[18] - g_RT_qss[2];
+    Kc[54] = g_RT[1] - g_RT[11] + g_RT[18] - g_RT_qss[2];
     /*Reaction 93 */
     Kc[55] = g_RT[1] - g_RT[3] + g_RT[18] - g_RT_qss[8];
     /*Reaction 94 */
@@ -8098,9 +8098,9 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     /*Reaction 97 */
     Kc[59] = g_RT[6] - g_RT[7] - g_RT[18] + g_RT_qss[9];
     /*Reaction 98 */
-    Kc[60] = g_RT[6] - g_RT[11] - g_RT_qss[1] + g_RT_qss[9];
+    Kc[60] = g_RT[6] - g_RT[9] - g_RT_qss[1] + g_RT_qss[9];
     /*Reaction 99 */
-    Kc[61] = g_RT[12] - g_RT[13] + g_RT[20] - g_RT_qss[9];
+    Kc[61] = g_RT[12] - g_RT[14] + g_RT[20] - g_RT_qss[9];
     /*Reaction 100 */
     Kc[62] = g_RT[1] - g_RT[12] + g_RT[20] - g_RT_qss[1];
     /*Reaction 101 */
@@ -8112,27 +8112,27 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     /*Reaction 104 */
     Kc[66] = g_RT[2] - g_RT[3] - g_RT[20] + g_RT_qss[9];
     /*Reaction 105 */
-    Kc[67] = g_RT[3] - g_RT[15] + g_RT_qss[5];
+    Kc[67] = g_RT[3] - g_RT[13] + g_RT_qss[5];
     /*Reaction 106 */
     Kc[68] = -g_RT[4] + g_RT[7] + g_RT_qss[5] - g_RT_qss[11];
     /*Reaction 107 */
     Kc[69] = g_RT[6] - g_RT[7] - g_RT[20] + g_RT_qss[5];
     /*Reaction 108 */
-    Kc[70] = g_RT[1] - g_RT[4] + g_RT[15] - g_RT_qss[5];
+    Kc[70] = g_RT[1] - g_RT[4] + g_RT[13] - g_RT_qss[5];
     /*Reaction 109 */
-    Kc[71] = g_RT[4] - g_RT[5] + g_RT[15] - g_RT_qss[5];
+    Kc[71] = g_RT[4] - g_RT[5] + g_RT[13] - g_RT_qss[5];
     /*Reaction 110 */
-    Kc[72] = -g_RT[2] + g_RT[3] + g_RT[15] - g_RT_qss[5];
+    Kc[72] = -g_RT[2] + g_RT[3] + g_RT[13] - g_RT_qss[5];
     /*Reaction 111 */
-    Kc[73] = g_RT[1] - g_RT[3] - 2.000000*g_RT[10] + g_RT_qss[8];
+    Kc[73] = g_RT[1] - g_RT[3] - 2.000000*g_RT[11] + g_RT_qss[8];
     /*Reaction 112 */
     Kc[74] = g_RT[4] - 2.000000*g_RT_qss[1] + g_RT_qss[8];
     /*Reaction 113 */
-    Kc[75] = g_RT[6] - g_RT[9] - g_RT_qss[1] + g_RT_qss[8];
+    Kc[75] = g_RT[6] - g_RT[10] - g_RT_qss[1] + g_RT_qss[8];
     /*Reaction 114 */
-    Kc[76] = g_RT[3] - g_RT[10] - g_RT_qss[3] + g_RT_qss[8];
+    Kc[76] = g_RT[3] - g_RT[11] - g_RT_qss[3] + g_RT_qss[8];
     /*Reaction 115 */
-    Kc[77] = -g_RT[3] + g_RT[10] + g_RT_qss[3] - g_RT_qss[8];
+    Kc[77] = -g_RT[3] + g_RT[11] + g_RT_qss[3] - g_RT_qss[8];
     /*Reaction 116 */
     Kc[78] = g_RT[1] - g_RT[4] + g_RT[16] - g_RT_qss[8];
     /*Reaction 117 */
@@ -8140,11 +8140,11 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     /*Reaction 118 */
     Kc[80] = g_RT[2] - g_RT[3] - g_RT[16] + g_RT_qss[8];
     /*Reaction 120 */
-    Kc[81] = g_RT[1] - g_RT[9] + g_RT[16] - g_RT_qss[2];
+    Kc[81] = g_RT[1] - g_RT[10] + g_RT[16] - g_RT_qss[2];
     /*Reaction 121 */
     Kc[82] = g_RT[4] - g_RT[5] + g_RT[16] - g_RT_qss[8];
     /*Reaction 122 */
-    Kc[83] = -g_RT[4] + g_RT[6] - g_RT[10] - g_RT[11] + g_RT_qss[10];
+    Kc[83] = -g_RT[4] + g_RT[6] - g_RT[9] - g_RT[11] + g_RT_qss[10];
     /*Reaction 123 */
     Kc[84] = -g_RT[3] - g_RT[16] + g_RT_qss[10];
     /*Reaction 124 */
@@ -8156,7 +8156,7 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     /*Reaction 127 */
     Kc[88] = -g_RT[7] - g_RT[20] + g_RT_qss[13];
     /*Reaction 128 */
-    Kc[89] = -g_RT[3] + g_RT[6] - g_RT[10] - g_RT_qss[8] + g_RT_qss[14];
+    Kc[89] = -g_RT[3] + g_RT[6] - g_RT[11] - g_RT_qss[8] + g_RT_qss[14];
     /*Reaction 129 */
     Kc[90] = g_RT[4] - g_RT[18] - g_RT_qss[1] + g_RT_qss[14];
     /*Reaction 130 */
@@ -8186,7 +8186,7 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     /*Reaction 143 */
     Kc[103] = g_RT[3] + g_RT[21] - g_RT_qss[16];
     /*Reaction 144 */
-    Kc[104] = g_RT[11] - g_RT[19] - g_RT_qss[1] + g_RT_qss[16];
+    Kc[104] = g_RT[9] - g_RT[19] - g_RT_qss[1] + g_RT_qss[16];
     /*Reaction 146 */
     Kc[105] = -g_RT[2] + g_RT[3] + g_RT[19] - g_RT_qss[16];
     /*Reaction 147 */
@@ -8214,7 +8214,7 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     /*Reaction 159 */
     Kc[117] = -g_RT[22] + 2.000000*g_RT_qss[9];
     /*Reaction 160 */
-    Kc[118] = g_RT[4] - g_RT[11] + g_RT[22] - g_RT_qss[16];
+    Kc[118] = g_RT[4] - g_RT[9] + g_RT[22] - g_RT_qss[16];
     /*Reaction 161 */
     Kc[119] = g_RT[4] - g_RT[16] + g_RT[22] - g_RT_qss[5];
     /*Reaction 163 */
@@ -8226,7 +8226,7 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     /*Reaction 167 */
     Kc[123] = g_RT[3] + g_RT[22] - g_RT_qss[19];
     /*Reaction 168 */
-    Kc[124] = g_RT[12] - g_RT[13] - g_RT[22] + g_RT_qss[19];
+    Kc[124] = g_RT[12] - g_RT[14] - g_RT[22] + g_RT_qss[19];
     /*Reaction 169 */
     Kc[125] = -g_RT[6] + g_RT[7] - g_RT[23] + g_RT_qss[19];
     /*Reaction 170 */
@@ -8238,9 +8238,9 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     /*Reaction 173 */
     Kc[129] = -g_RT[2] + g_RT[3] + g_RT[23] - g_RT_qss[19];
     /*Reaction 174 */
-    Kc[130] = g_RT[4] - g_RT[11] + g_RT[23] - g_RT_qss[17];
+    Kc[130] = g_RT[4] - g_RT[9] + g_RT[23] - g_RT_qss[17];
     /*Reaction 175 */
-    Kc[131] = g_RT[4] - g_RT[15] + g_RT[23] - g_RT_qss[12];
+    Kc[131] = g_RT[4] - g_RT[13] + g_RT[23] - g_RT_qss[12];
     /*Reaction 176 */
     Kc[132] = g_RT[1] + g_RT[23] - g_RT_qss[5] - g_RT_qss[12];
     /*Reaction 178 */
@@ -8280,7 +8280,7 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     /*Reaction 195 */
     Kc[150] = -g_RT_qss[16] - g_RT_qss[17] + g_RT_qss[25];
     /*Reaction 196 */
-    Kc[151] = g_RT[4] - g_RT[11] - g_RT_qss[24] + g_RT_qss[25];
+    Kc[151] = g_RT[4] - g_RT[9] - g_RT_qss[24] + g_RT_qss[25];
     /*Reaction 197 */
     Kc[152] = -g_RT[12] - g_RT_qss[25] + g_RT_qss[26];
     /*Reaction 198 */
@@ -8304,13 +8304,13 @@ void comp_Kc_qss(double *  tc, double invT, double *  Kc)
     /*Reaction 207 */
     Kc[162] = g_RT[24] - g_RT_qss[5] - g_RT_qss[24];
     /*Reaction 208 */
-    Kc[163] = -g_RT[14] + g_RT[24] + g_RT_qss[4] - g_RT_qss[26];
+    Kc[163] = -g_RT[15] + g_RT[24] + g_RT_qss[4] - g_RT_qss[26];
     /*Reaction 209 */
     Kc[164] = g_RT[1] - g_RT[4] + g_RT[24] - g_RT_qss[26];
     /*Reaction 210 */
     Kc[165] = g_RT[4] - g_RT[5] + g_RT[24] - g_RT_qss[26];
     /*Reaction 211 */
-    Kc[166] = g_RT[12] - g_RT[13] + g_RT[24] - g_RT_qss[26];
+    Kc[166] = g_RT[12] - g_RT[14] + g_RT[24] - g_RT_qss[26];
 
 #ifdef __INTEL_COMPILER
      #pragma simd
@@ -8393,7 +8393,7 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
 {
 
     /*reaction 6: CO + CH2 (+M) => CH2CO (+M) */
-    qf_co[0] = 1.0*sc[10];
+    qf_co[0] = sc[11];
     qr_co[0] = 0.0;
 
     /*reaction 8: CH3O (+M) => CH2O + H (+M) */
@@ -8549,23 +8549,23 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
     qr_co[38] = 0.0;
 
     /*reaction 73: HCO + CH3 => CH4 + CO */
-    qf_co[39] = 1.0*sc[12];
+    qf_co[39] = sc[12];
     qr_co[39] = 0.0;
 
     /*reaction 74: CH2O + OH => HCO + H2O */
-    qf_co[40] = sc[4]*sc[11];
+    qf_co[40] = sc[4]*sc[9];
     qr_co[40] = 0.0;
 
     /*reaction 75: CH2O + O => HCO + OH */
-    qf_co[41] = sc[1]*sc[11];
+    qf_co[41] = sc[1]*sc[9];
     qr_co[41] = 0.0;
 
     /*reaction 76: CH2O + H => HCO + H2 */
-    qf_co[42] = sc[3]*sc[11];
+    qf_co[42] = sc[3]*sc[9];
     qr_co[42] = 0.0;
 
     /*reaction 77: CH2O + CH3 => HCO + CH4 */
-    qf_co[43] = sc[11]*sc[12];
+    qf_co[43] = sc[9]*sc[12];
     qr_co[43] = 0.0;
 
     /*reaction 78: 2.000000 CH3O => CH3OH + CH2O */
@@ -8581,11 +8581,11 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
     qr_co[46] = 0.0;
 
     /*reaction 81: CH3OH + OH => CH3O + H2O */
-    qf_co[47] = sc[4]*sc[14];
+    qf_co[47] = sc[4]*sc[15];
     qr_co[47] = 0.0;
 
     /*reaction 82: CH2GSG + CO2 => CH2O + CO */
-    qf_co[48] = sc[9];
+    qf_co[48] = sc[10];
     qr_co[48] = 0.0;
 
     /*reaction 85: HOCHO => HCO + OH */
@@ -8673,15 +8673,15 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
     qr_co[69] = 0.0;
 
     /*reaction 108: C2H6 + O => C2H5 + OH */
-    qf_co[70] = sc[1]*sc[15];
+    qf_co[70] = sc[1]*sc[13];
     qr_co[70] = 0.0;
 
     /*reaction 109: C2H6 + OH => C2H5 + H2O */
-    qf_co[71] = sc[4]*sc[15];
+    qf_co[71] = sc[4]*sc[13];
     qr_co[71] = 0.0;
 
     /*reaction 110: C2H6 + H => C2H5 + H2 */
-    qf_co[72] = sc[3]*sc[15];
+    qf_co[72] = sc[3]*sc[13];
     qr_co[72] = 0.0;
 
     /*reaction 111: HCCO + O => H + 2.000000 CO */
@@ -8701,7 +8701,7 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
     qr_co[76] = 0.0;
 
     /*reaction 115: CH2GSG + CO => HCCO + H */
-    qf_co[77] = sc[10];
+    qf_co[77] = sc[11];
     qr_co[77] = 0.0;
 
     /*reaction 116: CH2CO + O => HCCO + OH */
@@ -8809,7 +8809,7 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
     qr_co[103] = 0.0;
 
     /*reaction 144: C3H5XA + CH2O => C3H6 + HCO */
-    qf_co[104] = sc[11];
+    qf_co[104] = sc[9];
     qr_co[104] = 0.0;
 
     /*reaction 146: C3H6 + H => C3H5XA + H2 */
@@ -9025,7 +9025,7 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
     qr_co[157] = 0.0;
 
     /*reaction 203: NXC7H16 + CH3O2 => C7H15X2 + CH3O2H */
-    qf_co[158] = 1.0*sc[24];
+    qf_co[158] = sc[24];
     qr_co[158] = 0.0;
 
     /*reaction 204: NXC7H16 + H => C7H15X2 + H2 */
@@ -9045,7 +9045,7 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
     qr_co[162] = 0.0;
 
     /*reaction 208: NXC7H16 + CH3O => C7H15X2 + CH3OH */
-    qf_co[163] = 1.0*sc[24];
+    qf_co[163] = sc[24];
     qr_co[163] = 0.0;
 
     /*reaction 209: NXC7H16 + O => C7H15X2 + OH */
@@ -9078,7 +9078,7 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
         double alpha[5];
         alpha[0] = mixture;
         alpha[1] = alpha[0];
-        alpha[2] = mixture + (TB[8][0] - 1)*sc[10] + (TB[8][1] - 1)*sc[2] + (TB[8][2] - 1)*sc[5] + (TB[8][3] - 1)*sc[9];
+        alpha[2] = mixture + (TB[8][0] - 1)*sc[11] + (TB[8][1] - 1)*sc[2] + (TB[8][2] - 1)*sc[5] + (TB[8][3] - 1)*sc[10];
         alpha[3] = alpha[0];
         alpha[4] = alpha[0];
 #ifdef __INTEL_COMPILER
@@ -9168,7 +9168,7 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
         alpha = mixture;
         Corr[5] = alpha;
         Corr[6] = alpha;
-        alpha = mixture + (TB[14][0] - 1)*sc[10] + (TB[14][1] - 1)*sc[2] + (TB[14][2] - 1)*sc[5] + (TB[14][3] - 1)*sc[9];
+        alpha = mixture + (TB[14][0] - 1)*sc[11] + (TB[14][1] - 1)*sc[2] + (TB[14][2] - 1)*sc[5] + (TB[14][3] - 1)*sc[10];
         Corr[7] = alpha;
         alpha = mixture;
         Corr[8] = alpha;
@@ -9188,7 +9188,6 @@ void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc
 void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 {
 
-    double H_0, H_1, H_2;
     double  qf_co[167], qr_co[167];
     double epsilon = 1e-12;
 
@@ -9232,7 +9231,7 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     double C3H3_C3H2 = (epsilon +qf_co[95])/C3H3_denom;
 
-    H_0 = C3H3_C3H2;
+    double H_0 = C3H3_C3H2;
     sc_qss[15] = (C3H3_rhs -C3H2_rhs*H_0)/(1 -C3H2_C3H3*H_0);
 
     sc_qss[14] = C3H2_rhs -(C3H2_C3H3*sc_qss[15]);
@@ -9289,9 +9288,9 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     double HCCO_CH2GSG = (epsilon +qf_co[77])/HCCO_denom;
 
-    H_0 = CH2_CH;
-    H_1 = CH2GSG_CH2/(1 -CH_CH2*H_0);
-    H_2 = HCCO_CH2GSG/(1 -(CH2_CH2GSG -CH_CH2GSG*H_0)*H_1);
+    double H_0 = CH2_CH;
+    double H_1 = CH2GSG_CH2/(1 -CH_CH2*H_0);
+    double H_2 = HCCO_CH2GSG/(1 -(CH2_CH2GSG -CH_CH2GSG*H_0)*H_1);
     sc_qss[8] = (HCCO_rhs -(CH2GSG_rhs -(CH2_rhs -CH_rhs*H_0)*H_1)*H_2)/(1
                         -CH2GSG_HCCO*H_2);
 
@@ -9348,7 +9347,7 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     double PXC4H9O2_PXC4H9 = (epsilon +qf_co[140])/PXC4H9O2_denom;
 
-    H_0 = PXC4H9O2_PXC4H9;
+    double H_0 = PXC4H9O2_PXC4H9;
     sc_qss[21] = (PXC4H9O2_rhs -PXC4H9_rhs*H_0)/(1 -PXC4H9_PXC4H9O2*H_0);
 
     sc_qss[20] = PXC4H9_rhs -(PXC4H9_PXC4H9O2*sc_qss[21]);
@@ -9370,7 +9369,7 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     double C5H11X1_C5H10X1 = (epsilon +qr_co[149])/C5H11X1_denom;
 
-    H_0 = C5H11X1_C5H10X1;
+    double H_0 = C5H11X1_C5H10X1;
     sc_qss[24] = (C5H11X1_rhs -C5H10X1_rhs*H_0)/(1 -C5H10X1_C5H11X1*H_0);
 
     sc_qss[23] = C5H10X1_rhs -(C5H10X1_C5H11X1*sc_qss[24]);
@@ -9399,7 +9398,7 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     double C2H5O2_C2H5 = (epsilon +qf_co[87])/C2H5O2_denom;
 
-    H_0 = C2H5O2_C2H5;
+    double H_0 = C2H5O2_C2H5;
     sc_qss[13] = (C2H5O2_rhs -C2H5_rhs*H_0)/(1 -C2H5_C2H5O2*H_0);
 
     sc_qss[5] = C2H5_rhs -(C2H5_C2H5O2*sc_qss[13]);
@@ -9421,7 +9420,7 @@ void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT)
 
     double NXC3H7O2_NXC3H7 = (epsilon +qf_co[115])/NXC3H7O2_denom;
 
-    H_0 = NXC3H7O2_NXC3H7;
+    double H_0 = NXC3H7O2_NXC3H7;
     sc_qss[18] = (NXC3H7O2_rhs -NXC3H7_rhs*H_0)/(1 -NXC3H7_NXC3H7O2*H_0);
 
     sc_qss[17] = NXC3H7_rhs -(NXC3H7_NXC3H7O2*sc_qss[18]);
@@ -9884,38 +9883,38 @@ AMREX_GPU_HOST_DEVICE void dcvpRdT(double * species, double *  tc)
             -2.97002600e-07 * tc[1]
             -1.38774180e-08 * tc[2]
             +9.88606000e-12 * tc[3];
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            +9.92207200e-03
-            -2.08182200e-05 * tc[1]
-            +2.06000610e-08 * tc[2]
-            -8.46912000e-12 * tc[3];
-        /*species 10: CO */
-        species[10] =
-            +1.51194100e-03
-            -7.76351000e-06 * tc[1]
-            +1.67458320e-08 * tc[2]
-            -9.89980400e-12 * tc[3];
-        /*species 11: CH2O */
-        species[11] =
             +1.26314400e-02
             -3.77633600e-05 * tc[1]
             +6.15009300e-08 * tc[2]
             -3.36529480e-11 * tc[3];
+        /*species 10: CO2 */
+        species[10] =
+            +9.92207200e-03
+            -2.08182200e-05 * tc[1]
+            +2.06000610e-08 * tc[2]
+            -8.46912000e-12 * tc[3];
+        /*species 11: CO */
+        species[11] =
+            +1.51194100e-03
+            -7.76351000e-06 * tc[1]
+            +1.67458320e-08 * tc[2]
+            -9.89980400e-12 * tc[3];
         /*species 12: CH3 */
         species[12] =
             +1.11241000e-02
             -3.36044000e-05 * tc[1]
             +4.86548700e-08 * tc[2]
             -2.34598120e-11 * tc[3];
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             +1.74766800e-02
             -5.56681800e-05 * tc[1]
             +9.14912400e-08 * tc[2]
             -4.89572400e-11 * tc[3];
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             +7.34150800e-03
             +1.43401020e-05 * tc[1]
             -2.63795820e-08 * tc[2]
@@ -9981,38 +9980,38 @@ AMREX_GPU_HOST_DEVICE void dcvpRdT(double * species, double *  tc)
             -2.94937800e-06 * tc[1]
             +7.04671200e-10 * tc[2]
             -5.72661600e-14 * tc[3];
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            +3.14016900e-03
-            -2.55682200e-06 * tc[1]
-            +7.18199100e-10 * tc[2]
-            -6.67613200e-14 * tc[3];
-        /*species 10: CO */
-        species[10] =
-            +1.44268900e-03
-            -1.12616560e-06 * tc[1]
-            +3.05574300e-10 * tc[2]
-            -2.76438080e-14 * tc[3];
-        /*species 11: CH2O */
-        species[11] =
             +6.68132100e-03
             -5.25791000e-06 * tc[1]
             +1.42114590e-09 * tc[2]
             -1.28500680e-13 * tc[3];
+        /*species 10: CO2 */
+        species[10] =
+            +3.14016900e-03
+            -2.55682200e-06 * tc[1]
+            +7.18199100e-10 * tc[2]
+            -6.67613200e-14 * tc[3];
+        /*species 11: CO */
+        species[11] =
+            +1.44268900e-03
+            -1.12616560e-06 * tc[1]
+            +3.05574300e-10 * tc[2]
+            -2.76438080e-14 * tc[3];
         /*species 12: CH3 */
         species[12] =
             +6.13797400e-03
             -4.46069000e-06 * tc[1]
             +1.13554830e-09 * tc[2]
             -9.80863600e-14 * tc[3];
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             +1.02372400e-02
             -7.75025800e-06 * tc[1]
             +2.03567550e-09 * tc[2]
             -1.80136920e-13 * tc[3];
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             +9.37659300e-03
             -6.10050800e-06 * tc[1]
             +1.30763790e-09 * tc[2]
@@ -10073,15 +10072,15 @@ AMREX_GPU_HOST_DEVICE void dcvpRdT(double * species, double *  tc)
 
     /*species with midpoint at T=1384 kelvin */
     if (T < 1384) {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             +2.40764754e-02
             -2.23786944e-05 * tc[1]
             +6.25022703e-09 * tc[2]
             -2.11947446e-13 * tc[3];
     } else {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             +1.29236361e-02
             -8.85054392e-06 * tc[1]
             +2.06217518e-09 * tc[2]
@@ -10209,22 +10208,22 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[1] = refC * exp((g_RT[8]) - (2.000000 * g_RT[4]));
 
     /*reaction 3: OH + CH3 (+M) => CH3OH (+M) */
-    kc[2] = 1.0 / (refC) * exp((g_RT[4] + g_RT[12]) - (g_RT[14]));
+    kc[2] = 1.0 / (refC) * exp((g_RT[4] + g_RT[12]) - (g_RT[15]));
 
     /*reaction 4: CH3 + H (+M) => CH4 (+M) */
-    kc[3] = 1.0 / (refC) * exp((g_RT[12] + g_RT[3]) - (g_RT[13]));
+    kc[3] = 1.0 / (refC) * exp((g_RT[12] + g_RT[3]) - (g_RT[14]));
 
     /*reaction 5: 2.000000 CH3 (+M) => C2H6 (+M) */
-    kc[4] = 1.0 / (refC) * exp((2.000000 * g_RT[12]) - (g_RT[15]));
+    kc[4] = 1.0 / (refC) * exp((2.000000 * g_RT[12]) - (g_RT[13]));
 
     /*reaction 6: CO + CH2 (+M) => CH2CO (+M) */
-    kc[5] = 1.0 / (refC) * exp((g_RT[10] + g_RT_qss[2]) - (g_RT[16]));
+    kc[5] = 1.0 / (refC) * exp((g_RT[11] + g_RT_qss[2]) - (g_RT[16]));
 
     /*reaction 7: CO + O (+M) => CO2 (+M) */
-    kc[6] = 1.0 / (refC) * exp((g_RT[10] + g_RT[1]) - (g_RT[9]));
+    kc[6] = 1.0 / (refC) * exp((g_RT[11] + g_RT[1]) - (g_RT[10]));
 
     /*reaction 8: CH3O (+M) => CH2O + H (+M) */
-    kc[7] = refC * exp((g_RT_qss[4]) - (g_RT[11] + g_RT[3]));
+    kc[7] = refC * exp((g_RT_qss[4]) - (g_RT[9] + g_RT[3]));
 
     /*reaction 9: C2H3 (+M) => H + C2H2 (+M) */
     kc[8] = refC * exp((g_RT_qss[9]) - (g_RT[3] + g_RT[18]));
@@ -10233,7 +10232,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[9] = 1.0 / (refC) * exp((g_RT[3] + g_RT[20]) - (g_RT_qss[5]));
 
     /*reaction 11: CH3CO (+M) => CH3 + CO (+M) */
-    kc[10] = refC * exp((g_RT_qss[12]) - (g_RT[12] + g_RT[10]));
+    kc[10] = refC * exp((g_RT_qss[12]) - (g_RT[12] + g_RT[11]));
 
     /*reaction 12: H + OH + M => H2O + M */
     kc[11] = 1.0 / (refC) * exp((g_RT[3] + g_RT[4]) - (g_RT[5]));
@@ -10245,7 +10244,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[13] = exp((g_RT_qss[2]) - (g_RT_qss[3]));
 
     /*reaction 15: HCO + M => H + CO + M */
-    kc[14] = refC * exp((g_RT_qss[1]) - (g_RT[3] + g_RT[10]));
+    kc[14] = refC * exp((g_RT_qss[1]) - (g_RT[3] + g_RT[11]));
 
     /*reaction 16: CH3O2 + M => CH3 + O2 + M */
     kc[15] = refC * exp((g_RT_qss[6]) - (g_RT[12] + g_RT[6]));
@@ -10254,7 +10253,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[16] = 1.0 / (refC) * exp((g_RT[12] + g_RT[6]) - (g_RT_qss[6]));
 
     /*reaction 18: C2H5O + M => CH3 + CH2O + M */
-    kc[17] = refC * exp((g_RT_qss[11]) - (g_RT[12] + g_RT[11]));
+    kc[17] = refC * exp((g_RT_qss[11]) - (g_RT[12] + g_RT[9]));
 
     /*reaction 19: O + H2 => H + OH */
     kc[18] = exp((g_RT[1] + g_RT[2]) - (g_RT[3] + g_RT[4]));
@@ -10305,16 +10304,16 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[33] = exp((g_RT_qss[0] + g_RT[6]) - (g_RT_qss[1] + g_RT[1]));
 
     /*reaction 35: CH2 + O2 => CO2 + 2.000000 H */
-    kc[34] = refC * exp((g_RT_qss[2] + g_RT[6]) - (g_RT[9] + 2.000000 * g_RT[3]));
+    kc[34] = refC * exp((g_RT_qss[2] + g_RT[6]) - (g_RT[10] + 2.000000 * g_RT[3]));
 
     /*reaction 36: CH2 + O2 => CO + H2O */
-    kc[35] = exp((g_RT_qss[2] + g_RT[6]) - (g_RT[10] + g_RT[5]));
+    kc[35] = exp((g_RT_qss[2] + g_RT[6]) - (g_RT[11] + g_RT[5]));
 
     /*reaction 37: CH2 + O => CO + 2.000000 H */
-    kc[36] = refC * exp((g_RT_qss[2] + g_RT[1]) - (g_RT[10] + 2.000000 * g_RT[3]));
+    kc[36] = refC * exp((g_RT_qss[2] + g_RT[1]) - (g_RT[11] + 2.000000 * g_RT[3]));
 
     /*reaction 38: CH2 + O2 => CH2O + O */
-    kc[37] = exp((g_RT_qss[2] + g_RT[6]) - (g_RT[11] + g_RT[1]));
+    kc[37] = exp((g_RT_qss[2] + g_RT[6]) - (g_RT[9] + g_RT[1]));
 
     /*reaction 39: CH2 + H => CH + H2 */
     kc[38] = exp((g_RT_qss[2] + g_RT[3]) - (g_RT_qss[0] + g_RT[2]));
@@ -10329,7 +10328,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[41] = exp((g_RT_qss[0] + g_RT[5]) - (g_RT_qss[2] + g_RT[4]));
 
     /*reaction 43: CH2 + O2 => CO2 + H2 */
-    kc[42] = exp((g_RT_qss[2] + g_RT[6]) - (g_RT[9] + g_RT[2]));
+    kc[42] = exp((g_RT_qss[2] + g_RT[6]) - (g_RT[10] + g_RT[2]));
 
     /*reaction 44: CH2GSG + H => CH + H2 */
     kc[43] = exp((g_RT_qss[3] + g_RT[3]) - (g_RT_qss[0] + g_RT[2]));
@@ -10341,13 +10340,13 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[45] = exp((g_RT[12] + g_RT[3]) - (g_RT_qss[3] + g_RT[2]));
 
     /*reaction 47: CH2GSG + O2 => CO + OH + H */
-    kc[46] = refC * exp((g_RT_qss[3] + g_RT[6]) - (g_RT[10] + g_RT[4] + g_RT[3]));
+    kc[46] = refC * exp((g_RT_qss[3] + g_RT[6]) - (g_RT[11] + g_RT[4] + g_RT[3]));
 
     /*reaction 48: CH2GSG + OH => CH2O + H */
-    kc[47] = exp((g_RT_qss[3] + g_RT[4]) - (g_RT[11] + g_RT[3]));
+    kc[47] = exp((g_RT_qss[3] + g_RT[4]) - (g_RT[9] + g_RT[3]));
 
     /*reaction 49: CH3 + OH => CH2O + H2 */
-    kc[48] = exp((g_RT[12] + g_RT[4]) - (g_RT[11] + g_RT[2]));
+    kc[48] = exp((g_RT[12] + g_RT[4]) - (g_RT[9] + g_RT[2]));
 
     /*reaction 50: CH3 + OH => CH2GSG + H2O */
     kc[49] = exp((g_RT[12] + g_RT[4]) - (g_RT_qss[3] + g_RT[5]));
@@ -10356,16 +10355,16 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[50] = exp((g_RT_qss[3] + g_RT[5]) - (g_RT[12] + g_RT[4]));
 
     /*reaction 52: CH3 + O => CH2O + H */
-    kc[51] = exp((g_RT[12] + g_RT[1]) - (g_RT[11] + g_RT[3]));
+    kc[51] = exp((g_RT[12] + g_RT[1]) - (g_RT[9] + g_RT[3]));
 
     /*reaction 53: CH3 + HO2 => CH3O + OH */
     kc[52] = exp((g_RT[12] + g_RT[7]) - (g_RT_qss[4] + g_RT[4]));
 
     /*reaction 54: CH3 + HO2 => CH4 + O2 */
-    kc[53] = exp((g_RT[12] + g_RT[7]) - (g_RT[13] + g_RT[6]));
+    kc[53] = exp((g_RT[12] + g_RT[7]) - (g_RT[14] + g_RT[6]));
 
     /*reaction 55: CH3 + O2 => CH2O + OH */
-    kc[54] = exp((g_RT[12] + g_RT[6]) - (g_RT[11] + g_RT[4]));
+    kc[54] = exp((g_RT[12] + g_RT[6]) - (g_RT[9] + g_RT[4]));
 
     /*reaction 56: CH3 + H => CH2 + H2 */
     kc[55] = exp((g_RT[12] + g_RT[3]) - (g_RT_qss[2] + g_RT[2]));
@@ -10383,76 +10382,76 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[59] = exp((g_RT_qss[2] + g_RT[5]) - (g_RT[12] + g_RT[4]));
 
     /*reaction 61: CH4 + O => CH3 + OH */
-    kc[60] = exp((g_RT[13] + g_RT[1]) - (g_RT[12] + g_RT[4]));
+    kc[60] = exp((g_RT[14] + g_RT[1]) - (g_RT[12] + g_RT[4]));
 
     /*reaction 62: CH4 + H => CH3 + H2 */
-    kc[61] = exp((g_RT[13] + g_RT[3]) - (g_RT[12] + g_RT[2]));
+    kc[61] = exp((g_RT[14] + g_RT[3]) - (g_RT[12] + g_RT[2]));
 
     /*reaction 63: CH3 + H2 => CH4 + H */
-    kc[62] = exp((g_RT[12] + g_RT[2]) - (g_RT[13] + g_RT[3]));
+    kc[62] = exp((g_RT[12] + g_RT[2]) - (g_RT[14] + g_RT[3]));
 
     /*reaction 64: CH4 + OH => CH3 + H2O */
-    kc[63] = exp((g_RT[13] + g_RT[4]) - (g_RT[12] + g_RT[5]));
+    kc[63] = exp((g_RT[14] + g_RT[4]) - (g_RT[12] + g_RT[5]));
 
     /*reaction 65: CH3 + H2O => CH4 + OH */
-    kc[64] = exp((g_RT[12] + g_RT[5]) - (g_RT[13] + g_RT[4]));
+    kc[64] = exp((g_RT[12] + g_RT[5]) - (g_RT[14] + g_RT[4]));
 
     /*reaction 66: CO + OH => CO2 + H */
-    kc[65] = exp((g_RT[10] + g_RT[4]) - (g_RT[9] + g_RT[3]));
+    kc[65] = exp((g_RT[11] + g_RT[4]) - (g_RT[10] + g_RT[3]));
 
     /*reaction 67: CO2 + H => CO + OH */
-    kc[66] = exp((g_RT[9] + g_RT[3]) - (g_RT[10] + g_RT[4]));
+    kc[66] = exp((g_RT[10] + g_RT[3]) - (g_RT[11] + g_RT[4]));
 
     /*reaction 68: HCO + O2 => CO + HO2 */
-    kc[67] = exp((g_RT_qss[1] + g_RT[6]) - (g_RT[10] + g_RT[7]));
+    kc[67] = exp((g_RT_qss[1] + g_RT[6]) - (g_RT[11] + g_RT[7]));
 
     /*reaction 69: HCO + O => CO2 + H */
-    kc[68] = exp((g_RT_qss[1] + g_RT[1]) - (g_RT[9] + g_RT[3]));
+    kc[68] = exp((g_RT_qss[1] + g_RT[1]) - (g_RT[10] + g_RT[3]));
 
     /*reaction 70: HCO + OH => CO + H2O */
-    kc[69] = exp((g_RT_qss[1] + g_RT[4]) - (g_RT[10] + g_RT[5]));
+    kc[69] = exp((g_RT_qss[1] + g_RT[4]) - (g_RT[11] + g_RT[5]));
 
     /*reaction 71: HCO + H => CO + H2 */
-    kc[70] = exp((g_RT_qss[1] + g_RT[3]) - (g_RT[10] + g_RT[2]));
+    kc[70] = exp((g_RT_qss[1] + g_RT[3]) - (g_RT[11] + g_RT[2]));
 
     /*reaction 72: HCO + O => CO + OH */
-    kc[71] = exp((g_RT_qss[1] + g_RT[1]) - (g_RT[10] + g_RT[4]));
+    kc[71] = exp((g_RT_qss[1] + g_RT[1]) - (g_RT[11] + g_RT[4]));
 
     /*reaction 73: HCO + CH3 => CH4 + CO */
-    kc[72] = exp((g_RT_qss[1] + g_RT[12]) - (g_RT[13] + g_RT[10]));
+    kc[72] = exp((g_RT_qss[1] + g_RT[12]) - (g_RT[14] + g_RT[11]));
 
     /*reaction 74: CH2O + OH => HCO + H2O */
-    kc[73] = exp((g_RT[11] + g_RT[4]) - (g_RT_qss[1] + g_RT[5]));
+    kc[73] = exp((g_RT[9] + g_RT[4]) - (g_RT_qss[1] + g_RT[5]));
 
     /*reaction 75: CH2O + O => HCO + OH */
-    kc[74] = exp((g_RT[11] + g_RT[1]) - (g_RT_qss[1] + g_RT[4]));
+    kc[74] = exp((g_RT[9] + g_RT[1]) - (g_RT_qss[1] + g_RT[4]));
 
     /*reaction 76: CH2O + H => HCO + H2 */
-    kc[75] = exp((g_RT[11] + g_RT[3]) - (g_RT_qss[1] + g_RT[2]));
+    kc[75] = exp((g_RT[9] + g_RT[3]) - (g_RT_qss[1] + g_RT[2]));
 
     /*reaction 77: CH2O + CH3 => HCO + CH4 */
-    kc[76] = exp((g_RT[11] + g_RT[12]) - (g_RT_qss[1] + g_RT[13]));
+    kc[76] = exp((g_RT[9] + g_RT[12]) - (g_RT_qss[1] + g_RT[14]));
 
     /*reaction 78: 2.000000 CH3O => CH3OH + CH2O */
-    kc[77] = exp((2.000000 * g_RT_qss[4]) - (g_RT[14] + g_RT[11]));
+    kc[77] = exp((2.000000 * g_RT_qss[4]) - (g_RT[15] + g_RT[9]));
 
     /*reaction 79: CH3O + O2 => CH2O + HO2 */
-    kc[78] = exp((g_RT_qss[4] + g_RT[6]) - (g_RT[11] + g_RT[7]));
+    kc[78] = exp((g_RT_qss[4] + g_RT[6]) - (g_RT[9] + g_RT[7]));
 
     /*reaction 80: CH3O + H2 => CH3OH + H */
-    kc[79] = exp((g_RT_qss[4] + g_RT[2]) - (g_RT[14] + g_RT[3]));
+    kc[79] = exp((g_RT_qss[4] + g_RT[2]) - (g_RT[15] + g_RT[3]));
 
     /*reaction 81: CH3OH + OH => CH3O + H2O */
-    kc[80] = exp((g_RT[14] + g_RT[4]) - (g_RT_qss[4] + g_RT[5]));
+    kc[80] = exp((g_RT[15] + g_RT[4]) - (g_RT_qss[4] + g_RT[5]));
 
     /*reaction 82: CH2GSG + CO2 => CH2O + CO */
-    kc[81] = exp((g_RT_qss[3] + g_RT[9]) - (g_RT[11] + g_RT[10]));
+    kc[81] = exp((g_RT_qss[3] + g_RT[10]) - (g_RT[9] + g_RT[11]));
 
     /*reaction 83: HOCHO + H => H2 + CO + OH */
-    kc[82] = refC * exp((g_RT[17] + g_RT[3]) - (g_RT[2] + g_RT[10] + g_RT[4]));
+    kc[82] = refC * exp((g_RT[17] + g_RT[3]) - (g_RT[2] + g_RT[11] + g_RT[4]));
 
     /*reaction 84: HOCHO + OH => H2O + CO + OH */
-    kc[83] = refC * exp((g_RT[17] + g_RT[4]) - (g_RT[5] + g_RT[10] + g_RT[4]));
+    kc[83] = refC * exp((g_RT[17] + g_RT[4]) - (g_RT[5] + g_RT[11] + g_RT[4]));
 
     /*reaction 85: HOCHO => HCO + OH */
     kc[84] = refC * exp((g_RT[17]) - (g_RT_qss[1] + g_RT[4]));
@@ -10461,10 +10460,10 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[85] = 1.0 / (refC) * exp((g_RT_qss[1] + g_RT[4]) - (g_RT[17]));
 
     /*reaction 87: HOCHO + H => H2 + CO2 + H */
-    kc[86] = refC * exp((g_RT[17] + g_RT[3]) - (g_RT[2] + g_RT[9] + g_RT[3]));
+    kc[86] = refC * exp((g_RT[17] + g_RT[3]) - (g_RT[2] + g_RT[10] + g_RT[3]));
 
     /*reaction 88: HOCHO + OH => H2O + CO2 + H */
-    kc[87] = refC * exp((g_RT[17] + g_RT[4]) - (g_RT[5] + g_RT[9] + g_RT[3]));
+    kc[87] = refC * exp((g_RT[17] + g_RT[4]) - (g_RT[5] + g_RT[10] + g_RT[3]));
 
     /*reaction 89: CH3O2 + CH3 => 2.000000 CH3O */
     kc[88] = exp((g_RT_qss[6] + g_RT[12]) - (2.000000 * g_RT_qss[4]));
@@ -10476,7 +10475,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[90] = refC * exp((g_RT_qss[7]) - (g_RT_qss[4] + g_RT[4]));
 
     /*reaction 92: C2H2 + O => CH2 + CO */
-    kc[91] = exp((g_RT[18] + g_RT[1]) - (g_RT_qss[2] + g_RT[10]));
+    kc[91] = exp((g_RT[18] + g_RT[1]) - (g_RT_qss[2] + g_RT[11]));
 
     /*reaction 93: C2H2 + O => HCCO + H */
     kc[92] = exp((g_RT[18] + g_RT[1]) - (g_RT_qss[8] + g_RT[3]));
@@ -10494,10 +10493,10 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[96] = exp((g_RT_qss[9] + g_RT[6]) - (g_RT[18] + g_RT[7]));
 
     /*reaction 98: C2H3 + O2 => CH2O + HCO */
-    kc[97] = exp((g_RT_qss[9] + g_RT[6]) - (g_RT[11] + g_RT_qss[1]));
+    kc[97] = exp((g_RT_qss[9] + g_RT[6]) - (g_RT[9] + g_RT_qss[1]));
 
     /*reaction 99: C2H4 + CH3 => C2H3 + CH4 */
-    kc[98] = exp((g_RT[20] + g_RT[12]) - (g_RT_qss[9] + g_RT[13]));
+    kc[98] = exp((g_RT[20] + g_RT[12]) - (g_RT_qss[9] + g_RT[14]));
 
     /*reaction 100: C2H4 + O => CH3 + HCO */
     kc[99] = exp((g_RT[20] + g_RT[1]) - (g_RT[12] + g_RT_qss[1]));
@@ -10515,7 +10514,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[103] = exp((g_RT_qss[9] + g_RT[2]) - (g_RT[20] + g_RT[3]));
 
     /*reaction 105: H + C2H5 => C2H6 */
-    kc[104] = 1.0 / (refC) * exp((g_RT[3] + g_RT_qss[5]) - (g_RT[15]));
+    kc[104] = 1.0 / (refC) * exp((g_RT[3] + g_RT_qss[5]) - (g_RT[13]));
 
     /*reaction 106: C2H5 + HO2 => C2H5O + OH */
     kc[105] = exp((g_RT_qss[5] + g_RT[7]) - (g_RT_qss[11] + g_RT[4]));
@@ -10524,28 +10523,28 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[106] = exp((g_RT_qss[5] + g_RT[6]) - (g_RT[20] + g_RT[7]));
 
     /*reaction 108: C2H6 + O => C2H5 + OH */
-    kc[107] = exp((g_RT[15] + g_RT[1]) - (g_RT_qss[5] + g_RT[4]));
+    kc[107] = exp((g_RT[13] + g_RT[1]) - (g_RT_qss[5] + g_RT[4]));
 
     /*reaction 109: C2H6 + OH => C2H5 + H2O */
-    kc[108] = exp((g_RT[15] + g_RT[4]) - (g_RT_qss[5] + g_RT[5]));
+    kc[108] = exp((g_RT[13] + g_RT[4]) - (g_RT_qss[5] + g_RT[5]));
 
     /*reaction 110: C2H6 + H => C2H5 + H2 */
-    kc[109] = exp((g_RT[15] + g_RT[3]) - (g_RT_qss[5] + g_RT[2]));
+    kc[109] = exp((g_RT[13] + g_RT[3]) - (g_RT_qss[5] + g_RT[2]));
 
     /*reaction 111: HCCO + O => H + 2.000000 CO */
-    kc[110] = refC * exp((g_RT_qss[8] + g_RT[1]) - (g_RT[3] + 2.000000 * g_RT[10]));
+    kc[110] = refC * exp((g_RT_qss[8] + g_RT[1]) - (g_RT[3] + 2.000000 * g_RT[11]));
 
     /*reaction 112: HCCO + OH => 2.000000 HCO */
     kc[111] = exp((g_RT_qss[8] + g_RT[4]) - (2.000000 * g_RT_qss[1]));
 
     /*reaction 113: HCCO + O2 => CO2 + HCO */
-    kc[112] = exp((g_RT_qss[8] + g_RT[6]) - (g_RT[9] + g_RT_qss[1]));
+    kc[112] = exp((g_RT_qss[8] + g_RT[6]) - (g_RT[10] + g_RT_qss[1]));
 
     /*reaction 114: HCCO + H => CH2GSG + CO */
-    kc[113] = exp((g_RT_qss[8] + g_RT[3]) - (g_RT_qss[3] + g_RT[10]));
+    kc[113] = exp((g_RT_qss[8] + g_RT[3]) - (g_RT_qss[3] + g_RT[11]));
 
     /*reaction 115: CH2GSG + CO => HCCO + H */
-    kc[114] = exp((g_RT_qss[3] + g_RT[10]) - (g_RT_qss[8] + g_RT[3]));
+    kc[114] = exp((g_RT_qss[3] + g_RT[11]) - (g_RT_qss[8] + g_RT[3]));
 
     /*reaction 116: CH2CO + O => HCCO + OH */
     kc[115] = exp((g_RT[16] + g_RT[1]) - (g_RT_qss[8] + g_RT[4]));
@@ -10557,16 +10556,16 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[117] = exp((g_RT_qss[8] + g_RT[2]) - (g_RT[16] + g_RT[3]));
 
     /*reaction 119: CH2CO + H => CH3 + CO */
-    kc[118] = exp((g_RT[16] + g_RT[3]) - (g_RT[12] + g_RT[10]));
+    kc[118] = exp((g_RT[16] + g_RT[3]) - (g_RT[12] + g_RT[11]));
 
     /*reaction 120: CH2CO + O => CH2 + CO2 */
-    kc[119] = exp((g_RT[16] + g_RT[1]) - (g_RT_qss[2] + g_RT[9]));
+    kc[119] = exp((g_RT[16] + g_RT[1]) - (g_RT_qss[2] + g_RT[10]));
 
     /*reaction 121: CH2CO + OH => HCCO + H2O */
     kc[120] = exp((g_RT[16] + g_RT[4]) - (g_RT_qss[8] + g_RT[5]));
 
     /*reaction 122: CH2CHO + O2 => CH2O + CO + OH */
-    kc[121] = refC * exp((g_RT_qss[10] + g_RT[6]) - (g_RT[11] + g_RT[10] + g_RT[4]));
+    kc[121] = refC * exp((g_RT_qss[10] + g_RT[6]) - (g_RT[9] + g_RT[11] + g_RT[4]));
 
     /*reaction 123: CH2CHO => CH2CO + H */
     kc[122] = refC * exp((g_RT_qss[10]) - (g_RT[16] + g_RT[3]));
@@ -10584,7 +10583,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[126] = refC * exp((g_RT_qss[13]) - (g_RT[20] + g_RT[7]));
 
     /*reaction 128: C3H2 + O2 => HCCO + CO + H */
-    kc[127] = refC * exp((g_RT_qss[14] + g_RT[6]) - (g_RT_qss[8] + g_RT[10] + g_RT[3]));
+    kc[127] = refC * exp((g_RT_qss[14] + g_RT[6]) - (g_RT_qss[8] + g_RT[11] + g_RT[3]));
 
     /*reaction 129: C3H2 + OH => C2H2 + HCO */
     kc[128] = exp((g_RT_qss[14] + g_RT[4]) - (g_RT[18] + g_RT_qss[1]));
@@ -10611,7 +10610,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[135] = exp((g_RT[21] + g_RT[4]) - (g_RT_qss[15] + g_RT[5]));
 
     /*reaction 137: C3H4XA + O => C2H4 + CO */
-    kc[136] = exp((g_RT[21] + g_RT[1]) - (g_RT[20] + g_RT[10]));
+    kc[136] = exp((g_RT[21] + g_RT[1]) - (g_RT[20] + g_RT[11]));
 
     /*reaction 138: C3H5XA + H => C3H4XA + H2 */
     kc[137] = exp((g_RT_qss[16] + g_RT[3]) - (g_RT[21] + g_RT[2]));
@@ -10632,7 +10631,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[142] = 1.0 / (refC) * exp((g_RT[21] + g_RT[3]) - (g_RT_qss[16]));
 
     /*reaction 144: C3H5XA + CH2O => C3H6 + HCO */
-    kc[143] = exp((g_RT_qss[16] + g_RT[11]) - (g_RT[19] + g_RT_qss[1]));
+    kc[143] = exp((g_RT_qss[16] + g_RT[9]) - (g_RT[19] + g_RT_qss[1]));
 
     /*reaction 145: C3H6 + H => C2H4 + CH3 */
     kc[144] = exp((g_RT[19] + g_RT[3]) - (g_RT[20] + g_RT[12]));
@@ -10680,7 +10679,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[158] = 1.0 / (refC) * exp((2.000000 * g_RT_qss[9]) - (g_RT[22]));
 
     /*reaction 160: C4H6 + OH => CH2O + C3H5XA */
-    kc[159] = exp((g_RT[22] + g_RT[4]) - (g_RT[11] + g_RT_qss[16]));
+    kc[159] = exp((g_RT[22] + g_RT[4]) - (g_RT[9] + g_RT_qss[16]));
 
     /*reaction 161: C4H6 + OH => C2H5 + CH2CO */
     kc[160] = exp((g_RT[22] + g_RT[4]) - (g_RT_qss[5] + g_RT[16]));
@@ -10692,7 +10691,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[162] = exp((g_RT[22] + g_RT[3]) - (g_RT_qss[9] + g_RT[20]));
 
     /*reaction 164: C4H6 + O => CH2O + C3H4XA */
-    kc[163] = exp((g_RT[22] + g_RT[1]) - (g_RT[11] + g_RT[21]));
+    kc[163] = exp((g_RT[22] + g_RT[1]) - (g_RT[9] + g_RT[21]));
 
     /*reaction 165: H + C4H7 => C4H8X1 */
     kc[164] = 1.0 / (refC) * exp((g_RT[3] + g_RT_qss[19]) - (g_RT[23]));
@@ -10704,7 +10703,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[166] = 1.0 / (refC) * exp((g_RT[22] + g_RT[3]) - (g_RT_qss[19]));
 
     /*reaction 168: C4H7 + CH3 => C4H6 + CH4 */
-    kc[167] = exp((g_RT_qss[19] + g_RT[12]) - (g_RT[22] + g_RT[13]));
+    kc[167] = exp((g_RT_qss[19] + g_RT[12]) - (g_RT[22] + g_RT[14]));
 
     /*reaction 169: C4H7 + HO2 => C4H8X1 + O2 */
     kc[168] = exp((g_RT_qss[19] + g_RT[7]) - (g_RT[23] + g_RT[6]));
@@ -10722,16 +10721,16 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[172] = exp((g_RT[23] + g_RT[3]) - (g_RT_qss[19] + g_RT[2]));
 
     /*reaction 174: C4H8X1 + OH => NXC3H7 + CH2O */
-    kc[173] = exp((g_RT[23] + g_RT[4]) - (g_RT_qss[17] + g_RT[11]));
+    kc[173] = exp((g_RT[23] + g_RT[4]) - (g_RT_qss[17] + g_RT[9]));
 
     /*reaction 175: C4H8X1 + OH => CH3CO + C2H6 */
-    kc[174] = exp((g_RT[23] + g_RT[4]) - (g_RT_qss[12] + g_RT[15]));
+    kc[174] = exp((g_RT[23] + g_RT[4]) - (g_RT_qss[12] + g_RT[13]));
 
     /*reaction 176: C4H8X1 + O => CH3CO + C2H5 */
     kc[175] = exp((g_RT[23] + g_RT[1]) - (g_RT_qss[12] + g_RT_qss[5]));
 
     /*reaction 177: C4H8X1 + O => C3H6 + CH2O */
-    kc[176] = exp((g_RT[23] + g_RT[1]) - (g_RT[19] + g_RT[11]));
+    kc[176] = exp((g_RT[23] + g_RT[1]) - (g_RT[19] + g_RT[9]));
 
     /*reaction 178: C4H8X1 + OH => C4H7 + H2O */
     kc[177] = exp((g_RT[23] + g_RT[4]) - (g_RT_qss[19] + g_RT[5]));
@@ -10788,7 +10787,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[194] = refC * exp((g_RT_qss[25]) - (g_RT_qss[17] + g_RT_qss[16]));
 
     /*reaction 196: C6H12X1 + OH => C5H11X1 + CH2O */
-    kc[195] = exp((g_RT_qss[25] + g_RT[4]) - (g_RT_qss[24] + g_RT[11]));
+    kc[195] = exp((g_RT_qss[25] + g_RT[4]) - (g_RT_qss[24] + g_RT[9]));
 
     /*reaction 197: C7H15X2 => C6H12X1 + CH3 */
     kc[196] = refC * exp((g_RT_qss[26]) - (g_RT_qss[25] + g_RT[12]));
@@ -10824,7 +10823,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[206] = refC * exp((g_RT[24]) - (g_RT_qss[24] + g_RT_qss[5]));
 
     /*reaction 208: NXC7H16 + CH3O => C7H15X2 + CH3OH */
-    kc[207] = exp((g_RT[24] + g_RT_qss[4]) - (g_RT_qss[26] + g_RT[14]));
+    kc[207] = exp((g_RT[24] + g_RT_qss[4]) - (g_RT_qss[26] + g_RT[15]));
 
     /*reaction 209: NXC7H16 + O => C7H15X2 + OH */
     kc[208] = exp((g_RT[24] + g_RT[1]) - (g_RT_qss[26] + g_RT[4]));
@@ -10833,7 +10832,7 @@ void equilibriumConstants(double *  kc, double *  g_RT, double T)
     kc[209] = exp((g_RT[24] + g_RT[4]) - (g_RT_qss[26] + g_RT[5]));
 
     /*reaction 211: NXC7H16 + CH3 => C7H15X2 + CH4 */
-    kc[210] = exp((g_RT[24] + g_RT[12]) - (g_RT_qss[26] + g_RT[13]));
+    kc[210] = exp((g_RT[24] + g_RT[12]) - (g_RT_qss[26] + g_RT[14]));
 
     return;
 }
@@ -10913,26 +10912,8 @@ AMREX_GPU_HOST_DEVICE void gibbs(double * species, double *  tc)
             +2.475021666666666e-08 * tc[2]
             +3.854838333333333e-10 * tc[3]
             -1.235757500000000e-13 * tc[4];
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            -4.837314000000000e+04 * invT
-            -7.912765000000000e+00
-            -2.275725000000000e+00 * tc[0]
-            -4.961036000000000e-03 * tc[1]
-            +1.734851666666667e-06 * tc[2]
-            -5.722239166666667e-10 * tc[3]
-            +1.058640000000000e-13 * tc[4];
-        /*species 10: CO */
-        species[10] =
-            -1.431054000000000e+04 * invT
-            -1.586445000000000e+00
-            -3.262452000000000e+00 * tc[0]
-            -7.559705000000000e-04 * tc[1]
-            +6.469591666666667e-07 * tc[2]
-            -4.651620000000000e-10 * tc[3]
-            +1.237475500000000e-13 * tc[4];
-        /*species 11: CH2O */
-        species[11] =
             -1.486540000000000e+04 * invT
             -1.213208900000000e+01
             -1.652731000000000e+00 * tc[0]
@@ -10940,6 +10921,24 @@ AMREX_GPU_HOST_DEVICE void gibbs(double * species, double *  tc)
             +3.146946666666667e-06 * tc[2]
             -1.708359166666667e-09 * tc[3]
             +4.206618500000000e-13 * tc[4];
+        /*species 10: CO2 */
+        species[10] =
+            -4.837314000000000e+04 * invT
+            -7.912765000000000e+00
+            -2.275725000000000e+00 * tc[0]
+            -4.961036000000000e-03 * tc[1]
+            +1.734851666666667e-06 * tc[2]
+            -5.722239166666667e-10 * tc[3]
+            +1.058640000000000e-13 * tc[4];
+        /*species 11: CO */
+        species[11] =
+            -1.431054000000000e+04 * invT
+            -1.586445000000000e+00
+            -3.262452000000000e+00 * tc[0]
+            -7.559705000000000e-04 * tc[1]
+            +6.469591666666667e-07 * tc[2]
+            -4.651620000000000e-10 * tc[3]
+            +1.237475500000000e-13 * tc[4];
         /*species 12: CH3 */
         species[12] =
             +1.642378000000000e+04 * invT
@@ -10949,8 +10948,8 @@ AMREX_GPU_HOST_DEVICE void gibbs(double * species, double *  tc)
             +2.800366666666666e-06 * tc[2]
             -1.351524166666667e-09 * tc[3]
             +2.932476500000000e-13 * tc[4];
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             -9.825228999999999e+03 * invT
             -1.294344850000000e+01
             -7.787415000000000e-01 * tc[0]
@@ -10958,8 +10957,8 @@ AMREX_GPU_HOST_DEVICE void gibbs(double * species, double *  tc)
             +4.639015000000000e-06 * tc[2]
             -2.541423333333333e-09 * tc[3]
             +6.119655000000000e-13 * tc[4];
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             -2.535348000000000e+04 * invT
             -8.572515000000001e+00
             -2.660115000000000e+00 * tc[0]
@@ -11058,26 +11057,8 @@ AMREX_GPU_HOST_DEVICE void gibbs(double * species, double *  tc)
             +2.457815000000000e-07 * tc[2]
             -1.957420000000000e-11 * tc[3]
             +7.158270000000000e-16 * tc[4];
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            -4.896696000000000e+04 * invT
-            +5.409018900000000e+00
-            -4.453623000000000e+00 * tc[0]
-            -1.570084500000000e-03 * tc[1]
-            +2.130685000000000e-07 * tc[2]
-            -1.994997500000000e-11 * tc[3]
-            +8.345165000000000e-16 * tc[4];
-        /*species 10: CO */
-        species[10] =
-            -1.426835000000000e+04 * invT
-            -3.083140000000000e+00
-            -3.025078000000000e+00 * tc[0]
-            -7.213445000000000e-04 * tc[1]
-            +9.384713333333334e-08 * tc[2]
-            -8.488174999999999e-12 * tc[3]
-            +3.455476000000000e-16 * tc[4];
-        /*species 11: CH2O */
-        species[11] =
             -1.532037000000000e+04 * invT
             -3.916966000000000e+00
             -2.995606000000000e+00 * tc[0]
@@ -11085,6 +11066,24 @@ AMREX_GPU_HOST_DEVICE void gibbs(double * species, double *  tc)
             +4.381591666666666e-07 * tc[2]
             -3.947627500000000e-11 * tc[3]
             +1.606258500000000e-15 * tc[4];
+        /*species 10: CO2 */
+        species[10] =
+            -4.896696000000000e+04 * invT
+            +5.409018900000000e+00
+            -4.453623000000000e+00 * tc[0]
+            -1.570084500000000e-03 * tc[1]
+            +2.130685000000000e-07 * tc[2]
+            -1.994997500000000e-11 * tc[3]
+            +8.345165000000000e-16 * tc[4];
+        /*species 11: CO */
+        species[11] =
+            -1.426835000000000e+04 * invT
+            -3.083140000000000e+00
+            -3.025078000000000e+00 * tc[0]
+            -7.213445000000000e-04 * tc[1]
+            +9.384713333333334e-08 * tc[2]
+            -8.488174999999999e-12 * tc[3]
+            +3.455476000000000e-16 * tc[4];
         /*species 12: CH3 */
         species[12] =
             +1.643781000000000e+04 * invT
@@ -11094,8 +11093,8 @@ AMREX_GPU_HOST_DEVICE void gibbs(double * species, double *  tc)
             +3.717241666666666e-07 * tc[2]
             -3.154300833333333e-11 * tc[3]
             +1.226079500000000e-15 * tc[4];
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             -1.008079000000000e+04 * invT
             -7.939916000000000e+00
             -1.683479000000000e+00 * tc[0]
@@ -11103,8 +11102,8 @@ AMREX_GPU_HOST_DEVICE void gibbs(double * species, double *  tc)
             +6.458548333333333e-07 * tc[2]
             -5.654654166666667e-11 * tc[3]
             +2.251711500000000e-15 * tc[4];
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             -2.615791000000000e+04 * invT
             +1.650865000000000e+00
             -4.029061000000000e+00 * tc[0]
@@ -11189,8 +11188,8 @@ AMREX_GPU_HOST_DEVICE void gibbs(double * species, double *  tc)
 
     /*species with midpoint at T=1384 kelvin */
     if (T < 1384) {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             -1.123455340000000e+04 * invT
             -2.119016043440000e+01
             +2.528543440000000e-02 * tc[0]
@@ -11199,8 +11198,8 @@ AMREX_GPU_HOST_DEVICE void gibbs(double * species, double *  tc)
             -1.736174175000000e-10 * tc[3]
             +2.649343080000000e-15 * tc[4];
     } else {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             -1.375000140000000e+04 * invT
             +1.911495885000000e+01
             -6.106833850000000e+00 * tc[0]
@@ -11968,26 +11967,8 @@ AMREX_GPU_HOST_DEVICE void helmholtz(double * species, double *  tc)
             +2.47502167e-08 * tc[2]
             +3.85483833e-10 * tc[3]
             -1.23575750e-13 * tc[4];
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            -4.83731400e+04 * invT
-            -8.91276500e+00
-            -2.27572500e+00 * tc[0]
-            -4.96103600e-03 * tc[1]
-            +1.73485167e-06 * tc[2]
-            -5.72223917e-10 * tc[3]
-            +1.05864000e-13 * tc[4];
-        /*species 10: CO */
-        species[10] =
-            -1.43105400e+04 * invT
-            -2.58644500e+00
-            -3.26245200e+00 * tc[0]
-            -7.55970500e-04 * tc[1]
-            +6.46959167e-07 * tc[2]
-            -4.65162000e-10 * tc[3]
-            +1.23747550e-13 * tc[4];
-        /*species 11: CH2O */
-        species[11] =
             -1.48654000e+04 * invT
             -1.31320890e+01
             -1.65273100e+00 * tc[0]
@@ -11995,6 +11976,24 @@ AMREX_GPU_HOST_DEVICE void helmholtz(double * species, double *  tc)
             +3.14694667e-06 * tc[2]
             -1.70835917e-09 * tc[3]
             +4.20661850e-13 * tc[4];
+        /*species 10: CO2 */
+        species[10] =
+            -4.83731400e+04 * invT
+            -8.91276500e+00
+            -2.27572500e+00 * tc[0]
+            -4.96103600e-03 * tc[1]
+            +1.73485167e-06 * tc[2]
+            -5.72223917e-10 * tc[3]
+            +1.05864000e-13 * tc[4];
+        /*species 11: CO */
+        species[11] =
+            -1.43105400e+04 * invT
+            -2.58644500e+00
+            -3.26245200e+00 * tc[0]
+            -7.55970500e-04 * tc[1]
+            +6.46959167e-07 * tc[2]
+            -4.65162000e-10 * tc[3]
+            +1.23747550e-13 * tc[4];
         /*species 12: CH3 */
         species[12] =
             +1.64237800e+04 * invT
@@ -12004,8 +12003,8 @@ AMREX_GPU_HOST_DEVICE void helmholtz(double * species, double *  tc)
             +2.80036667e-06 * tc[2]
             -1.35152417e-09 * tc[3]
             +2.93247650e-13 * tc[4];
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             -9.82522900e+03 * invT
             -1.39434485e+01
             -7.78741500e-01 * tc[0]
@@ -12013,8 +12012,8 @@ AMREX_GPU_HOST_DEVICE void helmholtz(double * species, double *  tc)
             +4.63901500e-06 * tc[2]
             -2.54142333e-09 * tc[3]
             +6.11965500e-13 * tc[4];
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             -2.53534800e+04 * invT
             -9.57251500e+00
             -2.66011500e+00 * tc[0]
@@ -12113,26 +12112,8 @@ AMREX_GPU_HOST_DEVICE void helmholtz(double * species, double *  tc)
             +2.45781500e-07 * tc[2]
             -1.95742000e-11 * tc[3]
             +7.15827000e-16 * tc[4];
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            -4.89669600e+04 * invT
-            +4.40901890e+00
-            -4.45362300e+00 * tc[0]
-            -1.57008450e-03 * tc[1]
-            +2.13068500e-07 * tc[2]
-            -1.99499750e-11 * tc[3]
-            +8.34516500e-16 * tc[4];
-        /*species 10: CO */
-        species[10] =
-            -1.42683500e+04 * invT
-            -4.08314000e+00
-            -3.02507800e+00 * tc[0]
-            -7.21344500e-04 * tc[1]
-            +9.38471333e-08 * tc[2]
-            -8.48817500e-12 * tc[3]
-            +3.45547600e-16 * tc[4];
-        /*species 11: CH2O */
-        species[11] =
             -1.53203700e+04 * invT
             -4.91696600e+00
             -2.99560600e+00 * tc[0]
@@ -12140,6 +12121,24 @@ AMREX_GPU_HOST_DEVICE void helmholtz(double * species, double *  tc)
             +4.38159167e-07 * tc[2]
             -3.94762750e-11 * tc[3]
             +1.60625850e-15 * tc[4];
+        /*species 10: CO2 */
+        species[10] =
+            -4.89669600e+04 * invT
+            +4.40901890e+00
+            -4.45362300e+00 * tc[0]
+            -1.57008450e-03 * tc[1]
+            +2.13068500e-07 * tc[2]
+            -1.99499750e-11 * tc[3]
+            +8.34516500e-16 * tc[4];
+        /*species 11: CO */
+        species[11] =
+            -1.42683500e+04 * invT
+            -4.08314000e+00
+            -3.02507800e+00 * tc[0]
+            -7.21344500e-04 * tc[1]
+            +9.38471333e-08 * tc[2]
+            -8.48817500e-12 * tc[3]
+            +3.45547600e-16 * tc[4];
         /*species 12: CH3 */
         species[12] =
             +1.64378100e+04 * invT
@@ -12149,8 +12148,8 @@ AMREX_GPU_HOST_DEVICE void helmholtz(double * species, double *  tc)
             +3.71724167e-07 * tc[2]
             -3.15430083e-11 * tc[3]
             +1.22607950e-15 * tc[4];
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             -1.00807900e+04 * invT
             -8.93991600e+00
             -1.68347900e+00 * tc[0]
@@ -12158,8 +12157,8 @@ AMREX_GPU_HOST_DEVICE void helmholtz(double * species, double *  tc)
             +6.45854833e-07 * tc[2]
             -5.65465417e-11 * tc[3]
             +2.25171150e-15 * tc[4];
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             -2.61579100e+04 * invT
             +6.50865000e-01
             -4.02906100e+00 * tc[0]
@@ -12244,8 +12243,8 @@ AMREX_GPU_HOST_DEVICE void helmholtz(double * species, double *  tc)
 
     /*species with midpoint at T=1384 kelvin */
     if (T < 1384) {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             -1.12345534e+04 * invT
             -2.21901604e+01
             +2.52854344e-02 * tc[0]
@@ -12254,8 +12253,8 @@ AMREX_GPU_HOST_DEVICE void helmholtz(double * species, double *  tc)
             -1.73617417e-10 * tc[3]
             +2.64934308e-15 * tc[4];
     } else {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             -1.37500014e+04 * invT
             +1.81149589e+01
             -6.10683385e+00 * tc[0]
@@ -12465,27 +12464,27 @@ AMREX_GPU_HOST_DEVICE void cv_R(double * species, double *  tc)
             -1.48501300e-07 * tc[2]
             -4.62580600e-09 * tc[3]
             +2.47151500e-12 * tc[4];
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            +1.27572500e+00
-            +9.92207200e-03 * tc[1]
-            -1.04091100e-05 * tc[2]
-            +6.86668700e-09 * tc[3]
-            -2.11728000e-12 * tc[4];
-        /*species 10: CO */
-        species[10] =
-            +2.26245200e+00
-            +1.51194100e-03 * tc[1]
-            -3.88175500e-06 * tc[2]
-            +5.58194400e-09 * tc[3]
-            -2.47495100e-12 * tc[4];
-        /*species 11: CH2O */
-        species[11] =
             +6.52731000e-01
             +1.26314400e-02 * tc[1]
             -1.88816800e-05 * tc[2]
             +2.05003100e-08 * tc[3]
             -8.41323700e-12 * tc[4];
+        /*species 10: CO2 */
+        species[10] =
+            +1.27572500e+00
+            +9.92207200e-03 * tc[1]
+            -1.04091100e-05 * tc[2]
+            +6.86668700e-09 * tc[3]
+            -2.11728000e-12 * tc[4];
+        /*species 11: CO */
+        species[11] =
+            +2.26245200e+00
+            +1.51194100e-03 * tc[1]
+            -3.88175500e-06 * tc[2]
+            +5.58194400e-09 * tc[3]
+            -2.47495100e-12 * tc[4];
         /*species 12: CH3 */
         species[12] =
             +1.43044300e+00
@@ -12493,15 +12492,15 @@ AMREX_GPU_HOST_DEVICE void cv_R(double * species, double *  tc)
             -1.68022000e-05 * tc[2]
             +1.62182900e-08 * tc[3]
             -5.86495300e-12 * tc[4];
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             -2.21258500e-01
             +1.74766800e-02 * tc[1]
             -2.78340900e-05 * tc[2]
             +3.04970800e-08 * tc[3]
             -1.22393100e-11 * tc[4];
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             +1.66011500e+00
             +7.34150800e-03 * tc[1]
             +7.17005100e-06 * tc[2]
@@ -12578,27 +12577,27 @@ AMREX_GPU_HOST_DEVICE void cv_R(double * species, double *  tc)
             -1.47468900e-06 * tc[2]
             +2.34890400e-10 * tc[3]
             -1.43165400e-14 * tc[4];
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            +3.45362300e+00
-            +3.14016900e-03 * tc[1]
-            -1.27841100e-06 * tc[2]
-            +2.39399700e-10 * tc[3]
-            -1.66903300e-14 * tc[4];
-        /*species 10: CO */
-        species[10] =
-            +2.02507800e+00
-            +1.44268900e-03 * tc[1]
-            -5.63082800e-07 * tc[2]
-            +1.01858100e-10 * tc[3]
-            -6.91095200e-15 * tc[4];
-        /*species 11: CH2O */
-        species[11] =
             +1.99560600e+00
             +6.68132100e-03 * tc[1]
             -2.62895500e-06 * tc[2]
             +4.73715300e-10 * tc[3]
             -3.21251700e-14 * tc[4];
+        /*species 10: CO2 */
+        species[10] =
+            +3.45362300e+00
+            +3.14016900e-03 * tc[1]
+            -1.27841100e-06 * tc[2]
+            +2.39399700e-10 * tc[3]
+            -1.66903300e-14 * tc[4];
+        /*species 11: CO */
+        species[11] =
+            +2.02507800e+00
+            +1.44268900e-03 * tc[1]
+            -5.63082800e-07 * tc[2]
+            +1.01858100e-10 * tc[3]
+            -6.91095200e-15 * tc[4];
         /*species 12: CH3 */
         species[12] =
             +1.84405200e+00
@@ -12606,15 +12605,15 @@ AMREX_GPU_HOST_DEVICE void cv_R(double * species, double *  tc)
             -2.23034500e-06 * tc[2]
             +3.78516100e-10 * tc[3]
             -2.45215900e-14 * tc[4];
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             +6.83479000e-01
             +1.02372400e-02 * tc[1]
             -3.87512900e-06 * tc[2]
             +6.78558500e-10 * tc[3]
             -4.50342300e-14 * tc[4];
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             +3.02906100e+00
             +9.37659300e-03 * tc[1]
             -3.05025400e-06 * tc[2]
@@ -12683,16 +12682,16 @@ AMREX_GPU_HOST_DEVICE void cv_R(double * species, double *  tc)
 
     /*species with midpoint at T=1384 kelvin */
     if (T < 1384) {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             -1.02528543e+00
             +2.40764754e-02 * tc[1]
             -1.11893472e-05 * tc[2]
             +2.08340901e-09 * tc[3]
             -5.29868616e-14 * tc[4];
     } else {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             +5.10683385e+00
             +1.29236361e-02 * tc[1]
             -4.42527196e-06 * tc[2]
@@ -12876,27 +12875,27 @@ AMREX_GPU_HOST_DEVICE void cp_R(double * species, double *  tc)
             -1.48501300e-07 * tc[2]
             -4.62580600e-09 * tc[3]
             +2.47151500e-12 * tc[4];
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            +2.27572500e+00
-            +9.92207200e-03 * tc[1]
-            -1.04091100e-05 * tc[2]
-            +6.86668700e-09 * tc[3]
-            -2.11728000e-12 * tc[4];
-        /*species 10: CO */
-        species[10] =
-            +3.26245200e+00
-            +1.51194100e-03 * tc[1]
-            -3.88175500e-06 * tc[2]
-            +5.58194400e-09 * tc[3]
-            -2.47495100e-12 * tc[4];
-        /*species 11: CH2O */
-        species[11] =
             +1.65273100e+00
             +1.26314400e-02 * tc[1]
             -1.88816800e-05 * tc[2]
             +2.05003100e-08 * tc[3]
             -8.41323700e-12 * tc[4];
+        /*species 10: CO2 */
+        species[10] =
+            +2.27572500e+00
+            +9.92207200e-03 * tc[1]
+            -1.04091100e-05 * tc[2]
+            +6.86668700e-09 * tc[3]
+            -2.11728000e-12 * tc[4];
+        /*species 11: CO */
+        species[11] =
+            +3.26245200e+00
+            +1.51194100e-03 * tc[1]
+            -3.88175500e-06 * tc[2]
+            +5.58194400e-09 * tc[3]
+            -2.47495100e-12 * tc[4];
         /*species 12: CH3 */
         species[12] =
             +2.43044300e+00
@@ -12904,15 +12903,15 @@ AMREX_GPU_HOST_DEVICE void cp_R(double * species, double *  tc)
             -1.68022000e-05 * tc[2]
             +1.62182900e-08 * tc[3]
             -5.86495300e-12 * tc[4];
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             +7.78741500e-01
             +1.74766800e-02 * tc[1]
             -2.78340900e-05 * tc[2]
             +3.04970800e-08 * tc[3]
             -1.22393100e-11 * tc[4];
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             +2.66011500e+00
             +7.34150800e-03 * tc[1]
             +7.17005100e-06 * tc[2]
@@ -12989,27 +12988,27 @@ AMREX_GPU_HOST_DEVICE void cp_R(double * species, double *  tc)
             -1.47468900e-06 * tc[2]
             +2.34890400e-10 * tc[3]
             -1.43165400e-14 * tc[4];
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            +4.45362300e+00
-            +3.14016900e-03 * tc[1]
-            -1.27841100e-06 * tc[2]
-            +2.39399700e-10 * tc[3]
-            -1.66903300e-14 * tc[4];
-        /*species 10: CO */
-        species[10] =
-            +3.02507800e+00
-            +1.44268900e-03 * tc[1]
-            -5.63082800e-07 * tc[2]
-            +1.01858100e-10 * tc[3]
-            -6.91095200e-15 * tc[4];
-        /*species 11: CH2O */
-        species[11] =
             +2.99560600e+00
             +6.68132100e-03 * tc[1]
             -2.62895500e-06 * tc[2]
             +4.73715300e-10 * tc[3]
             -3.21251700e-14 * tc[4];
+        /*species 10: CO2 */
+        species[10] =
+            +4.45362300e+00
+            +3.14016900e-03 * tc[1]
+            -1.27841100e-06 * tc[2]
+            +2.39399700e-10 * tc[3]
+            -1.66903300e-14 * tc[4];
+        /*species 11: CO */
+        species[11] =
+            +3.02507800e+00
+            +1.44268900e-03 * tc[1]
+            -5.63082800e-07 * tc[2]
+            +1.01858100e-10 * tc[3]
+            -6.91095200e-15 * tc[4];
         /*species 12: CH3 */
         species[12] =
             +2.84405200e+00
@@ -13017,15 +13016,15 @@ AMREX_GPU_HOST_DEVICE void cp_R(double * species, double *  tc)
             -2.23034500e-06 * tc[2]
             +3.78516100e-10 * tc[3]
             -2.45215900e-14 * tc[4];
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             +1.68347900e+00
             +1.02372400e-02 * tc[1]
             -3.87512900e-06 * tc[2]
             +6.78558500e-10 * tc[3]
             -4.50342300e-14 * tc[4];
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             +4.02906100e+00
             +9.37659300e-03 * tc[1]
             -3.05025400e-06 * tc[2]
@@ -13094,16 +13093,16 @@ AMREX_GPU_HOST_DEVICE void cp_R(double * species, double *  tc)
 
     /*species with midpoint at T=1384 kelvin */
     if (T < 1384) {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             -2.52854344e-02
             +2.40764754e-02 * tc[1]
             -1.11893472e-05 * tc[2]
             +2.08340901e-09 * tc[3]
             -5.29868616e-14 * tc[4];
     } else {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             +6.10683385e+00
             +1.29236361e-02 * tc[1]
             -4.42527196e-06 * tc[2]
@@ -13295,30 +13294,30 @@ AMREX_GPU_HOST_DEVICE void speciesInternalEnergy(double * species, double *  tc)
             -1.15645150e-09 * tc[3]
             +4.94303000e-13 * tc[4]
             -1.76631500e+04 * invT;
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            +1.27572500e+00
-            +4.96103600e-03 * tc[1]
-            -3.46970333e-06 * tc[2]
-            +1.71667175e-09 * tc[3]
-            -4.23456000e-13 * tc[4]
-            -4.83731400e+04 * invT;
-        /*species 10: CO */
-        species[10] =
-            +2.26245200e+00
-            +7.55970500e-04 * tc[1]
-            -1.29391833e-06 * tc[2]
-            +1.39548600e-09 * tc[3]
-            -4.94990200e-13 * tc[4]
-            -1.43105400e+04 * invT;
-        /*species 11: CH2O */
-        species[11] =
             +6.52731000e-01
             +6.31572000e-03 * tc[1]
             -6.29389333e-06 * tc[2]
             +5.12507750e-09 * tc[3]
             -1.68264740e-12 * tc[4]
             -1.48654000e+04 * invT;
+        /*species 10: CO2 */
+        species[10] =
+            +1.27572500e+00
+            +4.96103600e-03 * tc[1]
+            -3.46970333e-06 * tc[2]
+            +1.71667175e-09 * tc[3]
+            -4.23456000e-13 * tc[4]
+            -4.83731400e+04 * invT;
+        /*species 11: CO */
+        species[11] =
+            +2.26245200e+00
+            +7.55970500e-04 * tc[1]
+            -1.29391833e-06 * tc[2]
+            +1.39548600e-09 * tc[3]
+            -4.94990200e-13 * tc[4]
+            -1.43105400e+04 * invT;
         /*species 12: CH3 */
         species[12] =
             +1.43044300e+00
@@ -13327,16 +13326,16 @@ AMREX_GPU_HOST_DEVICE void speciesInternalEnergy(double * species, double *  tc)
             +4.05457250e-09 * tc[3]
             -1.17299060e-12 * tc[4]
             +1.64237800e+04 * invT;
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             -2.21258500e-01
             +8.73834000e-03 * tc[1]
             -9.27803000e-06 * tc[2]
             +7.62427000e-09 * tc[3]
             -2.44786200e-12 * tc[4]
             -9.82522900e+03 * invT;
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             +1.66011500e+00
             +3.67075400e-03 * tc[1]
             +2.39001700e-06 * tc[2]
@@ -13424,30 +13423,30 @@ AMREX_GPU_HOST_DEVICE void speciesInternalEnergy(double * species, double *  tc)
             +5.87226000e-11 * tc[3]
             -2.86330800e-15 * tc[4]
             -1.80069600e+04 * invT;
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            +3.45362300e+00
-            +1.57008450e-03 * tc[1]
-            -4.26137000e-07 * tc[2]
-            +5.98499250e-11 * tc[3]
-            -3.33806600e-15 * tc[4]
-            -4.89669600e+04 * invT;
-        /*species 10: CO */
-        species[10] =
-            +2.02507800e+00
-            +7.21344500e-04 * tc[1]
-            -1.87694267e-07 * tc[2]
-            +2.54645250e-11 * tc[3]
-            -1.38219040e-15 * tc[4]
-            -1.42683500e+04 * invT;
-        /*species 11: CH2O */
-        species[11] =
             +1.99560600e+00
             +3.34066050e-03 * tc[1]
             -8.76318333e-07 * tc[2]
             +1.18428825e-10 * tc[3]
             -6.42503400e-15 * tc[4]
             -1.53203700e+04 * invT;
+        /*species 10: CO2 */
+        species[10] =
+            +3.45362300e+00
+            +1.57008450e-03 * tc[1]
+            -4.26137000e-07 * tc[2]
+            +5.98499250e-11 * tc[3]
+            -3.33806600e-15 * tc[4]
+            -4.89669600e+04 * invT;
+        /*species 11: CO */
+        species[11] =
+            +2.02507800e+00
+            +7.21344500e-04 * tc[1]
+            -1.87694267e-07 * tc[2]
+            +2.54645250e-11 * tc[3]
+            -1.38219040e-15 * tc[4]
+            -1.42683500e+04 * invT;
         /*species 12: CH3 */
         species[12] =
             +1.84405200e+00
@@ -13456,16 +13455,16 @@ AMREX_GPU_HOST_DEVICE void speciesInternalEnergy(double * species, double *  tc)
             +9.46290250e-11 * tc[3]
             -4.90431800e-15 * tc[4]
             +1.64378100e+04 * invT;
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             +6.83479000e-01
             +5.11862000e-03 * tc[1]
             -1.29170967e-06 * tc[2]
             +1.69639625e-10 * tc[3]
             -9.00684600e-15 * tc[4]
             -1.00807900e+04 * invT;
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             +3.02906100e+00
             +4.68829650e-03 * tc[1]
             -1.01675133e-06 * tc[2]
@@ -13542,8 +13541,8 @@ AMREX_GPU_HOST_DEVICE void speciesInternalEnergy(double * species, double *  tc)
 
     /*species with midpoint at T=1384 kelvin */
     if (T < 1384) {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             -1.02528543e+00
             +1.20382377e-02 * tc[1]
             -3.72978240e-06 * tc[2]
@@ -13551,8 +13550,8 @@ AMREX_GPU_HOST_DEVICE void speciesInternalEnergy(double * species, double *  tc)
             -1.05973723e-14 * tc[4]
             -1.12345534e+04 * invT;
     } else {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             +5.10683385e+00
             +6.46181805e-03 * tc[1]
             -1.47509065e-06 * tc[2]
@@ -13757,30 +13756,30 @@ AMREX_GPU_HOST_DEVICE void speciesEnthalpy(double * species, double *  tc)
             -1.15645150e-09 * tc[3]
             +4.94303000e-13 * tc[4]
             -1.76631500e+04 * invT;
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            +2.27572500e+00
-            +4.96103600e-03 * tc[1]
-            -3.46970333e-06 * tc[2]
-            +1.71667175e-09 * tc[3]
-            -4.23456000e-13 * tc[4]
-            -4.83731400e+04 * invT;
-        /*species 10: CO */
-        species[10] =
-            +3.26245200e+00
-            +7.55970500e-04 * tc[1]
-            -1.29391833e-06 * tc[2]
-            +1.39548600e-09 * tc[3]
-            -4.94990200e-13 * tc[4]
-            -1.43105400e+04 * invT;
-        /*species 11: CH2O */
-        species[11] =
             +1.65273100e+00
             +6.31572000e-03 * tc[1]
             -6.29389333e-06 * tc[2]
             +5.12507750e-09 * tc[3]
             -1.68264740e-12 * tc[4]
             -1.48654000e+04 * invT;
+        /*species 10: CO2 */
+        species[10] =
+            +2.27572500e+00
+            +4.96103600e-03 * tc[1]
+            -3.46970333e-06 * tc[2]
+            +1.71667175e-09 * tc[3]
+            -4.23456000e-13 * tc[4]
+            -4.83731400e+04 * invT;
+        /*species 11: CO */
+        species[11] =
+            +3.26245200e+00
+            +7.55970500e-04 * tc[1]
+            -1.29391833e-06 * tc[2]
+            +1.39548600e-09 * tc[3]
+            -4.94990200e-13 * tc[4]
+            -1.43105400e+04 * invT;
         /*species 12: CH3 */
         species[12] =
             +2.43044300e+00
@@ -13789,16 +13788,16 @@ AMREX_GPU_HOST_DEVICE void speciesEnthalpy(double * species, double *  tc)
             +4.05457250e-09 * tc[3]
             -1.17299060e-12 * tc[4]
             +1.64237800e+04 * invT;
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             +7.78741500e-01
             +8.73834000e-03 * tc[1]
             -9.27803000e-06 * tc[2]
             +7.62427000e-09 * tc[3]
             -2.44786200e-12 * tc[4]
             -9.82522900e+03 * invT;
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             +2.66011500e+00
             +3.67075400e-03 * tc[1]
             +2.39001700e-06 * tc[2]
@@ -13886,30 +13885,30 @@ AMREX_GPU_HOST_DEVICE void speciesEnthalpy(double * species, double *  tc)
             +5.87226000e-11 * tc[3]
             -2.86330800e-15 * tc[4]
             -1.80069600e+04 * invT;
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            +4.45362300e+00
-            +1.57008450e-03 * tc[1]
-            -4.26137000e-07 * tc[2]
-            +5.98499250e-11 * tc[3]
-            -3.33806600e-15 * tc[4]
-            -4.89669600e+04 * invT;
-        /*species 10: CO */
-        species[10] =
-            +3.02507800e+00
-            +7.21344500e-04 * tc[1]
-            -1.87694267e-07 * tc[2]
-            +2.54645250e-11 * tc[3]
-            -1.38219040e-15 * tc[4]
-            -1.42683500e+04 * invT;
-        /*species 11: CH2O */
-        species[11] =
             +2.99560600e+00
             +3.34066050e-03 * tc[1]
             -8.76318333e-07 * tc[2]
             +1.18428825e-10 * tc[3]
             -6.42503400e-15 * tc[4]
             -1.53203700e+04 * invT;
+        /*species 10: CO2 */
+        species[10] =
+            +4.45362300e+00
+            +1.57008450e-03 * tc[1]
+            -4.26137000e-07 * tc[2]
+            +5.98499250e-11 * tc[3]
+            -3.33806600e-15 * tc[4]
+            -4.89669600e+04 * invT;
+        /*species 11: CO */
+        species[11] =
+            +3.02507800e+00
+            +7.21344500e-04 * tc[1]
+            -1.87694267e-07 * tc[2]
+            +2.54645250e-11 * tc[3]
+            -1.38219040e-15 * tc[4]
+            -1.42683500e+04 * invT;
         /*species 12: CH3 */
         species[12] =
             +2.84405200e+00
@@ -13918,16 +13917,16 @@ AMREX_GPU_HOST_DEVICE void speciesEnthalpy(double * species, double *  tc)
             +9.46290250e-11 * tc[3]
             -4.90431800e-15 * tc[4]
             +1.64378100e+04 * invT;
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             +1.68347900e+00
             +5.11862000e-03 * tc[1]
             -1.29170967e-06 * tc[2]
             +1.69639625e-10 * tc[3]
             -9.00684600e-15 * tc[4]
             -1.00807900e+04 * invT;
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             +4.02906100e+00
             +4.68829650e-03 * tc[1]
             -1.01675133e-06 * tc[2]
@@ -14004,8 +14003,8 @@ AMREX_GPU_HOST_DEVICE void speciesEnthalpy(double * species, double *  tc)
 
     /*species with midpoint at T=1384 kelvin */
     if (T < 1384) {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             -2.52854344e-02
             +1.20382377e-02 * tc[1]
             -3.72978240e-06 * tc[2]
@@ -14013,8 +14012,8 @@ AMREX_GPU_HOST_DEVICE void speciesEnthalpy(double * species, double *  tc)
             -1.05973723e-14 * tc[4]
             -1.12345534e+04 * invT;
     } else {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             +6.10683385e+00
             +6.46181805e-03 * tc[1]
             -1.47509065e-06 * tc[2]
@@ -14218,30 +14217,30 @@ AMREX_GPU_HOST_DEVICE void speciesEntropy(double * species, double *  tc)
             -1.54193533e-09 * tc[3]
             +6.17878750e-13 * tc[4]
             +6.78536300e+00 ;
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            +2.27572500e+00 * tc[0]
-            +9.92207200e-03 * tc[1]
-            -5.20455500e-06 * tc[2]
-            +2.28889567e-09 * tc[3]
-            -5.29320000e-13 * tc[4]
-            +1.01884900e+01 ;
-        /*species 10: CO */
-        species[10] =
-            +3.26245200e+00 * tc[0]
-            +1.51194100e-03 * tc[1]
-            -1.94087750e-06 * tc[2]
-            +1.86064800e-09 * tc[3]
-            -6.18737750e-13 * tc[4]
-            +4.84889700e+00 ;
-        /*species 11: CH2O */
-        species[11] =
             +1.65273100e+00 * tc[0]
             +1.26314400e-02 * tc[1]
             -9.44084000e-06 * tc[2]
             +6.83343667e-09 * tc[3]
             -2.10330925e-12 * tc[4]
             +1.37848200e+01 ;
+        /*species 10: CO2 */
+        species[10] =
+            +2.27572500e+00 * tc[0]
+            +9.92207200e-03 * tc[1]
+            -5.20455500e-06 * tc[2]
+            +2.28889567e-09 * tc[3]
+            -5.29320000e-13 * tc[4]
+            +1.01884900e+01 ;
+        /*species 11: CO */
+        species[11] =
+            +3.26245200e+00 * tc[0]
+            +1.51194100e-03 * tc[1]
+            -1.94087750e-06 * tc[2]
+            +1.86064800e-09 * tc[3]
+            -6.18737750e-13 * tc[4]
+            +4.84889700e+00 ;
         /*species 12: CH3 */
         species[12] =
             +2.43044300e+00 * tc[0]
@@ -14250,16 +14249,16 @@ AMREX_GPU_HOST_DEVICE void speciesEntropy(double * species, double *  tc)
             +5.40609667e-09 * tc[3]
             -1.46623825e-12 * tc[4]
             +6.78979400e+00 ;
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             +7.78741500e-01 * tc[0]
             +1.74766800e-02 * tc[1]
             -1.39170450e-05 * tc[2]
             +1.01656933e-08 * tc[3]
             -3.05982750e-12 * tc[4]
             +1.37221900e+01 ;
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             +2.66011500e+00 * tc[0]
             +7.34150800e-03 * tc[1]
             +3.58502550e-06 * tc[2]
@@ -14347,30 +14346,30 @@ AMREX_GPU_HOST_DEVICE void speciesEntropy(double * species, double *  tc)
             +7.82968000e-11 * tc[3]
             -3.57913500e-15 * tc[4]
             +5.01137000e-01 ;
-        /*species 9: CO2 */
+        /*species 9: CH2O */
         species[9] =
-            +4.45362300e+00 * tc[0]
-            +3.14016900e-03 * tc[1]
-            -6.39205500e-07 * tc[2]
-            +7.97999000e-11 * tc[3]
-            -4.17258250e-15 * tc[4]
-            -9.55395900e-01 ;
-        /*species 10: CO */
-        species[10] =
-            +3.02507800e+00 * tc[0]
-            +1.44268900e-03 * tc[1]
-            -2.81541400e-07 * tc[2]
-            +3.39527000e-11 * tc[3]
-            -1.72773800e-15 * tc[4]
-            +6.10821800e+00 ;
-        /*species 11: CH2O */
-        species[11] =
             +2.99560600e+00 * tc[0]
             +6.68132100e-03 * tc[1]
             -1.31447750e-06 * tc[2]
             +1.57905100e-10 * tc[3]
             -8.03129250e-15 * tc[4]
             +6.91257200e+00 ;
+        /*species 10: CO2 */
+        species[10] =
+            +4.45362300e+00 * tc[0]
+            +3.14016900e-03 * tc[1]
+            -6.39205500e-07 * tc[2]
+            +7.97999000e-11 * tc[3]
+            -4.17258250e-15 * tc[4]
+            -9.55395900e-01 ;
+        /*species 11: CO */
+        species[11] =
+            +3.02507800e+00 * tc[0]
+            +1.44268900e-03 * tc[1]
+            -2.81541400e-07 * tc[2]
+            +3.39527000e-11 * tc[3]
+            -1.72773800e-15 * tc[4]
+            +6.10821800e+00 ;
         /*species 12: CH3 */
         species[12] =
             +2.84405200e+00 * tc[0]
@@ -14379,16 +14378,16 @@ AMREX_GPU_HOST_DEVICE void speciesEntropy(double * species, double *  tc)
             +1.26172033e-10 * tc[3]
             -6.13039750e-15 * tc[4]
             +5.45269700e+00 ;
-        /*species 13: CH4 */
-        species[13] =
+        /*species 14: CH4 */
+        species[14] =
             +1.68347900e+00 * tc[0]
             +1.02372400e-02 * tc[1]
             -1.93756450e-06 * tc[2]
             +2.26186167e-10 * tc[3]
             -1.12585575e-14 * tc[4]
             +9.62339500e+00 ;
-        /*species 14: CH3OH */
-        species[14] =
+        /*species 15: CH3OH */
+        species[15] =
             +4.02906100e+00 * tc[0]
             +9.37659300e-03 * tc[1]
             -1.52512700e-06 * tc[2]
@@ -14465,8 +14464,8 @@ AMREX_GPU_HOST_DEVICE void speciesEntropy(double * species, double *  tc)
 
     /*species with midpoint at T=1384 kelvin */
     if (T < 1384) {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             -2.52854344e-02 * tc[0]
             +2.40764754e-02 * tc[1]
             -5.59467360e-06 * tc[2]
@@ -14474,8 +14473,8 @@ AMREX_GPU_HOST_DEVICE void speciesEntropy(double * species, double *  tc)
             -1.32467154e-14 * tc[4]
             +2.11648750e+01 ;
     } else {
-        /*species 15: C2H6 */
-        species[15] =
+        /*species 13: C2H6 */
+        species[13] =
             +6.10683385e+00 * tc[0]
             +1.29236361e-02 * tc[1]
             -2.21263598e-06 * tc[2]
@@ -14762,13 +14761,13 @@ void egtransetWT(double* WT ) {
     WT[6] = 3.19988000E+01;
     WT[7] = 3.30067700E+01;
     WT[8] = 3.40147400E+01;
-    WT[9] = 4.40099500E+01;
-    WT[10] = 2.80105500E+01;
-    WT[11] = 3.00264900E+01;
+    WT[9] = 3.00264900E+01;
+    WT[10] = 4.40099500E+01;
+    WT[11] = 2.80105500E+01;
     WT[12] = 1.50350600E+01;
-    WT[13] = 1.60430300E+01;
-    WT[14] = 3.20424300E+01;
-    WT[15] = 3.00701200E+01;
+    WT[13] = 3.00701200E+01;
+    WT[14] = 1.60430300E+01;
+    WT[15] = 3.20424300E+01;
     WT[16] = 4.20376400E+01;
     WT[17] = 4.60258900E+01;
     WT[18] = 2.60382400E+01;
@@ -14792,13 +14791,13 @@ void egtransetEPS(double* EPS ) {
     EPS[6] = 1.07400000E+02;
     EPS[7] = 1.07400000E+02;
     EPS[8] = 1.07400000E+02;
-    EPS[9] = 2.44000000E+02;
-    EPS[10] = 9.81000000E+01;
-    EPS[11] = 4.98000000E+02;
+    EPS[9] = 4.98000000E+02;
+    EPS[10] = 2.44000000E+02;
+    EPS[11] = 9.81000000E+01;
     EPS[12] = 1.44000000E+02;
-    EPS[13] = 1.41400000E+02;
-    EPS[14] = 4.81800000E+02;
-    EPS[15] = 2.47500000E+02;
+    EPS[13] = 2.47500000E+02;
+    EPS[14] = 1.41400000E+02;
+    EPS[15] = 4.81800000E+02;
     EPS[16] = 4.36000000E+02;
     EPS[17] = 4.36000000E+02;
     EPS[18] = 2.65300000E+02;
@@ -14822,13 +14821,13 @@ void egtransetSIG(double* SIG ) {
     SIG[6] = 3.45800000E+00;
     SIG[7] = 3.45800000E+00;
     SIG[8] = 3.45800000E+00;
-    SIG[9] = 3.76300000E+00;
-    SIG[10] = 3.65000000E+00;
-    SIG[11] = 3.59000000E+00;
+    SIG[9] = 3.59000000E+00;
+    SIG[10] = 3.76300000E+00;
+    SIG[11] = 3.65000000E+00;
     SIG[12] = 3.80000000E+00;
-    SIG[13] = 3.74600000E+00;
-    SIG[14] = 3.62600000E+00;
-    SIG[15] = 4.35000000E+00;
+    SIG[13] = 4.35000000E+00;
+    SIG[14] = 3.74600000E+00;
+    SIG[15] = 3.62600000E+00;
     SIG[16] = 3.97000000E+00;
     SIG[17] = 3.97000000E+00;
     SIG[18] = 3.72100000E+00;
@@ -14882,12 +14881,12 @@ void egtransetPOL(double* POL ) {
     POL[6] = 1.60000000E+00;
     POL[7] = 0.00000000E+00;
     POL[8] = 0.00000000E+00;
-    POL[9] = 2.65000000E+00;
-    POL[10] = 1.95000000E+00;
-    POL[11] = 0.00000000E+00;
+    POL[9] = 0.00000000E+00;
+    POL[10] = 2.65000000E+00;
+    POL[11] = 1.95000000E+00;
     POL[12] = 0.00000000E+00;
-    POL[13] = 2.60000000E+00;
-    POL[14] = 0.00000000E+00;
+    POL[13] = 0.00000000E+00;
+    POL[14] = 2.60000000E+00;
     POL[15] = 0.00000000E+00;
     POL[16] = 0.00000000E+00;
     POL[17] = 0.00000000E+00;
@@ -14912,13 +14911,13 @@ void egtransetZROT(double* ZROT ) {
     ZROT[6] = 3.80000000E+00;
     ZROT[7] = 1.00000000E+00;
     ZROT[8] = 3.80000000E+00;
-    ZROT[9] = 2.10000000E+00;
-    ZROT[10] = 1.80000000E+00;
-    ZROT[11] = 2.00000000E+00;
+    ZROT[9] = 2.00000000E+00;
+    ZROT[10] = 2.10000000E+00;
+    ZROT[11] = 1.80000000E+00;
     ZROT[12] = 0.00000000E+00;
-    ZROT[13] = 1.30000000E+01;
-    ZROT[14] = 1.00000000E+00;
-    ZROT[15] = 1.50000000E+00;
+    ZROT[13] = 1.50000000E+00;
+    ZROT[14] = 1.30000000E+01;
+    ZROT[15] = 1.00000000E+00;
     ZROT[16] = 2.00000000E+00;
     ZROT[17] = 2.00000000E+00;
     ZROT[18] = 2.50000000E+00;
@@ -14942,9 +14941,9 @@ void egtransetNLIN(int* NLIN) {
     NLIN[6] = 1;
     NLIN[7] = 2;
     NLIN[8] = 2;
-    NLIN[9] = 1;
+    NLIN[9] = 2;
     NLIN[10] = 1;
-    NLIN[11] = 2;
+    NLIN[11] = 1;
     NLIN[12] = 1;
     NLIN[13] = 2;
     NLIN[14] = 2;
@@ -14999,34 +14998,34 @@ void egtransetCOFETA(double* COFETA) {
     COFETA[33] = 2.68036374E+00;
     COFETA[34] = -2.72570227E-01;
     COFETA[35] = 1.21650964E-02;
-    COFETA[36] = -2.40014975E+01;
-    COFETA[37] = 5.14359547E+00;
-    COFETA[38] = -5.74269731E-01;
-    COFETA[39] = 2.44937679E-02;
-    COFETA[40] = -1.66188336E+01;
-    COFETA[41] = 2.40307799E+00;
-    COFETA[42] = -2.36167638E-01;
-    COFETA[43] = 1.05714061E-02;
-    COFETA[44] = -1.98330577E+01;
-    COFETA[45] = 2.69480162E+00;
-    COFETA[46] = -1.65880845E-01;
-    COFETA[47] = 3.14504769E-03;
+    COFETA[36] = -1.98330577E+01;
+    COFETA[37] = 2.69480162E+00;
+    COFETA[38] = -1.65880845E-01;
+    COFETA[39] = 3.14504769E-03;
+    COFETA[40] = -2.40014975E+01;
+    COFETA[41] = 5.14359547E+00;
+    COFETA[42] = -5.74269731E-01;
+    COFETA[43] = 2.44937679E-02;
+    COFETA[44] = -1.66188336E+01;
+    COFETA[45] = 2.40307799E+00;
+    COFETA[46] = -2.36167638E-01;
+    COFETA[47] = 1.05714061E-02;
     COFETA[48] = -2.02316497E+01;
     COFETA[49] = 3.63241793E+00;
     COFETA[50] = -3.95581049E-01;
     COFETA[51] = 1.74725495E-02;
-    COFETA[52] = -2.00094664E+01;
-    COFETA[53] = 3.57220167E+00;
-    COFETA[54] = -3.87936446E-01;
-    COFETA[55] = 1.71483254E-02;
-    COFETA[56] = -2.05644525E+01;
-    COFETA[57] = 3.03946431E+00;
-    COFETA[58] = -2.16994867E-01;
-    COFETA[59] = 5.61394012E-03;
-    COFETA[60] = -2.45432160E+01;
-    COFETA[61] = 5.15878990E+00;
-    COFETA[62] = -5.75274341E-01;
-    COFETA[63] = 2.44975136E-02;
+    COFETA[52] = -2.45432160E+01;
+    COFETA[53] = 5.15878990E+00;
+    COFETA[54] = -5.75274341E-01;
+    COFETA[55] = 2.44975136E-02;
+    COFETA[56] = -2.00094664E+01;
+    COFETA[57] = 3.57220167E+00;
+    COFETA[58] = -3.87936446E-01;
+    COFETA[59] = 1.71483254E-02;
+    COFETA[60] = -2.05644525E+01;
+    COFETA[61] = 3.03946431E+00;
+    COFETA[62] = -2.16994867E-01;
+    COFETA[63] = 5.61394012E-03;
     COFETA[64] = -2.23395647E+01;
     COFETA[65] = 3.86433912E+00;
     COFETA[66] = -3.41553983E-01;
@@ -15104,34 +15103,34 @@ void egtransetCOFLAM(double* COFLAM) {
     COFLAM[33] = 1.32506478E+00;
     COFLAM[34] = 1.81955930E-02;
     COFLAM[35] = -4.46691285E-03;
-    COFLAM[36] = -1.15552013E+01;
-    COFLAM[37] = 5.97444378E+00;
-    COFLAM[38] = -5.83493959E-01;
-    COFLAM[39] = 2.11390997E-02;
-    COFLAM[40] = 1.15794127E+01;
-    COFLAM[41] = -3.02088602E+00;
-    COFLAM[42] = 5.82091962E-01;
-    COFLAM[43] = -2.93406692E-02;
-    COFLAM[44] = 4.84793117E+00;
-    COFLAM[45] = -2.13603179E+00;
-    COFLAM[46] = 6.99833906E-01;
-    COFLAM[47] = -4.38222985E-02;
+    COFLAM[36] = 4.84793117E+00;
+    COFLAM[37] = -2.13603179E+00;
+    COFLAM[38] = 6.99833906E-01;
+    COFLAM[39] = -4.38222985E-02;
+    COFLAM[40] = -1.15552013E+01;
+    COFLAM[41] = 5.97444378E+00;
+    COFLAM[42] = -5.83493959E-01;
+    COFLAM[43] = 2.11390997E-02;
+    COFLAM[44] = 1.15794127E+01;
+    COFLAM[45] = -3.02088602E+00;
+    COFLAM[46] = 5.82091962E-01;
+    COFLAM[47] = -2.93406692E-02;
     COFLAM[48] = 1.36305859E+01;
     COFLAM[49] = -4.45086721E+00;
     COFLAM[50] = 8.75862692E-01;
     COFLAM[51] = -4.60275277E-02;
-    COFLAM[52] = 1.29622480E+01;
-    COFLAM[53] = -4.85747192E+00;
-    COFLAM[54] = 1.02918185E+00;
-    COFLAM[55] = -5.69931976E-02;
-    COFLAM[56] = -3.48612719E+00;
-    COFLAM[57] = 1.33821415E+00;
-    COFLAM[58] = 2.29051402E-01;
-    COFLAM[59] = -2.22522544E-02;
-    COFLAM[60] = -1.44773293E+01;
-    COFLAM[61] = 6.20799727E+00;
-    COFLAM[62] = -4.66686188E-01;
-    COFLAM[63] = 1.03037078E-02;
+    COFLAM[52] = -1.44773293E+01;
+    COFLAM[53] = 6.20799727E+00;
+    COFLAM[54] = -4.66686188E-01;
+    COFLAM[55] = 1.03037078E-02;
+    COFLAM[56] = 1.29622480E+01;
+    COFLAM[57] = -4.85747192E+00;
+    COFLAM[58] = 1.02918185E+00;
+    COFLAM[59] = -5.69931976E-02;
+    COFLAM[60] = -3.48612719E+00;
+    COFLAM[61] = 1.33821415E+00;
+    COFLAM[62] = 2.29051402E-01;
+    COFLAM[63] = -2.22522544E-02;
     COFLAM[64] = -9.55248736E+00;
     COFLAM[65] = 4.54181017E+00;
     COFLAM[66] = -3.09443018E-01;
@@ -15209,34 +15208,34 @@ void egtransetCOFD(double* COFD) {
     COFD[33] = 3.35922578E+00;
     COFD[34] = -2.25181399E-01;
     COFD[35] = 9.92132878E-03;
-    COFD[36] = -1.81432461E+01;
-    COFD[37] = 4.37565431E+00;
-    COFD[38] = -3.53906025E-01;
-    COFD[39] = 1.53760786E-02;
-    COFD[40] = -1.50031687E+01;
-    COFD[41] = 3.26223357E+00;
-    COFD[42] = -2.12746642E-01;
-    COFD[43] = 9.38912883E-03;
-    COFD[44] = -2.04833713E+01;
-    COFD[45] = 5.23112374E+00;
-    COFD[46] = -4.54967682E-01;
-    COFD[47] = 1.93570423E-02;
+    COFD[36] = -2.04833713E+01;
+    COFD[37] = 5.23112374E+00;
+    COFD[38] = -4.54967682E-01;
+    COFD[39] = 1.93570423E-02;
+    COFD[40] = -1.81432461E+01;
+    COFD[41] = 4.37565431E+00;
+    COFD[42] = -3.53906025E-01;
+    COFD[43] = 1.53760786E-02;
+    COFD[44] = -1.50031687E+01;
+    COFD[45] = 3.26223357E+00;
+    COFD[46] = -2.12746642E-01;
+    COFD[47] = 9.38912883E-03;
     COFD[48] = -1.59633387E+01;
     COFD[49] = 3.66853818E+00;
     COFD[50] = -2.64346221E-01;
     COFD[51] = 1.15784613E-02;
-    COFD[52] = -1.59327297E+01;
-    COFD[53] = 3.65620899E+00;
-    COFD[54] = -2.62933804E-01;
-    COFD[55] = 1.15253223E-02;
-    COFD[56] = -2.03844252E+01;
-    COFD[57] = 5.18856872E+00;
-    COFD[58] = -4.50001829E-01;
-    COFD[59] = 1.91636142E-02;
-    COFD[60] = -1.82673770E+01;
-    COFD[61] = 4.39538102E+00;
-    COFD[62] = -3.56367230E-01;
-    COFD[63] = 1.54788461E-02;
+    COFD[52] = -1.82673770E+01;
+    COFD[53] = 4.39538102E+00;
+    COFD[54] = -3.56367230E-01;
+    COFD[55] = 1.54788461E-02;
+    COFD[56] = -1.59327297E+01;
+    COFD[57] = 3.65620899E+00;
+    COFD[58] = -2.62933804E-01;
+    COFD[59] = 1.15253223E-02;
+    COFD[60] = -2.03844252E+01;
+    COFD[61] = 5.18856872E+00;
+    COFD[62] = -4.50001829E-01;
+    COFD[63] = 1.91636142E-02;
     COFD[64] = -2.02646611E+01;
     COFD[65] = 5.10426133E+00;
     COFD[66] = -4.41256919E-01;
@@ -15309,34 +15308,34 @@ void egtransetCOFD(double* COFD) {
     COFD[133] = 3.17651319E+00;
     COFD[134] = -2.02028974E-01;
     COFD[135] = 8.94232502E-03;
-    COFD[136] = -1.70534856E+01;
-    COFD[137] = 4.14240922E+00;
-    COFD[138] = -3.25239774E-01;
-    COFD[139] = 1.41980687E-02;
-    COFD[140] = -1.40999008E+01;
-    COFD[141] = 3.08120012E+00;
-    COFD[142] = -1.89629903E-01;
-    COFD[143] = 8.40361952E-03;
-    COFD[144] = -1.94373127E+01;
-    COFD[145] = 5.02567894E+00;
-    COFD[146] = -4.32045169E-01;
-    COFD[147] = 1.85132214E-02;
+    COFD[136] = -1.94373127E+01;
+    COFD[137] = 5.02567894E+00;
+    COFD[138] = -4.32045169E-01;
+    COFD[139] = 1.85132214E-02;
+    COFD[140] = -1.70534856E+01;
+    COFD[141] = 4.14240922E+00;
+    COFD[142] = -3.25239774E-01;
+    COFD[143] = 1.41980687E-02;
+    COFD[144] = -1.40999008E+01;
+    COFD[145] = 3.08120012E+00;
+    COFD[146] = -1.89629903E-01;
+    COFD[147] = 8.40361952E-03;
     COFD[148] = -1.50766130E+01;
     COFD[149] = 3.47945612E+00;
     COFD[150] = -2.40703722E-01;
     COFD[151] = 1.05907441E-02;
-    COFD[152] = -1.50270339E+01;
-    COFD[153] = 3.46140064E+00;
-    COFD[154] = -2.38440092E-01;
-    COFD[155] = 1.04960087E-02;
-    COFD[156] = -1.93364585E+01;
-    COFD[157] = 4.98286777E+00;
-    COFD[158] = -4.26970814E-01;
-    COFD[159] = 1.83122917E-02;
-    COFD[160] = -1.72112971E+01;
-    COFD[161] = 4.15807461E+00;
-    COFD[162] = -3.27178539E-01;
-    COFD[163] = 1.42784349E-02;
+    COFD[152] = -1.72112971E+01;
+    COFD[153] = 4.15807461E+00;
+    COFD[154] = -3.27178539E-01;
+    COFD[155] = 1.42784349E-02;
+    COFD[156] = -1.50270339E+01;
+    COFD[157] = 3.46140064E+00;
+    COFD[158] = -2.38440092E-01;
+    COFD[159] = 1.04960087E-02;
+    COFD[160] = -1.93364585E+01;
+    COFD[161] = 4.98286777E+00;
+    COFD[162] = -4.26970814E-01;
+    COFD[163] = 1.83122917E-02;
     COFD[164] = -1.90883268E+01;
     COFD[165] = 4.84384483E+00;
     COFD[166] = -4.10265575E-01;
@@ -15409,34 +15408,34 @@ void egtransetCOFD(double* COFD) {
     COFD[233] = 2.57507000E+00;
     COFD[234] = -1.24033737E-01;
     COFD[235] = 5.56694959E-03;
-    COFD[236] = -1.37794315E+01;
-    COFD[237] = 3.23973858E+00;
-    COFD[238] = -2.09989036E-01;
-    COFD[239] = 9.27667906E-03;
-    COFD[240] = -1.17159737E+01;
-    COFD[241] = 2.48123210E+00;
-    COFD[242] = -1.11322604E-01;
-    COFD[243] = 4.99282389E-03;
-    COFD[244] = -1.60528285E+01;
-    COFD[245] = 4.11188603E+00;
-    COFD[246] = -3.21540884E-01;
-    COFD[247] = 1.40482564E-02;
+    COFD[236] = -1.60528285E+01;
+    COFD[237] = 4.11188603E+00;
+    COFD[238] = -3.21540884E-01;
+    COFD[239] = 1.40482564E-02;
+    COFD[240] = -1.37794315E+01;
+    COFD[241] = 3.23973858E+00;
+    COFD[242] = -2.09989036E-01;
+    COFD[243] = 9.27667906E-03;
+    COFD[244] = -1.17159737E+01;
+    COFD[245] = 2.48123210E+00;
+    COFD[246] = -1.11322604E-01;
+    COFD[247] = 4.99282389E-03;
     COFD[248] = -1.25141260E+01;
     COFD[249] = 2.77873601E+00;
     COFD[250] = -1.50637360E-01;
     COFD[251] = 6.72684281E-03;
-    COFD[252] = -1.24693568E+01;
-    COFD[253] = 2.76686648E+00;
-    COFD[254] = -1.49120141E-01;
-    COFD[255] = 6.66220432E-03;
-    COFD[256] = -1.59537247E+01;
-    COFD[257] = 4.07051484E+00;
-    COFD[258] = -3.16303109E-01;
-    COFD[259] = 1.38259377E-02;
-    COFD[260] = -1.39658996E+01;
-    COFD[261] = 3.24966086E+00;
-    COFD[262] = -2.11199992E-01;
-    COFD[263] = 9.32580661E-03;
+    COFD[252] = -1.39658996E+01;
+    COFD[253] = 3.24966086E+00;
+    COFD[254] = -2.11199992E-01;
+    COFD[255] = 9.32580661E-03;
+    COFD[256] = -1.24693568E+01;
+    COFD[257] = 2.76686648E+00;
+    COFD[258] = -1.49120141E-01;
+    COFD[259] = 6.66220432E-03;
+    COFD[260] = -1.59537247E+01;
+    COFD[261] = 4.07051484E+00;
+    COFD[262] = -3.16303109E-01;
+    COFD[263] = 1.38259377E-02;
     COFD[264] = -1.57034851E+01;
     COFD[265] = 3.93614244E+00;
     COFD[266] = -2.99111497E-01;
@@ -15509,34 +15508,34 @@ void egtransetCOFD(double* COFD) {
     COFD[333] = 3.83606243E+00;
     COFD[334] = -2.86076532E-01;
     COFD[335] = 1.25205829E-02;
-    COFD[336] = -1.76147026E+01;
-    COFD[337] = 4.86049500E+00;
-    COFD[338] = -4.12200578E-01;
-    COFD[339] = 1.77160971E-02;
-    COFD[340] = -1.43151174E+01;
-    COFD[341] = 3.68038508E+00;
-    COFD[342] = -2.65779346E-01;
-    COFD[343] = 1.16360771E-02;
-    COFD[344] = -1.97550088E+01;
-    COFD[345] = 5.56931926E+00;
-    COFD[346] = -4.89105511E-01;
-    COFD[347] = 2.04493129E-02;
+    COFD[336] = -1.97550088E+01;
+    COFD[337] = 5.56931926E+00;
+    COFD[338] = -4.89105511E-01;
+    COFD[339] = 2.04493129E-02;
+    COFD[340] = -1.76147026E+01;
+    COFD[341] = 4.86049500E+00;
+    COFD[342] = -4.12200578E-01;
+    COFD[343] = 1.77160971E-02;
+    COFD[344] = -1.43151174E+01;
+    COFD[345] = 3.68038508E+00;
+    COFD[346] = -2.65779346E-01;
+    COFD[347] = 1.16360771E-02;
     COFD[348] = -1.57994893E+01;
     COFD[349] = 4.22225052E+00;
     COFD[350] = -3.35156428E-01;
     COFD[351] = 1.46104855E-02;
-    COFD[352] = -1.57199037E+01;
-    COFD[353] = 4.19936335E+00;
-    COFD[354] = -3.32311009E-01;
-    COFD[355] = 1.44921003E-02;
-    COFD[356] = -1.96866103E+01;
-    COFD[357] = 5.54637286E+00;
-    COFD[358] = -4.87070324E-01;
-    COFD[359] = 2.03983467E-02;
-    COFD[360] = -1.78637178E+01;
-    COFD[361] = 4.88268692E+00;
-    COFD[362] = -4.14917638E-01;
-    COFD[363] = 1.78274298E-02;
+    COFD[352] = -1.78637178E+01;
+    COFD[353] = 4.88268692E+00;
+    COFD[354] = -4.14917638E-01;
+    COFD[355] = 1.78274298E-02;
+    COFD[356] = -1.57199037E+01;
+    COFD[357] = 4.19936335E+00;
+    COFD[358] = -3.32311009E-01;
+    COFD[359] = 1.44921003E-02;
+    COFD[360] = -1.96866103E+01;
+    COFD[361] = 5.54637286E+00;
+    COFD[362] = -4.87070324E-01;
+    COFD[363] = 2.03983467E-02;
     COFD[364] = -1.94688688E+01;
     COFD[365] = 5.43830787E+00;
     COFD[366] = -4.75472880E-01;
@@ -15609,34 +15608,34 @@ void egtransetCOFD(double* COFD) {
     COFD[433] = 3.17651319E+00;
     COFD[434] = -2.02028974E-01;
     COFD[435] = 8.94232502E-03;
-    COFD[436] = -1.70757047E+01;
-    COFD[437] = 4.14240922E+00;
-    COFD[438] = -3.25239774E-01;
-    COFD[439] = 1.41980687E-02;
-    COFD[440] = -1.41191261E+01;
-    COFD[441] = 3.08120012E+00;
-    COFD[442] = -1.89629903E-01;
-    COFD[443] = 8.40361952E-03;
-    COFD[444] = -1.94570287E+01;
-    COFD[445] = 5.02567894E+00;
-    COFD[446] = -4.32045169E-01;
-    COFD[447] = 1.85132214E-02;
+    COFD[436] = -1.94570287E+01;
+    COFD[437] = 5.02567894E+00;
+    COFD[438] = -4.32045169E-01;
+    COFD[439] = 1.85132214E-02;
+    COFD[440] = -1.70757047E+01;
+    COFD[441] = 4.14240922E+00;
+    COFD[442] = -3.25239774E-01;
+    COFD[443] = 1.41980687E-02;
+    COFD[444] = -1.41191261E+01;
+    COFD[445] = 3.08120012E+00;
+    COFD[446] = -1.89629903E-01;
+    COFD[447] = 8.40361952E-03;
     COFD[448] = -1.50911794E+01;
     COFD[449] = 3.47945612E+00;
     COFD[450] = -2.40703722E-01;
     COFD[451] = 1.05907441E-02;
-    COFD[452] = -1.50420953E+01;
-    COFD[453] = 3.46140064E+00;
-    COFD[454] = -2.38440092E-01;
-    COFD[455] = 1.04960087E-02;
-    COFD[456] = -1.93566243E+01;
-    COFD[457] = 4.98286777E+00;
-    COFD[458] = -4.26970814E-01;
-    COFD[459] = 1.83122917E-02;
-    COFD[460] = -1.72310232E+01;
-    COFD[461] = 4.15807461E+00;
-    COFD[462] = -3.27178539E-01;
-    COFD[463] = 1.42784349E-02;
+    COFD[452] = -1.72310232E+01;
+    COFD[453] = 4.15807461E+00;
+    COFD[454] = -3.27178539E-01;
+    COFD[455] = 1.42784349E-02;
+    COFD[456] = -1.50420953E+01;
+    COFD[457] = 3.46140064E+00;
+    COFD[458] = -2.38440092E-01;
+    COFD[459] = 1.04960087E-02;
+    COFD[460] = -1.93566243E+01;
+    COFD[461] = 4.98286777E+00;
+    COFD[462] = -4.26970814E-01;
+    COFD[463] = 1.83122917E-02;
     COFD[464] = -1.91102652E+01;
     COFD[465] = 4.84384483E+00;
     COFD[466] = -4.10265575E-01;
@@ -15709,34 +15708,34 @@ void egtransetCOFD(double* COFD) {
     COFD[533] = 5.41688482E+00;
     COFD[534] = -4.73387188E-01;
     COFD[535] = 1.99280175E-02;
-    COFD[536] = -2.07653719E+01;
-    COFD[537] = 5.01092022E+00;
-    COFD[538] = -3.77985635E-01;
-    COFD[539] = 1.40968645E-02;
-    COFD[540] = -2.11388331E+01;
-    COFD[541] = 5.55529675E+00;
-    COFD[542] = -4.87942518E-01;
-    COFD[543] = 2.04249054E-02;
-    COFD[544] = -1.77563250E+01;
-    COFD[545] = 3.57475686E+00;
-    COFD[546] = -1.56396297E-01;
-    COFD[547] = 3.12157721E-03;
+    COFD[536] = -1.77563250E+01;
+    COFD[537] = 3.57475686E+00;
+    COFD[538] = -1.56396297E-01;
+    COFD[539] = 3.12157721E-03;
+    COFD[540] = -2.07653719E+01;
+    COFD[541] = 5.01092022E+00;
+    COFD[542] = -3.77985635E-01;
+    COFD[543] = 1.40968645E-02;
+    COFD[544] = -2.11388331E+01;
+    COFD[545] = 5.55529675E+00;
+    COFD[546] = -4.87942518E-01;
+    COFD[547] = 2.04249054E-02;
     COFD[548] = -2.12831323E+01;
     COFD[549] = 5.61184117E+00;
     COFD[550] = -4.90532156E-01;
     COFD[551] = 2.03507922E-02;
-    COFD[552] = -2.14087397E+01;
-    COFD[553] = 5.57282008E+00;
-    COFD[554] = -4.76690890E-01;
-    COFD[555] = 1.94000719E-02;
-    COFD[556] = -1.80253664E+01;
-    COFD[557] = 3.69199168E+00;
-    COFD[558] = -1.74005516E-01;
-    COFD[559] = 3.97694372E-03;
-    COFD[560] = -2.13148887E+01;
-    COFD[561] = 5.27210469E+00;
-    COFD[562] = -4.21419216E-01;
-    COFD[563] = 1.63567178E-02;
+    COFD[552] = -2.13148887E+01;
+    COFD[553] = 5.27210469E+00;
+    COFD[554] = -4.21419216E-01;
+    COFD[555] = 1.63567178E-02;
+    COFD[556] = -2.14087397E+01;
+    COFD[557] = 5.57282008E+00;
+    COFD[558] = -4.76690890E-01;
+    COFD[559] = 1.94000719E-02;
+    COFD[560] = -1.80253664E+01;
+    COFD[561] = 3.69199168E+00;
+    COFD[562] = -1.74005516E-01;
+    COFD[563] = 3.97694372E-03;
     COFD[564] = -1.87383952E+01;
     COFD[565] = 3.96926341E+00;
     COFD[566] = -2.16412264E-01;
@@ -15809,34 +15808,34 @@ void egtransetCOFD(double* COFD) {
     COFD[633] = 3.48070094E+00;
     COFD[634] = -2.40859499E-01;
     COFD[635] = 1.05972514E-02;
-    COFD[636] = -1.84688406E+01;
-    COFD[637] = 4.49330851E+00;
-    COFD[638] = -3.68208715E-01;
-    COFD[639] = 1.59565402E-02;
-    COFD[640] = -1.52721107E+01;
-    COFD[641] = 3.36790500E+00;
-    COFD[642] = -2.26321740E-01;
-    COFD[643] = 9.97135055E-03;
-    COFD[644] = -2.08293255E+01;
-    COFD[645] = 5.35267674E+00;
-    COFD[646] = -4.69010505E-01;
-    COFD[647] = 1.98979152E-02;
+    COFD[636] = -2.08293255E+01;
+    COFD[637] = 5.35267674E+00;
+    COFD[638] = -4.69010505E-01;
+    COFD[639] = 1.98979152E-02;
+    COFD[640] = -1.84688406E+01;
+    COFD[641] = 4.49330851E+00;
+    COFD[642] = -3.68208715E-01;
+    COFD[643] = 1.59565402E-02;
+    COFD[644] = -1.52721107E+01;
+    COFD[645] = 3.36790500E+00;
+    COFD[646] = -2.26321740E-01;
+    COFD[647] = 9.97135055E-03;
     COFD[648] = -1.63493345E+01;
     COFD[649] = 3.82388595E+00;
     COFD[650] = -2.84480724E-01;
     COFD[651] = 1.24506311E-02;
-    COFD[652] = -1.62724462E+01;
-    COFD[653] = 3.79163564E+00;
-    COFD[654] = -2.80257365E-01;
-    COFD[655] = 1.22656902E-02;
-    COFD[656] = -2.07595845E+01;
-    COFD[657] = 5.32244593E+00;
-    COFD[658] = -4.65829403E-01;
-    COFD[659] = 1.97895274E-02;
-    COFD[660] = -1.85844688E+01;
-    COFD[661] = 4.51052425E+00;
-    COFD[662] = -3.70301627E-01;
-    COFD[663] = 1.60416153E-02;
+    COFD[652] = -1.85844688E+01;
+    COFD[653] = 4.51052425E+00;
+    COFD[654] = -3.70301627E-01;
+    COFD[655] = 1.60416153E-02;
+    COFD[656] = -1.62724462E+01;
+    COFD[657] = 3.79163564E+00;
+    COFD[658] = -2.80257365E-01;
+    COFD[659] = 1.22656902E-02;
+    COFD[660] = -2.07595845E+01;
+    COFD[661] = 5.32244593E+00;
+    COFD[662] = -4.65829403E-01;
+    COFD[663] = 1.97895274E-02;
     COFD[664] = -2.05184870E+01;
     COFD[665] = 5.18417470E+00;
     COFD[666] = -4.49491573E-01;
@@ -15909,34 +15908,34 @@ void egtransetCOFD(double* COFD) {
     COFD[733] = 3.48070094E+00;
     COFD[734] = -2.40859499E-01;
     COFD[735] = 1.05972514E-02;
-    COFD[736] = -1.84777607E+01;
-    COFD[737] = 4.49330851E+00;
-    COFD[738] = -3.68208715E-01;
-    COFD[739] = 1.59565402E-02;
-    COFD[740] = -1.52792891E+01;
-    COFD[741] = 3.36790500E+00;
-    COFD[742] = -2.26321740E-01;
-    COFD[743] = 9.97135055E-03;
-    COFD[744] = -2.08367725E+01;
-    COFD[745] = 5.35267674E+00;
-    COFD[746] = -4.69010505E-01;
-    COFD[747] = 1.98979152E-02;
+    COFD[736] = -2.08367725E+01;
+    COFD[737] = 5.35267674E+00;
+    COFD[738] = -4.69010505E-01;
+    COFD[739] = 1.98979152E-02;
+    COFD[740] = -1.84777607E+01;
+    COFD[741] = 4.49330851E+00;
+    COFD[742] = -3.68208715E-01;
+    COFD[743] = 1.59565402E-02;
+    COFD[744] = -1.52792891E+01;
+    COFD[745] = 3.36790500E+00;
+    COFD[746] = -2.26321740E-01;
+    COFD[747] = 9.97135055E-03;
     COFD[748] = -1.63542394E+01;
     COFD[749] = 3.82388595E+00;
     COFD[750] = -2.84480724E-01;
     COFD[751] = 1.24506311E-02;
-    COFD[752] = -1.62775714E+01;
-    COFD[753] = 3.79163564E+00;
-    COFD[754] = -2.80257365E-01;
-    COFD[755] = 1.22656902E-02;
-    COFD[756] = -2.07672833E+01;
-    COFD[757] = 5.32244593E+00;
-    COFD[758] = -4.65829403E-01;
-    COFD[759] = 1.97895274E-02;
-    COFD[760] = -1.85919214E+01;
-    COFD[761] = 4.51052425E+00;
-    COFD[762] = -3.70301627E-01;
-    COFD[763] = 1.60416153E-02;
+    COFD[752] = -1.85919214E+01;
+    COFD[753] = 4.51052425E+00;
+    COFD[754] = -3.70301627E-01;
+    COFD[755] = 1.60416153E-02;
+    COFD[756] = -1.62775714E+01;
+    COFD[757] = 3.79163564E+00;
+    COFD[758] = -2.80257365E-01;
+    COFD[759] = 1.22656902E-02;
+    COFD[760] = -2.07672833E+01;
+    COFD[761] = 5.32244593E+00;
+    COFD[762] = -4.65829403E-01;
+    COFD[763] = 1.97895274E-02;
     COFD[764] = -2.05272328E+01;
     COFD[765] = 5.18417470E+00;
     COFD[766] = -4.49491573E-01;
@@ -16009,34 +16008,34 @@ void egtransetCOFD(double* COFD) {
     COFD[833] = 3.48070094E+00;
     COFD[834] = -2.40859499E-01;
     COFD[835] = 1.05972514E-02;
-    COFD[836] = -1.84863000E+01;
-    COFD[837] = 4.49330851E+00;
-    COFD[838] = -3.68208715E-01;
-    COFD[839] = 1.59565402E-02;
-    COFD[840] = -1.52861376E+01;
-    COFD[841] = 3.36790500E+00;
-    COFD[842] = -2.26321740E-01;
-    COFD[843] = 9.97135055E-03;
-    COFD[844] = -2.08438809E+01;
-    COFD[845] = 5.35267674E+00;
-    COFD[846] = -4.69010505E-01;
-    COFD[847] = 1.98979152E-02;
+    COFD[836] = -2.08438809E+01;
+    COFD[837] = 5.35267674E+00;
+    COFD[838] = -4.69010505E-01;
+    COFD[839] = 1.98979152E-02;
+    COFD[840] = -1.84863000E+01;
+    COFD[841] = 4.49330851E+00;
+    COFD[842] = -3.68208715E-01;
+    COFD[843] = 1.59565402E-02;
+    COFD[844] = -1.52861376E+01;
+    COFD[845] = 3.36790500E+00;
+    COFD[846] = -2.26321740E-01;
+    COFD[847] = 9.97135055E-03;
     COFD[848] = -1.63588981E+01;
     COFD[849] = 3.82388595E+00;
     COFD[850] = -2.84480724E-01;
     COFD[851] = 1.24506311E-02;
-    COFD[852] = -1.62824412E+01;
-    COFD[853] = 3.79163564E+00;
-    COFD[854] = -2.80257365E-01;
-    COFD[855] = 1.22656902E-02;
-    COFD[856] = -2.07746356E+01;
-    COFD[857] = 5.32244593E+00;
-    COFD[858] = -4.65829403E-01;
-    COFD[859] = 1.97895274E-02;
-    COFD[860] = -1.85990352E+01;
-    COFD[861] = 4.51052425E+00;
-    COFD[862] = -3.70301627E-01;
-    COFD[863] = 1.60416153E-02;
+    COFD[852] = -1.85990352E+01;
+    COFD[853] = 4.51052425E+00;
+    COFD[854] = -3.70301627E-01;
+    COFD[855] = 1.60416153E-02;
+    COFD[856] = -1.62824412E+01;
+    COFD[857] = 3.79163564E+00;
+    COFD[858] = -2.80257365E-01;
+    COFD[859] = 1.22656902E-02;
+    COFD[860] = -2.07746356E+01;
+    COFD[861] = 5.32244593E+00;
+    COFD[862] = -4.65829403E-01;
+    COFD[863] = 1.97895274E-02;
     COFD[864] = -2.05356023E+01;
     COFD[865] = 5.18417470E+00;
     COFD[866] = -4.49491573E-01;
@@ -16073,306 +16072,306 @@ void egtransetCOFD(double* COFD) {
     COFD[897] = 5.25183817E+00;
     COFD[898] = -4.57376333E-01;
     COFD[899] = 1.94504429E-02;
-    COFD[900] = -1.81432461E+01;
-    COFD[901] = 4.37565431E+00;
-    COFD[902] = -3.53906025E-01;
-    COFD[903] = 1.53760786E-02;
-    COFD[904] = -1.70534856E+01;
-    COFD[905] = 4.14240922E+00;
-    COFD[906] = -3.25239774E-01;
-    COFD[907] = 1.41980687E-02;
-    COFD[908] = -1.37794315E+01;
-    COFD[909] = 3.23973858E+00;
-    COFD[910] = -2.09989036E-01;
-    COFD[911] = 9.27667906E-03;
-    COFD[912] = -1.76147026E+01;
-    COFD[913] = 4.86049500E+00;
-    COFD[914] = -4.12200578E-01;
-    COFD[915] = 1.77160971E-02;
-    COFD[916] = -1.70757047E+01;
-    COFD[917] = 4.14240922E+00;
-    COFD[918] = -3.25239774E-01;
-    COFD[919] = 1.41980687E-02;
-    COFD[920] = -2.07653719E+01;
-    COFD[921] = 5.01092022E+00;
-    COFD[922] = -3.77985635E-01;
-    COFD[923] = 1.40968645E-02;
-    COFD[924] = -1.84688406E+01;
-    COFD[925] = 4.49330851E+00;
-    COFD[926] = -3.68208715E-01;
-    COFD[927] = 1.59565402E-02;
-    COFD[928] = -1.84777607E+01;
-    COFD[929] = 4.49330851E+00;
-    COFD[930] = -3.68208715E-01;
-    COFD[931] = 1.59565402E-02;
-    COFD[932] = -1.84863000E+01;
-    COFD[933] = 4.49330851E+00;
-    COFD[934] = -3.68208715E-01;
-    COFD[935] = 1.59565402E-02;
-    COFD[936] = -2.13425698E+01;
-    COFD[937] = 5.40460130E+00;
-    COFD[938] = -4.72718910E-01;
-    COFD[939] = 1.99362717E-02;
-    COFD[940] = -1.81735763E+01;
-    COFD[941] = 4.38391495E+00;
-    COFD[942] = -3.54941287E-01;
-    COFD[943] = 1.54195107E-02;
-    COFD[944] = -2.19317743E+01;
-    COFD[945] = 5.45216133E+00;
-    COFD[946] = -4.52916925E-01;
-    COFD[947] = 1.80456400E-02;
-    COFD[948] = -1.93276434E+01;
-    COFD[949] = 4.85015581E+00;
-    COFD[950] = -4.10945109E-01;
-    COFD[951] = 1.76651398E-02;
-    COFD[952] = -1.92867554E+01;
-    COFD[953] = 4.83375900E+00;
-    COFD[954] = -4.09146560E-01;
-    COFD[955] = 1.76006599E-02;
-    COFD[956] = -2.20063594E+01;
-    COFD[957] = 5.48540187E+00;
-    COFD[958] = -4.58962148E-01;
-    COFD[959] = 1.83770355E-02;
-    COFD[960] = -2.14151520E+01;
-    COFD[961] = 5.41122754E+00;
-    COFD[962] = -4.73185889E-01;
-    COFD[963] = 1.99407905E-02;
-    COFD[964] = -2.22116706E+01;
-    COFD[965] = 5.54251230E+00;
-    COFD[966] = -4.70946314E-01;
-    COFD[967] = 1.90785869E-02;
-    COFD[968] = -2.22343363E+01;
-    COFD[969] = 5.54251230E+00;
-    COFD[970] = -4.70946314E-01;
-    COFD[971] = 1.90785869E-02;
-    COFD[972] = -2.13961414E+01;
-    COFD[973] = 5.46685775E+00;
-    COFD[974] = -4.78665416E-01;
-    COFD[975] = 2.01093915E-02;
-    COFD[976] = -2.20725883E+01;
-    COFD[977] = 5.59642965E+00;
-    COFD[978] = -4.91577716E-01;
-    COFD[979] = 2.05159582E-02;
-    COFD[980] = -2.11031143E+01;
-    COFD[981] = 5.39439999E+00;
-    COFD[982] = -4.72050184E-01;
-    COFD[983] = 1.99336257E-02;
-    COFD[984] = -2.21697404E+01;
-    COFD[985] = 5.60807471E+00;
-    COFD[986] = -4.91339309E-01;
-    COFD[987] = 2.04365761E-02;
-    COFD[988] = -2.23890317E+01;
-    COFD[989] = 5.59178974E+00;
-    COFD[990] = -4.85668031E-01;
-    COFD[991] = 2.00491907E-02;
-    COFD[992] = -2.23812726E+01;
-    COFD[993] = 5.59425354E+00;
-    COFD[994] = -4.86232980E-01;
-    COFD[995] = 2.00835981E-02;
-    COFD[996] = -2.28671232E+01;
-    COFD[997] = 5.50522401E+00;
-    COFD[998] = -4.63604304E-01;
-    COFD[999] = 1.86600785E-02;
-    COFD[1000] = -1.50031687E+01;
-    COFD[1001] = 3.26223357E+00;
-    COFD[1002] = -2.12746642E-01;
-    COFD[1003] = 9.38912883E-03;
-    COFD[1004] = -1.40999008E+01;
-    COFD[1005] = 3.08120012E+00;
-    COFD[1006] = -1.89629903E-01;
-    COFD[1007] = 8.40361952E-03;
-    COFD[1008] = -1.17159737E+01;
-    COFD[1009] = 2.48123210E+00;
-    COFD[1010] = -1.11322604E-01;
-    COFD[1011] = 4.99282389E-03;
-    COFD[1012] = -1.43151174E+01;
-    COFD[1013] = 3.68038508E+00;
-    COFD[1014] = -2.65779346E-01;
-    COFD[1015] = 1.16360771E-02;
-    COFD[1016] = -1.41191261E+01;
-    COFD[1017] = 3.08120012E+00;
-    COFD[1018] = -1.89629903E-01;
-    COFD[1019] = 8.40361952E-03;
-    COFD[1020] = -2.11388331E+01;
-    COFD[1021] = 5.55529675E+00;
-    COFD[1022] = -4.87942518E-01;
-    COFD[1023] = 2.04249054E-02;
-    COFD[1024] = -1.52721107E+01;
-    COFD[1025] = 3.36790500E+00;
-    COFD[1026] = -2.26321740E-01;
-    COFD[1027] = 9.97135055E-03;
-    COFD[1028] = -1.52792891E+01;
-    COFD[1029] = 3.36790500E+00;
-    COFD[1030] = -2.26321740E-01;
-    COFD[1031] = 9.97135055E-03;
-    COFD[1032] = -1.52861376E+01;
-    COFD[1033] = 3.36790500E+00;
-    COFD[1034] = -2.26321740E-01;
-    COFD[1035] = 9.97135055E-03;
-    COFD[1036] = -1.81735763E+01;
-    COFD[1037] = 4.38391495E+00;
-    COFD[1038] = -3.54941287E-01;
-    COFD[1039] = 1.54195107E-02;
-    COFD[1040] = -1.50233475E+01;
-    COFD[1041] = 3.26660767E+00;
-    COFD[1042] = -2.13287177E-01;
-    COFD[1043] = 9.41137857E-03;
-    COFD[1044] = -2.05128705E+01;
-    COFD[1045] = 5.23843909E+00;
-    COFD[1046] = -4.55815614E-01;
-    COFD[1047] = 1.93898040E-02;
-    COFD[1048] = -1.59863030E+01;
-    COFD[1049] = 3.67388294E+00;
-    COFD[1050] = -2.64990709E-01;
-    COFD[1051] = 1.16042706E-02;
-    COFD[1052] = -1.59525102E+01;
-    COFD[1053] = 3.66023858E+00;
-    COFD[1054] = -2.63401043E-01;
-    COFD[1055] = 1.15432000E-02;
-    COFD[1056] = -2.04144604E+01;
-    COFD[1057] = 5.19614628E+00;
-    COFD[1058] = -4.50889164E-01;
-    COFD[1059] = 1.91983328E-02;
-    COFD[1060] = -1.82955252E+01;
-    COFD[1061] = 4.40289649E+00;
-    COFD[1062] = -3.57289765E-01;
-    COFD[1063] = 1.55166804E-02;
-    COFD[1064] = -2.02922701E+01;
-    COFD[1065] = 5.11106992E+00;
-    COFD[1066] = -4.42047129E-01;
-    COFD[1067] = 1.89042990E-02;
-    COFD[1068] = -2.03099025E+01;
-    COFD[1069] = 5.11106992E+00;
-    COFD[1070] = -4.42047129E-01;
-    COFD[1071] = 1.89042990E-02;
-    COFD[1072] = -1.83296965E+01;
-    COFD[1073] = 4.48570999E+00;
-    COFD[1074] = -3.67301524E-01;
-    COFD[1075] = 1.59204254E-02;
-    COFD[1076] = -1.91118445E+01;
-    COFD[1077] = 4.68715685E+00;
-    COFD[1078] = -3.91979493E-01;
-    COFD[1079] = 1.69314004E-02;
-    COFD[1080] = -1.79116531E+01;
-    COFD[1081] = 4.35148286E+00;
-    COFD[1082] = -3.50886647E-01;
-    COFD[1083] = 1.52498573E-02;
-    COFD[1084] = -1.93064215E+01;
-    COFD[1085] = 4.74387793E+00;
-    COFD[1086] = -3.98574972E-01;
-    COFD[1087] = 1.71862289E-02;
-    COFD[1088] = -1.97709603E+01;
-    COFD[1089] = 4.84731557E+00;
-    COFD[1090] = -4.10638352E-01;
-    COFD[1091] = 1.76543886E-02;
-    COFD[1092] = -1.97452574E+01;
-    COFD[1093] = 4.84249900E+00;
-    COFD[1094] = -4.10120448E-01;
-    COFD[1095] = 1.76363500E-02;
-    COFD[1096] = -2.10855099E+01;
-    COFD[1097] = 5.15315713E+00;
-    COFD[1098] = -4.46344043E-01;
-    COFD[1099] = 1.90431546E-02;
-    COFD[1100] = -2.04833713E+01;
-    COFD[1101] = 5.23112374E+00;
-    COFD[1102] = -4.54967682E-01;
-    COFD[1103] = 1.93570423E-02;
-    COFD[1104] = -1.94373127E+01;
-    COFD[1105] = 5.02567894E+00;
-    COFD[1106] = -4.32045169E-01;
-    COFD[1107] = 1.85132214E-02;
-    COFD[1108] = -1.60528285E+01;
-    COFD[1109] = 4.11188603E+00;
-    COFD[1110] = -3.21540884E-01;
-    COFD[1111] = 1.40482564E-02;
-    COFD[1112] = -1.97550088E+01;
-    COFD[1113] = 5.56931926E+00;
-    COFD[1114] = -4.89105511E-01;
-    COFD[1115] = 2.04493129E-02;
-    COFD[1116] = -1.94570287E+01;
-    COFD[1117] = 5.02567894E+00;
-    COFD[1118] = -4.32045169E-01;
-    COFD[1119] = 1.85132214E-02;
-    COFD[1120] = -1.77563250E+01;
-    COFD[1121] = 3.57475686E+00;
-    COFD[1122] = -1.56396297E-01;
-    COFD[1123] = 3.12157721E-03;
-    COFD[1124] = -2.08293255E+01;
-    COFD[1125] = 5.35267674E+00;
-    COFD[1126] = -4.69010505E-01;
-    COFD[1127] = 1.98979152E-02;
-    COFD[1128] = -2.08367725E+01;
-    COFD[1129] = 5.35267674E+00;
-    COFD[1130] = -4.69010505E-01;
-    COFD[1131] = 1.98979152E-02;
-    COFD[1132] = -2.08438809E+01;
-    COFD[1133] = 5.35267674E+00;
-    COFD[1134] = -4.69010505E-01;
-    COFD[1135] = 1.98979152E-02;
-    COFD[1136] = -2.19317743E+01;
-    COFD[1137] = 5.45216133E+00;
-    COFD[1138] = -4.52916925E-01;
-    COFD[1139] = 1.80456400E-02;
-    COFD[1140] = -2.05128705E+01;
-    COFD[1141] = 5.23843909E+00;
-    COFD[1142] = -4.55815614E-01;
-    COFD[1143] = 1.93898040E-02;
-    COFD[1144] = -1.90499441E+01;
-    COFD[1145] = 3.99221757E+00;
-    COFD[1146] = -2.19854880E-01;
-    COFD[1147] = 6.22736279E-03;
-    COFD[1148] = -2.14449559E+01;
-    COFD[1149] = 5.56531152E+00;
-    COFD[1150] = -4.88789821E-01;
-    COFD[1151] = 2.04437116E-02;
-    COFD[1152] = -2.14082453E+01;
-    COFD[1153] = 5.55346617E+00;
-    COFD[1154] = -4.87783156E-01;
-    COFD[1155] = 2.04210886E-02;
-    COFD[1156] = -1.93214527E+01;
-    COFD[1157] = 4.10954793E+00;
-    COFD[1158] = -2.37523329E-01;
-    COFD[1159] = 7.08858141E-03;
-    COFD[1160] = -2.19786173E+01;
-    COFD[1161] = 5.43750833E+00;
-    COFD[1162] = -4.50273329E-01;
-    COFD[1163] = 1.79013718E-02;
-    COFD[1164] = -2.01015340E+01;
-    COFD[1165] = 4.41511629E+00;
-    COFD[1166] = -2.84086963E-01;
-    COFD[1167] = 9.37586971E-03;
-    COFD[1168] = -2.01199204E+01;
-    COFD[1169] = 4.41511629E+00;
-    COFD[1170] = -2.84086963E-01;
-    COFD[1171] = 9.37586971E-03;
-    COFD[1172] = -2.16798265E+01;
-    COFD[1173] = 5.36811769E+00;
-    COFD[1174] = -4.37727086E-01;
-    COFD[1175] = 1.72167686E-02;
-    COFD[1176] = -2.15802788E+01;
-    COFD[1177] = 5.16868516E+00;
-    COFD[1178] = -4.03721581E-01;
-    COFD[1179] = 1.54206640E-02;
-    COFD[1180] = -2.17855148E+01;
-    COFD[1181] = 5.47519298E+00;
-    COFD[1182] = -4.57113040E-01;
-    COFD[1183] = 1.82758312E-02;
-    COFD[1184] = -2.14453157E+01;
-    COFD[1185] = 5.07680397E+00;
-    COFD[1186] = -3.88612087E-01;
-    COFD[1187] = 1.46395101E-02;
-    COFD[1188] = -2.12219677E+01;
-    COFD[1189] = 4.87252053E+00;
-    COFD[1190] = -3.56127804E-01;
-    COFD[1191] = 1.29948788E-02;
-    COFD[1192] = -2.12362684E+01;
-    COFD[1193] = 4.88535789E+00;
-    COFD[1194] = -3.58153894E-01;
-    COFD[1195] = 1.30969624E-02;
-    COFD[1196] = -2.04632210E+01;
-    COFD[1197] = 4.26473557E+00;
-    COFD[1198] = -2.61033037E-01;
-    COFD[1199] = 8.23906412E-03;
+    COFD[900] = -2.04833713E+01;
+    COFD[901] = 5.23112374E+00;
+    COFD[902] = -4.54967682E-01;
+    COFD[903] = 1.93570423E-02;
+    COFD[904] = -1.94373127E+01;
+    COFD[905] = 5.02567894E+00;
+    COFD[906] = -4.32045169E-01;
+    COFD[907] = 1.85132214E-02;
+    COFD[908] = -1.60528285E+01;
+    COFD[909] = 4.11188603E+00;
+    COFD[910] = -3.21540884E-01;
+    COFD[911] = 1.40482564E-02;
+    COFD[912] = -1.97550088E+01;
+    COFD[913] = 5.56931926E+00;
+    COFD[914] = -4.89105511E-01;
+    COFD[915] = 2.04493129E-02;
+    COFD[916] = -1.94570287E+01;
+    COFD[917] = 5.02567894E+00;
+    COFD[918] = -4.32045169E-01;
+    COFD[919] = 1.85132214E-02;
+    COFD[920] = -1.77563250E+01;
+    COFD[921] = 3.57475686E+00;
+    COFD[922] = -1.56396297E-01;
+    COFD[923] = 3.12157721E-03;
+    COFD[924] = -2.08293255E+01;
+    COFD[925] = 5.35267674E+00;
+    COFD[926] = -4.69010505E-01;
+    COFD[927] = 1.98979152E-02;
+    COFD[928] = -2.08367725E+01;
+    COFD[929] = 5.35267674E+00;
+    COFD[930] = -4.69010505E-01;
+    COFD[931] = 1.98979152E-02;
+    COFD[932] = -2.08438809E+01;
+    COFD[933] = 5.35267674E+00;
+    COFD[934] = -4.69010505E-01;
+    COFD[935] = 1.98979152E-02;
+    COFD[936] = -1.90499441E+01;
+    COFD[937] = 3.99221757E+00;
+    COFD[938] = -2.19854880E-01;
+    COFD[939] = 6.22736279E-03;
+    COFD[940] = -2.19317743E+01;
+    COFD[941] = 5.45216133E+00;
+    COFD[942] = -4.52916925E-01;
+    COFD[943] = 1.80456400E-02;
+    COFD[944] = -2.05128705E+01;
+    COFD[945] = 5.23843909E+00;
+    COFD[946] = -4.55815614E-01;
+    COFD[947] = 1.93898040E-02;
+    COFD[948] = -2.14449559E+01;
+    COFD[949] = 5.56531152E+00;
+    COFD[950] = -4.88789821E-01;
+    COFD[951] = 2.04437116E-02;
+    COFD[952] = -2.19786173E+01;
+    COFD[953] = 5.43750833E+00;
+    COFD[954] = -4.50273329E-01;
+    COFD[955] = 1.79013718E-02;
+    COFD[956] = -2.14082453E+01;
+    COFD[957] = 5.55346617E+00;
+    COFD[958] = -4.87783156E-01;
+    COFD[959] = 2.04210886E-02;
+    COFD[960] = -1.93214527E+01;
+    COFD[961] = 4.10954793E+00;
+    COFD[962] = -2.37523329E-01;
+    COFD[963] = 7.08858141E-03;
+    COFD[964] = -2.01015340E+01;
+    COFD[965] = 4.41511629E+00;
+    COFD[966] = -2.84086963E-01;
+    COFD[967] = 9.37586971E-03;
+    COFD[968] = -2.01199204E+01;
+    COFD[969] = 4.41511629E+00;
+    COFD[970] = -2.84086963E-01;
+    COFD[971] = 9.37586971E-03;
+    COFD[972] = -2.16798265E+01;
+    COFD[973] = 5.36811769E+00;
+    COFD[974] = -4.37727086E-01;
+    COFD[975] = 1.72167686E-02;
+    COFD[976] = -2.15802788E+01;
+    COFD[977] = 5.16868516E+00;
+    COFD[978] = -4.03721581E-01;
+    COFD[979] = 1.54206640E-02;
+    COFD[980] = -2.17855148E+01;
+    COFD[981] = 5.47519298E+00;
+    COFD[982] = -4.57113040E-01;
+    COFD[983] = 1.82758312E-02;
+    COFD[984] = -2.14453157E+01;
+    COFD[985] = 5.07680397E+00;
+    COFD[986] = -3.88612087E-01;
+    COFD[987] = 1.46395101E-02;
+    COFD[988] = -2.12219677E+01;
+    COFD[989] = 4.87252053E+00;
+    COFD[990] = -3.56127804E-01;
+    COFD[991] = 1.29948788E-02;
+    COFD[992] = -2.12362684E+01;
+    COFD[993] = 4.88535789E+00;
+    COFD[994] = -3.58153894E-01;
+    COFD[995] = 1.30969624E-02;
+    COFD[996] = -2.04632210E+01;
+    COFD[997] = 4.26473557E+00;
+    COFD[998] = -2.61033037E-01;
+    COFD[999] = 8.23906412E-03;
+    COFD[1000] = -1.81432461E+01;
+    COFD[1001] = 4.37565431E+00;
+    COFD[1002] = -3.53906025E-01;
+    COFD[1003] = 1.53760786E-02;
+    COFD[1004] = -1.70534856E+01;
+    COFD[1005] = 4.14240922E+00;
+    COFD[1006] = -3.25239774E-01;
+    COFD[1007] = 1.41980687E-02;
+    COFD[1008] = -1.37794315E+01;
+    COFD[1009] = 3.23973858E+00;
+    COFD[1010] = -2.09989036E-01;
+    COFD[1011] = 9.27667906E-03;
+    COFD[1012] = -1.76147026E+01;
+    COFD[1013] = 4.86049500E+00;
+    COFD[1014] = -4.12200578E-01;
+    COFD[1015] = 1.77160971E-02;
+    COFD[1016] = -1.70757047E+01;
+    COFD[1017] = 4.14240922E+00;
+    COFD[1018] = -3.25239774E-01;
+    COFD[1019] = 1.41980687E-02;
+    COFD[1020] = -2.07653719E+01;
+    COFD[1021] = 5.01092022E+00;
+    COFD[1022] = -3.77985635E-01;
+    COFD[1023] = 1.40968645E-02;
+    COFD[1024] = -1.84688406E+01;
+    COFD[1025] = 4.49330851E+00;
+    COFD[1026] = -3.68208715E-01;
+    COFD[1027] = 1.59565402E-02;
+    COFD[1028] = -1.84777607E+01;
+    COFD[1029] = 4.49330851E+00;
+    COFD[1030] = -3.68208715E-01;
+    COFD[1031] = 1.59565402E-02;
+    COFD[1032] = -1.84863000E+01;
+    COFD[1033] = 4.49330851E+00;
+    COFD[1034] = -3.68208715E-01;
+    COFD[1035] = 1.59565402E-02;
+    COFD[1036] = -2.19317743E+01;
+    COFD[1037] = 5.45216133E+00;
+    COFD[1038] = -4.52916925E-01;
+    COFD[1039] = 1.80456400E-02;
+    COFD[1040] = -2.13425698E+01;
+    COFD[1041] = 5.40460130E+00;
+    COFD[1042] = -4.72718910E-01;
+    COFD[1043] = 1.99362717E-02;
+    COFD[1044] = -1.81735763E+01;
+    COFD[1045] = 4.38391495E+00;
+    COFD[1046] = -3.54941287E-01;
+    COFD[1047] = 1.54195107E-02;
+    COFD[1048] = -1.93276434E+01;
+    COFD[1049] = 4.85015581E+00;
+    COFD[1050] = -4.10945109E-01;
+    COFD[1051] = 1.76651398E-02;
+    COFD[1052] = -2.14151520E+01;
+    COFD[1053] = 5.41122754E+00;
+    COFD[1054] = -4.73185889E-01;
+    COFD[1055] = 1.99407905E-02;
+    COFD[1056] = -1.92867554E+01;
+    COFD[1057] = 4.83375900E+00;
+    COFD[1058] = -4.09146560E-01;
+    COFD[1059] = 1.76006599E-02;
+    COFD[1060] = -2.20063594E+01;
+    COFD[1061] = 5.48540187E+00;
+    COFD[1062] = -4.58962148E-01;
+    COFD[1063] = 1.83770355E-02;
+    COFD[1064] = -2.22116706E+01;
+    COFD[1065] = 5.54251230E+00;
+    COFD[1066] = -4.70946314E-01;
+    COFD[1067] = 1.90785869E-02;
+    COFD[1068] = -2.22343363E+01;
+    COFD[1069] = 5.54251230E+00;
+    COFD[1070] = -4.70946314E-01;
+    COFD[1071] = 1.90785869E-02;
+    COFD[1072] = -2.13961414E+01;
+    COFD[1073] = 5.46685775E+00;
+    COFD[1074] = -4.78665416E-01;
+    COFD[1075] = 2.01093915E-02;
+    COFD[1076] = -2.20725883E+01;
+    COFD[1077] = 5.59642965E+00;
+    COFD[1078] = -4.91577716E-01;
+    COFD[1079] = 2.05159582E-02;
+    COFD[1080] = -2.11031143E+01;
+    COFD[1081] = 5.39439999E+00;
+    COFD[1082] = -4.72050184E-01;
+    COFD[1083] = 1.99336257E-02;
+    COFD[1084] = -2.21697404E+01;
+    COFD[1085] = 5.60807471E+00;
+    COFD[1086] = -4.91339309E-01;
+    COFD[1087] = 2.04365761E-02;
+    COFD[1088] = -2.23890317E+01;
+    COFD[1089] = 5.59178974E+00;
+    COFD[1090] = -4.85668031E-01;
+    COFD[1091] = 2.00491907E-02;
+    COFD[1092] = -2.23812726E+01;
+    COFD[1093] = 5.59425354E+00;
+    COFD[1094] = -4.86232980E-01;
+    COFD[1095] = 2.00835981E-02;
+    COFD[1096] = -2.28671232E+01;
+    COFD[1097] = 5.50522401E+00;
+    COFD[1098] = -4.63604304E-01;
+    COFD[1099] = 1.86600785E-02;
+    COFD[1100] = -1.50031687E+01;
+    COFD[1101] = 3.26223357E+00;
+    COFD[1102] = -2.12746642E-01;
+    COFD[1103] = 9.38912883E-03;
+    COFD[1104] = -1.40999008E+01;
+    COFD[1105] = 3.08120012E+00;
+    COFD[1106] = -1.89629903E-01;
+    COFD[1107] = 8.40361952E-03;
+    COFD[1108] = -1.17159737E+01;
+    COFD[1109] = 2.48123210E+00;
+    COFD[1110] = -1.11322604E-01;
+    COFD[1111] = 4.99282389E-03;
+    COFD[1112] = -1.43151174E+01;
+    COFD[1113] = 3.68038508E+00;
+    COFD[1114] = -2.65779346E-01;
+    COFD[1115] = 1.16360771E-02;
+    COFD[1116] = -1.41191261E+01;
+    COFD[1117] = 3.08120012E+00;
+    COFD[1118] = -1.89629903E-01;
+    COFD[1119] = 8.40361952E-03;
+    COFD[1120] = -2.11388331E+01;
+    COFD[1121] = 5.55529675E+00;
+    COFD[1122] = -4.87942518E-01;
+    COFD[1123] = 2.04249054E-02;
+    COFD[1124] = -1.52721107E+01;
+    COFD[1125] = 3.36790500E+00;
+    COFD[1126] = -2.26321740E-01;
+    COFD[1127] = 9.97135055E-03;
+    COFD[1128] = -1.52792891E+01;
+    COFD[1129] = 3.36790500E+00;
+    COFD[1130] = -2.26321740E-01;
+    COFD[1131] = 9.97135055E-03;
+    COFD[1132] = -1.52861376E+01;
+    COFD[1133] = 3.36790500E+00;
+    COFD[1134] = -2.26321740E-01;
+    COFD[1135] = 9.97135055E-03;
+    COFD[1136] = -2.05128705E+01;
+    COFD[1137] = 5.23843909E+00;
+    COFD[1138] = -4.55815614E-01;
+    COFD[1139] = 1.93898040E-02;
+    COFD[1140] = -1.81735763E+01;
+    COFD[1141] = 4.38391495E+00;
+    COFD[1142] = -3.54941287E-01;
+    COFD[1143] = 1.54195107E-02;
+    COFD[1144] = -1.50233475E+01;
+    COFD[1145] = 3.26660767E+00;
+    COFD[1146] = -2.13287177E-01;
+    COFD[1147] = 9.41137857E-03;
+    COFD[1148] = -1.59863030E+01;
+    COFD[1149] = 3.67388294E+00;
+    COFD[1150] = -2.64990709E-01;
+    COFD[1151] = 1.16042706E-02;
+    COFD[1152] = -1.82955252E+01;
+    COFD[1153] = 4.40289649E+00;
+    COFD[1154] = -3.57289765E-01;
+    COFD[1155] = 1.55166804E-02;
+    COFD[1156] = -1.59525102E+01;
+    COFD[1157] = 3.66023858E+00;
+    COFD[1158] = -2.63401043E-01;
+    COFD[1159] = 1.15432000E-02;
+    COFD[1160] = -2.04144604E+01;
+    COFD[1161] = 5.19614628E+00;
+    COFD[1162] = -4.50889164E-01;
+    COFD[1163] = 1.91983328E-02;
+    COFD[1164] = -2.02922701E+01;
+    COFD[1165] = 5.11106992E+00;
+    COFD[1166] = -4.42047129E-01;
+    COFD[1167] = 1.89042990E-02;
+    COFD[1168] = -2.03099025E+01;
+    COFD[1169] = 5.11106992E+00;
+    COFD[1170] = -4.42047129E-01;
+    COFD[1171] = 1.89042990E-02;
+    COFD[1172] = -1.83296965E+01;
+    COFD[1173] = 4.48570999E+00;
+    COFD[1174] = -3.67301524E-01;
+    COFD[1175] = 1.59204254E-02;
+    COFD[1176] = -1.91118445E+01;
+    COFD[1177] = 4.68715685E+00;
+    COFD[1178] = -3.91979493E-01;
+    COFD[1179] = 1.69314004E-02;
+    COFD[1180] = -1.79116531E+01;
+    COFD[1181] = 4.35148286E+00;
+    COFD[1182] = -3.50886647E-01;
+    COFD[1183] = 1.52498573E-02;
+    COFD[1184] = -1.93064215E+01;
+    COFD[1185] = 4.74387793E+00;
+    COFD[1186] = -3.98574972E-01;
+    COFD[1187] = 1.71862289E-02;
+    COFD[1188] = -1.97709603E+01;
+    COFD[1189] = 4.84731557E+00;
+    COFD[1190] = -4.10638352E-01;
+    COFD[1191] = 1.76543886E-02;
+    COFD[1192] = -1.97452574E+01;
+    COFD[1193] = 4.84249900E+00;
+    COFD[1194] = -4.10120448E-01;
+    COFD[1195] = 1.76363500E-02;
+    COFD[1196] = -2.10855099E+01;
+    COFD[1197] = 5.15315713E+00;
+    COFD[1198] = -4.46344043E-01;
+    COFD[1199] = 1.90431546E-02;
     COFD[1200] = -1.59633387E+01;
     COFD[1201] = 3.66853818E+00;
     COFD[1202] = -2.64346221E-01;
@@ -16409,34 +16408,34 @@ void egtransetCOFD(double* COFD) {
     COFD[1233] = 3.82388595E+00;
     COFD[1234] = -2.84480724E-01;
     COFD[1235] = 1.24506311E-02;
-    COFD[1236] = -1.93276434E+01;
-    COFD[1237] = 4.85015581E+00;
-    COFD[1238] = -4.10945109E-01;
-    COFD[1239] = 1.76651398E-02;
-    COFD[1240] = -1.59863030E+01;
-    COFD[1241] = 3.67388294E+00;
-    COFD[1242] = -2.64990709E-01;
-    COFD[1243] = 1.16042706E-02;
-    COFD[1244] = -2.14449559E+01;
-    COFD[1245] = 5.56531152E+00;
-    COFD[1246] = -4.88789821E-01;
-    COFD[1247] = 2.04437116E-02;
+    COFD[1236] = -2.14449559E+01;
+    COFD[1237] = 5.56531152E+00;
+    COFD[1238] = -4.88789821E-01;
+    COFD[1239] = 2.04437116E-02;
+    COFD[1240] = -1.93276434E+01;
+    COFD[1241] = 4.85015581E+00;
+    COFD[1242] = -4.10945109E-01;
+    COFD[1243] = 1.76651398E-02;
+    COFD[1244] = -1.59863030E+01;
+    COFD[1245] = 3.67388294E+00;
+    COFD[1246] = -2.64990709E-01;
+    COFD[1247] = 1.16042706E-02;
     COFD[1248] = -1.73374529E+01;
     COFD[1249] = 4.21416723E+00;
     COFD[1250] = -3.34163932E-01;
     COFD[1251] = 1.45697432E-02;
-    COFD[1252] = -1.72738845E+01;
-    COFD[1253] = 4.19029808E+00;
-    COFD[1254] = -3.31177076E-01;
-    COFD[1255] = 1.44446234E-02;
-    COFD[1256] = -2.13777308E+01;
-    COFD[1257] = 5.54007827E+00;
-    COFD[1258] = -4.86434511E-01;
-    COFD[1259] = 2.03779006E-02;
-    COFD[1260] = -1.94819080E+01;
-    COFD[1261] = 4.87180830E+00;
-    COFD[1262] = -4.13582958E-01;
-    COFD[1263] = 1.77726094E-02;
+    COFD[1252] = -1.94819080E+01;
+    COFD[1253] = 4.87180830E+00;
+    COFD[1254] = -4.13582958E-01;
+    COFD[1255] = 1.77726094E-02;
+    COFD[1256] = -1.72738845E+01;
+    COFD[1257] = 4.19029808E+00;
+    COFD[1258] = -3.31177076E-01;
+    COFD[1259] = 1.44446234E-02;
+    COFD[1260] = -2.13777308E+01;
+    COFD[1261] = 5.54007827E+00;
+    COFD[1262] = -4.86434511E-01;
+    COFD[1263] = 2.03779006E-02;
     COFD[1264] = -2.11606963E+01;
     COFD[1265] = 5.42846112E+00;
     COFD[1266] = -4.74321870E-01;
@@ -16473,306 +16472,306 @@ void egtransetCOFD(double* COFD) {
     COFD[1297] = 5.49350509E+00;
     COFD[1298] = -4.81613405E-01;
     COFD[1299] = 2.02171734E-02;
-    COFD[1300] = -1.59327297E+01;
-    COFD[1301] = 3.65620899E+00;
-    COFD[1302] = -2.62933804E-01;
-    COFD[1303] = 1.15253223E-02;
-    COFD[1304] = -1.50270339E+01;
-    COFD[1305] = 3.46140064E+00;
-    COFD[1306] = -2.38440092E-01;
-    COFD[1307] = 1.04960087E-02;
-    COFD[1308] = -1.24693568E+01;
-    COFD[1309] = 2.76686648E+00;
-    COFD[1310] = -1.49120141E-01;
-    COFD[1311] = 6.66220432E-03;
-    COFD[1312] = -1.57199037E+01;
-    COFD[1313] = 4.19936335E+00;
-    COFD[1314] = -3.32311009E-01;
-    COFD[1315] = 1.44921003E-02;
-    COFD[1316] = -1.50420953E+01;
-    COFD[1317] = 3.46140064E+00;
-    COFD[1318] = -2.38440092E-01;
-    COFD[1319] = 1.04960087E-02;
-    COFD[1320] = -2.14087397E+01;
-    COFD[1321] = 5.57282008E+00;
-    COFD[1322] = -4.76690890E-01;
-    COFD[1323] = 1.94000719E-02;
-    COFD[1324] = -1.62724462E+01;
-    COFD[1325] = 3.79163564E+00;
-    COFD[1326] = -2.80257365E-01;
-    COFD[1327] = 1.22656902E-02;
-    COFD[1328] = -1.62775714E+01;
-    COFD[1329] = 3.79163564E+00;
-    COFD[1330] = -2.80257365E-01;
-    COFD[1331] = 1.22656902E-02;
-    COFD[1332] = -1.62824412E+01;
-    COFD[1333] = 3.79163564E+00;
-    COFD[1334] = -2.80257365E-01;
-    COFD[1335] = 1.22656902E-02;
-    COFD[1336] = -1.92867554E+01;
-    COFD[1337] = 4.83375900E+00;
-    COFD[1338] = -4.09146560E-01;
-    COFD[1339] = 1.76006599E-02;
-    COFD[1340] = -1.59525102E+01;
-    COFD[1341] = 3.66023858E+00;
-    COFD[1342] = -2.63401043E-01;
-    COFD[1343] = 1.15432000E-02;
-    COFD[1344] = -2.14082453E+01;
-    COFD[1345] = 5.55346617E+00;
-    COFD[1346] = -4.87783156E-01;
-    COFD[1347] = 2.04210886E-02;
-    COFD[1348] = -1.72738845E+01;
-    COFD[1349] = 4.19029808E+00;
-    COFD[1350] = -3.31177076E-01;
-    COFD[1351] = 1.44446234E-02;
-    COFD[1352] = -1.72167708E+01;
-    COFD[1353] = 4.16886779E+00;
-    COFD[1354] = -3.28518156E-01;
-    COFD[1355] = 1.43341626E-02;
-    COFD[1356] = -2.13319784E+01;
-    COFD[1357] = 5.52422470E+00;
-    COFD[1358] = -4.84872944E-01;
-    COFD[1359] = 2.03298213E-02;
-    COFD[1360] = -1.94186547E+01;
-    COFD[1361] = 4.84669430E+00;
-    COFD[1362] = -4.10571455E-01;
-    COFD[1363] = 1.76520543E-02;
-    COFD[1364] = -2.11309207E+01;
-    COFD[1365] = 5.41773516E+00;
-    COFD[1366] = -4.73414338E-01;
-    COFD[1367] = 1.99258685E-02;
-    COFD[1368] = -2.11430338E+01;
-    COFD[1369] = 5.41773516E+00;
-    COFD[1370] = -4.73414338E-01;
-    COFD[1371] = 1.99258685E-02;
-    COFD[1372] = -1.95154079E+01;
-    COFD[1373] = 4.94787350E+00;
-    COFD[1374] = -4.22829292E-01;
-    COFD[1375] = 1.81487163E-02;
-    COFD[1376] = -2.02318658E+01;
-    COFD[1377] = 5.12963391E+00;
-    COFD[1378] = -4.44146826E-01;
-    COFD[1379] = 1.89829640E-02;
-    COFD[1380] = -1.90692595E+01;
-    COFD[1381] = 4.80830699E+00;
-    COFD[1382] = -4.06171933E-01;
-    COFD[1383] = 1.74848791E-02;
-    COFD[1384] = -2.03775651E+01;
-    COFD[1385] = 5.16159436E+00;
-    COFD[1386] = -4.46935283E-01;
-    COFD[1387] = 1.90480297E-02;
-    COFD[1388] = -2.08822487E+01;
-    COFD[1389] = 5.28557747E+00;
-    COFD[1390] = -4.61402384E-01;
-    COFD[1391] = 1.96111546E-02;
-    COFD[1392] = -2.08447974E+01;
-    COFD[1393] = 5.27674330E+00;
-    COFD[1394] = -4.60336155E-01;
-    COFD[1395] = 1.95680191E-02;
-    COFD[1396] = -2.19060847E+01;
-    COFD[1397] = 5.47162499E+00;
-    COFD[1398] = -4.79195552E-01;
-    COFD[1399] = 2.01289088E-02;
-    COFD[1400] = -2.03844252E+01;
-    COFD[1401] = 5.18856872E+00;
-    COFD[1402] = -4.50001829E-01;
-    COFD[1403] = 1.91636142E-02;
-    COFD[1404] = -1.93364585E+01;
-    COFD[1405] = 4.98286777E+00;
-    COFD[1406] = -4.26970814E-01;
-    COFD[1407] = 1.83122917E-02;
-    COFD[1408] = -1.59537247E+01;
-    COFD[1409] = 4.07051484E+00;
-    COFD[1410] = -3.16303109E-01;
-    COFD[1411] = 1.38259377E-02;
-    COFD[1412] = -1.96866103E+01;
-    COFD[1413] = 5.54637286E+00;
-    COFD[1414] = -4.87070324E-01;
-    COFD[1415] = 2.03983467E-02;
-    COFD[1416] = -1.93566243E+01;
-    COFD[1417] = 4.98286777E+00;
-    COFD[1418] = -4.26970814E-01;
-    COFD[1419] = 1.83122917E-02;
-    COFD[1420] = -1.80253664E+01;
-    COFD[1421] = 3.69199168E+00;
-    COFD[1422] = -1.74005516E-01;
-    COFD[1423] = 3.97694372E-03;
-    COFD[1424] = -2.07595845E+01;
-    COFD[1425] = 5.32244593E+00;
-    COFD[1426] = -4.65829403E-01;
-    COFD[1427] = 1.97895274E-02;
-    COFD[1428] = -2.07672833E+01;
-    COFD[1429] = 5.32244593E+00;
-    COFD[1430] = -4.65829403E-01;
-    COFD[1431] = 1.97895274E-02;
-    COFD[1432] = -2.07746356E+01;
-    COFD[1433] = 5.32244593E+00;
-    COFD[1434] = -4.65829403E-01;
-    COFD[1435] = 1.97895274E-02;
-    COFD[1436] = -2.20063594E+01;
-    COFD[1437] = 5.48540187E+00;
-    COFD[1438] = -4.58962148E-01;
-    COFD[1439] = 1.83770355E-02;
-    COFD[1440] = -2.04144604E+01;
-    COFD[1441] = 5.19614628E+00;
-    COFD[1442] = -4.50889164E-01;
-    COFD[1443] = 1.91983328E-02;
-    COFD[1444] = -1.93214527E+01;
-    COFD[1445] = 4.10954793E+00;
-    COFD[1446] = -2.37523329E-01;
-    COFD[1447] = 7.08858141E-03;
-    COFD[1448] = -2.13777308E+01;
-    COFD[1449] = 5.54007827E+00;
-    COFD[1450] = -4.86434511E-01;
-    COFD[1451] = 2.03779006E-02;
-    COFD[1452] = -2.13319784E+01;
-    COFD[1453] = 5.52422470E+00;
-    COFD[1454] = -4.84872944E-01;
-    COFD[1455] = 2.03298213E-02;
-    COFD[1456] = -1.95785144E+01;
-    COFD[1457] = 4.22062499E+00;
-    COFD[1458] = -2.54326872E-01;
-    COFD[1459] = 7.91017784E-03;
-    COFD[1460] = -2.20495822E+01;
-    COFD[1461] = 5.47072190E+00;
-    COFD[1462] = -4.56301261E-01;
-    COFD[1463] = 1.82313566E-02;
-    COFD[1464] = -2.03036402E+01;
-    COFD[1465] = 4.50250781E+00;
-    COFD[1466] = -2.97622106E-01;
-    COFD[1467] = 1.00481473E-02;
-    COFD[1468] = -2.03227406E+01;
-    COFD[1469] = 4.50250781E+00;
-    COFD[1470] = -2.97622106E-01;
-    COFD[1471] = 1.00481473E-02;
-    COFD[1472] = -2.17547312E+01;
-    COFD[1473] = 5.40298848E+00;
-    COFD[1474] = -4.43954594E-01;
-    COFD[1475] = 1.75542998E-02;
-    COFD[1476] = -2.16936515E+01;
-    COFD[1477] = 5.21869603E+00;
-    COFD[1478] = -4.12084772E-01;
-    COFD[1479] = 1.58573035E-02;
-    COFD[1480] = -2.18356866E+01;
-    COFD[1481] = 5.49906960E+00;
-    COFD[1482] = -4.61793001E-01;
-    COFD[1483] = 1.85415189E-02;
-    COFD[1484] = -2.15816909E+01;
-    COFD[1485] = 5.13708607E+00;
-    COFD[1486] = -3.98445708E-01;
-    COFD[1487] = 1.51455626E-02;
-    COFD[1488] = -2.13985484E+01;
-    COFD[1489] = 4.94878244E+00;
-    COFD[1490] = -3.68158605E-01;
-    COFD[1491] = 1.36008797E-02;
-    COFD[1492] = -2.14144448E+01;
-    COFD[1493] = 4.96219227E+00;
-    COFD[1494] = -3.70270843E-01;
-    COFD[1495] = 1.37072211E-02;
-    COFD[1496] = -2.06870442E+01;
-    COFD[1497] = 4.35920123E+00;
-    COFD[1498] = -2.75491273E-01;
-    COFD[1499] = 8.95100289E-03;
-    COFD[1500] = -1.82673770E+01;
-    COFD[1501] = 4.39538102E+00;
-    COFD[1502] = -3.56367230E-01;
-    COFD[1503] = 1.54788461E-02;
-    COFD[1504] = -1.72112971E+01;
-    COFD[1505] = 4.15807461E+00;
-    COFD[1506] = -3.27178539E-01;
-    COFD[1507] = 1.42784349E-02;
-    COFD[1508] = -1.39658996E+01;
-    COFD[1509] = 3.24966086E+00;
-    COFD[1510] = -2.11199992E-01;
-    COFD[1511] = 9.32580661E-03;
-    COFD[1512] = -1.78637178E+01;
-    COFD[1513] = 4.88268692E+00;
-    COFD[1514] = -4.14917638E-01;
-    COFD[1515] = 1.78274298E-02;
-    COFD[1516] = -1.72310232E+01;
-    COFD[1517] = 4.15807461E+00;
-    COFD[1518] = -3.27178539E-01;
-    COFD[1519] = 1.42784349E-02;
-    COFD[1520] = -2.13148887E+01;
-    COFD[1521] = 5.27210469E+00;
-    COFD[1522] = -4.21419216E-01;
-    COFD[1523] = 1.63567178E-02;
-    COFD[1524] = -1.85844688E+01;
-    COFD[1525] = 4.51052425E+00;
-    COFD[1526] = -3.70301627E-01;
-    COFD[1527] = 1.60416153E-02;
-    COFD[1528] = -1.85919214E+01;
-    COFD[1529] = 4.51052425E+00;
-    COFD[1530] = -3.70301627E-01;
-    COFD[1531] = 1.60416153E-02;
-    COFD[1532] = -1.85990352E+01;
-    COFD[1533] = 4.51052425E+00;
-    COFD[1534] = -3.70301627E-01;
-    COFD[1535] = 1.60416153E-02;
-    COFD[1536] = -2.14151520E+01;
-    COFD[1537] = 5.41122754E+00;
-    COFD[1538] = -4.73185889E-01;
-    COFD[1539] = 1.99407905E-02;
-    COFD[1540] = -1.82955252E+01;
-    COFD[1541] = 4.40289649E+00;
-    COFD[1542] = -3.57289765E-01;
-    COFD[1543] = 1.55166804E-02;
-    COFD[1544] = -2.19786173E+01;
-    COFD[1545] = 5.43750833E+00;
-    COFD[1546] = -4.50273329E-01;
-    COFD[1547] = 1.79013718E-02;
-    COFD[1548] = -1.94819080E+01;
-    COFD[1549] = 4.87180830E+00;
-    COFD[1550] = -4.13582958E-01;
-    COFD[1551] = 1.77726094E-02;
-    COFD[1552] = -1.94186547E+01;
-    COFD[1553] = 4.84669430E+00;
-    COFD[1554] = -4.10571455E-01;
-    COFD[1555] = 1.76520543E-02;
-    COFD[1556] = -2.20495822E+01;
-    COFD[1557] = 5.47072190E+00;
-    COFD[1558] = -4.56301261E-01;
-    COFD[1559] = 1.82313566E-02;
-    COFD[1560] = -2.14907782E+01;
-    COFD[1561] = 5.41585806E+00;
-    COFD[1562] = -4.73359323E-01;
-    COFD[1563] = 1.99310239E-02;
-    COFD[1564] = -2.22429814E+01;
-    COFD[1565] = 5.53139819E+00;
-    COFD[1566] = -4.68828555E-01;
-    COFD[1567] = 1.89597887E-02;
-    COFD[1568] = -2.22613837E+01;
-    COFD[1569] = 5.53139819E+00;
-    COFD[1570] = -4.68828555E-01;
-    COFD[1571] = 1.89597887E-02;
-    COFD[1572] = -2.15206146E+01;
-    COFD[1573] = 5.48426911E+00;
-    COFD[1574] = -4.80606512E-01;
-    COFD[1575] = 2.01811046E-02;
-    COFD[1576] = -2.21343023E+01;
-    COFD[1577] = 5.60010742E+00;
-    COFD[1578] = -4.91597429E-01;
-    COFD[1579] = 2.04987718E-02;
-    COFD[1580] = -2.12014186E+01;
-    COFD[1581] = 5.40060531E+00;
-    COFD[1582] = -4.72449699E-01;
-    COFD[1583] = 1.99345817E-02;
-    COFD[1584] = -2.22317182E+01;
-    COFD[1585] = 5.61211818E+00;
-    COFD[1586] = -4.91432482E-01;
-    COFD[1587] = 2.04238731E-02;
-    COFD[1588] = -2.24120415E+01;
-    COFD[1589] = 5.58744076E+00;
-    COFD[1590] = -4.84489462E-01;
-    COFD[1591] = 1.99733042E-02;
-    COFD[1592] = -2.24025650E+01;
-    COFD[1593] = 5.58952429E+00;
-    COFD[1594] = -4.85012530E-01;
-    COFD[1595] = 2.00062142E-02;
-    COFD[1596] = -2.28458380E+01;
-    COFD[1597] = 5.50134401E+00;
-    COFD[1598] = -4.62488197E-01;
-    COFD[1599] = 1.85873697E-02;
+    COFD[1300] = -1.82673770E+01;
+    COFD[1301] = 4.39538102E+00;
+    COFD[1302] = -3.56367230E-01;
+    COFD[1303] = 1.54788461E-02;
+    COFD[1304] = -1.72112971E+01;
+    COFD[1305] = 4.15807461E+00;
+    COFD[1306] = -3.27178539E-01;
+    COFD[1307] = 1.42784349E-02;
+    COFD[1308] = -1.39658996E+01;
+    COFD[1309] = 3.24966086E+00;
+    COFD[1310] = -2.11199992E-01;
+    COFD[1311] = 9.32580661E-03;
+    COFD[1312] = -1.78637178E+01;
+    COFD[1313] = 4.88268692E+00;
+    COFD[1314] = -4.14917638E-01;
+    COFD[1315] = 1.78274298E-02;
+    COFD[1316] = -1.72310232E+01;
+    COFD[1317] = 4.15807461E+00;
+    COFD[1318] = -3.27178539E-01;
+    COFD[1319] = 1.42784349E-02;
+    COFD[1320] = -2.13148887E+01;
+    COFD[1321] = 5.27210469E+00;
+    COFD[1322] = -4.21419216E-01;
+    COFD[1323] = 1.63567178E-02;
+    COFD[1324] = -1.85844688E+01;
+    COFD[1325] = 4.51052425E+00;
+    COFD[1326] = -3.70301627E-01;
+    COFD[1327] = 1.60416153E-02;
+    COFD[1328] = -1.85919214E+01;
+    COFD[1329] = 4.51052425E+00;
+    COFD[1330] = -3.70301627E-01;
+    COFD[1331] = 1.60416153E-02;
+    COFD[1332] = -1.85990352E+01;
+    COFD[1333] = 4.51052425E+00;
+    COFD[1334] = -3.70301627E-01;
+    COFD[1335] = 1.60416153E-02;
+    COFD[1336] = -2.19786173E+01;
+    COFD[1337] = 5.43750833E+00;
+    COFD[1338] = -4.50273329E-01;
+    COFD[1339] = 1.79013718E-02;
+    COFD[1340] = -2.14151520E+01;
+    COFD[1341] = 5.41122754E+00;
+    COFD[1342] = -4.73185889E-01;
+    COFD[1343] = 1.99407905E-02;
+    COFD[1344] = -1.82955252E+01;
+    COFD[1345] = 4.40289649E+00;
+    COFD[1346] = -3.57289765E-01;
+    COFD[1347] = 1.55166804E-02;
+    COFD[1348] = -1.94819080E+01;
+    COFD[1349] = 4.87180830E+00;
+    COFD[1350] = -4.13582958E-01;
+    COFD[1351] = 1.77726094E-02;
+    COFD[1352] = -2.14907782E+01;
+    COFD[1353] = 5.41585806E+00;
+    COFD[1354] = -4.73359323E-01;
+    COFD[1355] = 1.99310239E-02;
+    COFD[1356] = -1.94186547E+01;
+    COFD[1357] = 4.84669430E+00;
+    COFD[1358] = -4.10571455E-01;
+    COFD[1359] = 1.76520543E-02;
+    COFD[1360] = -2.20495822E+01;
+    COFD[1361] = 5.47072190E+00;
+    COFD[1362] = -4.56301261E-01;
+    COFD[1363] = 1.82313566E-02;
+    COFD[1364] = -2.22429814E+01;
+    COFD[1365] = 5.53139819E+00;
+    COFD[1366] = -4.68828555E-01;
+    COFD[1367] = 1.89597887E-02;
+    COFD[1368] = -2.22613837E+01;
+    COFD[1369] = 5.53139819E+00;
+    COFD[1370] = -4.68828555E-01;
+    COFD[1371] = 1.89597887E-02;
+    COFD[1372] = -2.15206146E+01;
+    COFD[1373] = 5.48426911E+00;
+    COFD[1374] = -4.80606512E-01;
+    COFD[1375] = 2.01811046E-02;
+    COFD[1376] = -2.21343023E+01;
+    COFD[1377] = 5.60010742E+00;
+    COFD[1378] = -4.91597429E-01;
+    COFD[1379] = 2.04987718E-02;
+    COFD[1380] = -2.12014186E+01;
+    COFD[1381] = 5.40060531E+00;
+    COFD[1382] = -4.72449699E-01;
+    COFD[1383] = 1.99345817E-02;
+    COFD[1384] = -2.22317182E+01;
+    COFD[1385] = 5.61211818E+00;
+    COFD[1386] = -4.91432482E-01;
+    COFD[1387] = 2.04238731E-02;
+    COFD[1388] = -2.24120415E+01;
+    COFD[1389] = 5.58744076E+00;
+    COFD[1390] = -4.84489462E-01;
+    COFD[1391] = 1.99733042E-02;
+    COFD[1392] = -2.24025650E+01;
+    COFD[1393] = 5.58952429E+00;
+    COFD[1394] = -4.85012530E-01;
+    COFD[1395] = 2.00062142E-02;
+    COFD[1396] = -2.28458380E+01;
+    COFD[1397] = 5.50134401E+00;
+    COFD[1398] = -4.62488197E-01;
+    COFD[1399] = 1.85873697E-02;
+    COFD[1400] = -1.59327297E+01;
+    COFD[1401] = 3.65620899E+00;
+    COFD[1402] = -2.62933804E-01;
+    COFD[1403] = 1.15253223E-02;
+    COFD[1404] = -1.50270339E+01;
+    COFD[1405] = 3.46140064E+00;
+    COFD[1406] = -2.38440092E-01;
+    COFD[1407] = 1.04960087E-02;
+    COFD[1408] = -1.24693568E+01;
+    COFD[1409] = 2.76686648E+00;
+    COFD[1410] = -1.49120141E-01;
+    COFD[1411] = 6.66220432E-03;
+    COFD[1412] = -1.57199037E+01;
+    COFD[1413] = 4.19936335E+00;
+    COFD[1414] = -3.32311009E-01;
+    COFD[1415] = 1.44921003E-02;
+    COFD[1416] = -1.50420953E+01;
+    COFD[1417] = 3.46140064E+00;
+    COFD[1418] = -2.38440092E-01;
+    COFD[1419] = 1.04960087E-02;
+    COFD[1420] = -2.14087397E+01;
+    COFD[1421] = 5.57282008E+00;
+    COFD[1422] = -4.76690890E-01;
+    COFD[1423] = 1.94000719E-02;
+    COFD[1424] = -1.62724462E+01;
+    COFD[1425] = 3.79163564E+00;
+    COFD[1426] = -2.80257365E-01;
+    COFD[1427] = 1.22656902E-02;
+    COFD[1428] = -1.62775714E+01;
+    COFD[1429] = 3.79163564E+00;
+    COFD[1430] = -2.80257365E-01;
+    COFD[1431] = 1.22656902E-02;
+    COFD[1432] = -1.62824412E+01;
+    COFD[1433] = 3.79163564E+00;
+    COFD[1434] = -2.80257365E-01;
+    COFD[1435] = 1.22656902E-02;
+    COFD[1436] = -2.14082453E+01;
+    COFD[1437] = 5.55346617E+00;
+    COFD[1438] = -4.87783156E-01;
+    COFD[1439] = 2.04210886E-02;
+    COFD[1440] = -1.92867554E+01;
+    COFD[1441] = 4.83375900E+00;
+    COFD[1442] = -4.09146560E-01;
+    COFD[1443] = 1.76006599E-02;
+    COFD[1444] = -1.59525102E+01;
+    COFD[1445] = 3.66023858E+00;
+    COFD[1446] = -2.63401043E-01;
+    COFD[1447] = 1.15432000E-02;
+    COFD[1448] = -1.72738845E+01;
+    COFD[1449] = 4.19029808E+00;
+    COFD[1450] = -3.31177076E-01;
+    COFD[1451] = 1.44446234E-02;
+    COFD[1452] = -1.94186547E+01;
+    COFD[1453] = 4.84669430E+00;
+    COFD[1454] = -4.10571455E-01;
+    COFD[1455] = 1.76520543E-02;
+    COFD[1456] = -1.72167708E+01;
+    COFD[1457] = 4.16886779E+00;
+    COFD[1458] = -3.28518156E-01;
+    COFD[1459] = 1.43341626E-02;
+    COFD[1460] = -2.13319784E+01;
+    COFD[1461] = 5.52422470E+00;
+    COFD[1462] = -4.84872944E-01;
+    COFD[1463] = 2.03298213E-02;
+    COFD[1464] = -2.11309207E+01;
+    COFD[1465] = 5.41773516E+00;
+    COFD[1466] = -4.73414338E-01;
+    COFD[1467] = 1.99258685E-02;
+    COFD[1468] = -2.11430338E+01;
+    COFD[1469] = 5.41773516E+00;
+    COFD[1470] = -4.73414338E-01;
+    COFD[1471] = 1.99258685E-02;
+    COFD[1472] = -1.95154079E+01;
+    COFD[1473] = 4.94787350E+00;
+    COFD[1474] = -4.22829292E-01;
+    COFD[1475] = 1.81487163E-02;
+    COFD[1476] = -2.02318658E+01;
+    COFD[1477] = 5.12963391E+00;
+    COFD[1478] = -4.44146826E-01;
+    COFD[1479] = 1.89829640E-02;
+    COFD[1480] = -1.90692595E+01;
+    COFD[1481] = 4.80830699E+00;
+    COFD[1482] = -4.06171933E-01;
+    COFD[1483] = 1.74848791E-02;
+    COFD[1484] = -2.03775651E+01;
+    COFD[1485] = 5.16159436E+00;
+    COFD[1486] = -4.46935283E-01;
+    COFD[1487] = 1.90480297E-02;
+    COFD[1488] = -2.08822487E+01;
+    COFD[1489] = 5.28557747E+00;
+    COFD[1490] = -4.61402384E-01;
+    COFD[1491] = 1.96111546E-02;
+    COFD[1492] = -2.08447974E+01;
+    COFD[1493] = 5.27674330E+00;
+    COFD[1494] = -4.60336155E-01;
+    COFD[1495] = 1.95680191E-02;
+    COFD[1496] = -2.19060847E+01;
+    COFD[1497] = 5.47162499E+00;
+    COFD[1498] = -4.79195552E-01;
+    COFD[1499] = 2.01289088E-02;
+    COFD[1500] = -2.03844252E+01;
+    COFD[1501] = 5.18856872E+00;
+    COFD[1502] = -4.50001829E-01;
+    COFD[1503] = 1.91636142E-02;
+    COFD[1504] = -1.93364585E+01;
+    COFD[1505] = 4.98286777E+00;
+    COFD[1506] = -4.26970814E-01;
+    COFD[1507] = 1.83122917E-02;
+    COFD[1508] = -1.59537247E+01;
+    COFD[1509] = 4.07051484E+00;
+    COFD[1510] = -3.16303109E-01;
+    COFD[1511] = 1.38259377E-02;
+    COFD[1512] = -1.96866103E+01;
+    COFD[1513] = 5.54637286E+00;
+    COFD[1514] = -4.87070324E-01;
+    COFD[1515] = 2.03983467E-02;
+    COFD[1516] = -1.93566243E+01;
+    COFD[1517] = 4.98286777E+00;
+    COFD[1518] = -4.26970814E-01;
+    COFD[1519] = 1.83122917E-02;
+    COFD[1520] = -1.80253664E+01;
+    COFD[1521] = 3.69199168E+00;
+    COFD[1522] = -1.74005516E-01;
+    COFD[1523] = 3.97694372E-03;
+    COFD[1524] = -2.07595845E+01;
+    COFD[1525] = 5.32244593E+00;
+    COFD[1526] = -4.65829403E-01;
+    COFD[1527] = 1.97895274E-02;
+    COFD[1528] = -2.07672833E+01;
+    COFD[1529] = 5.32244593E+00;
+    COFD[1530] = -4.65829403E-01;
+    COFD[1531] = 1.97895274E-02;
+    COFD[1532] = -2.07746356E+01;
+    COFD[1533] = 5.32244593E+00;
+    COFD[1534] = -4.65829403E-01;
+    COFD[1535] = 1.97895274E-02;
+    COFD[1536] = -1.93214527E+01;
+    COFD[1537] = 4.10954793E+00;
+    COFD[1538] = -2.37523329E-01;
+    COFD[1539] = 7.08858141E-03;
+    COFD[1540] = -2.20063594E+01;
+    COFD[1541] = 5.48540187E+00;
+    COFD[1542] = -4.58962148E-01;
+    COFD[1543] = 1.83770355E-02;
+    COFD[1544] = -2.04144604E+01;
+    COFD[1545] = 5.19614628E+00;
+    COFD[1546] = -4.50889164E-01;
+    COFD[1547] = 1.91983328E-02;
+    COFD[1548] = -2.13777308E+01;
+    COFD[1549] = 5.54007827E+00;
+    COFD[1550] = -4.86434511E-01;
+    COFD[1551] = 2.03779006E-02;
+    COFD[1552] = -2.20495822E+01;
+    COFD[1553] = 5.47072190E+00;
+    COFD[1554] = -4.56301261E-01;
+    COFD[1555] = 1.82313566E-02;
+    COFD[1556] = -2.13319784E+01;
+    COFD[1557] = 5.52422470E+00;
+    COFD[1558] = -4.84872944E-01;
+    COFD[1559] = 2.03298213E-02;
+    COFD[1560] = -1.95785144E+01;
+    COFD[1561] = 4.22062499E+00;
+    COFD[1562] = -2.54326872E-01;
+    COFD[1563] = 7.91017784E-03;
+    COFD[1564] = -2.03036402E+01;
+    COFD[1565] = 4.50250781E+00;
+    COFD[1566] = -2.97622106E-01;
+    COFD[1567] = 1.00481473E-02;
+    COFD[1568] = -2.03227406E+01;
+    COFD[1569] = 4.50250781E+00;
+    COFD[1570] = -2.97622106E-01;
+    COFD[1571] = 1.00481473E-02;
+    COFD[1572] = -2.17547312E+01;
+    COFD[1573] = 5.40298848E+00;
+    COFD[1574] = -4.43954594E-01;
+    COFD[1575] = 1.75542998E-02;
+    COFD[1576] = -2.16936515E+01;
+    COFD[1577] = 5.21869603E+00;
+    COFD[1578] = -4.12084772E-01;
+    COFD[1579] = 1.58573035E-02;
+    COFD[1580] = -2.18356866E+01;
+    COFD[1581] = 5.49906960E+00;
+    COFD[1582] = -4.61793001E-01;
+    COFD[1583] = 1.85415189E-02;
+    COFD[1584] = -2.15816909E+01;
+    COFD[1585] = 5.13708607E+00;
+    COFD[1586] = -3.98445708E-01;
+    COFD[1587] = 1.51455626E-02;
+    COFD[1588] = -2.13985484E+01;
+    COFD[1589] = 4.94878244E+00;
+    COFD[1590] = -3.68158605E-01;
+    COFD[1591] = 1.36008797E-02;
+    COFD[1592] = -2.14144448E+01;
+    COFD[1593] = 4.96219227E+00;
+    COFD[1594] = -3.70270843E-01;
+    COFD[1595] = 1.37072211E-02;
+    COFD[1596] = -2.06870442E+01;
+    COFD[1597] = 4.35920123E+00;
+    COFD[1598] = -2.75491273E-01;
+    COFD[1599] = 8.95100289E-03;
     COFD[1600] = -2.02646611E+01;
     COFD[1601] = 5.10426133E+00;
     COFD[1602] = -4.41256919E-01;
@@ -16809,34 +16808,34 @@ void egtransetCOFD(double* COFD) {
     COFD[1633] = 5.18417470E+00;
     COFD[1634] = -4.49491573E-01;
     COFD[1635] = 1.91438508E-02;
-    COFD[1636] = -2.22116706E+01;
-    COFD[1637] = 5.54251230E+00;
-    COFD[1638] = -4.70946314E-01;
-    COFD[1639] = 1.90785869E-02;
-    COFD[1640] = -2.02922701E+01;
-    COFD[1641] = 5.11106992E+00;
-    COFD[1642] = -4.42047129E-01;
-    COFD[1643] = 1.89042990E-02;
-    COFD[1644] = -2.01015340E+01;
-    COFD[1645] = 4.41511629E+00;
-    COFD[1646] = -2.84086963E-01;
-    COFD[1647] = 9.37586971E-03;
+    COFD[1636] = -2.01015340E+01;
+    COFD[1637] = 4.41511629E+00;
+    COFD[1638] = -2.84086963E-01;
+    COFD[1639] = 9.37586971E-03;
+    COFD[1640] = -2.22116706E+01;
+    COFD[1641] = 5.54251230E+00;
+    COFD[1642] = -4.70946314E-01;
+    COFD[1643] = 1.90785869E-02;
+    COFD[1644] = -2.02922701E+01;
+    COFD[1645] = 5.11106992E+00;
+    COFD[1646] = -4.42047129E-01;
+    COFD[1647] = 1.89042990E-02;
     COFD[1648] = -2.11606963E+01;
     COFD[1649] = 5.42846112E+00;
     COFD[1650] = -4.74321870E-01;
     COFD[1651] = 1.99459749E-02;
-    COFD[1652] = -2.11309207E+01;
-    COFD[1653] = 5.41773516E+00;
-    COFD[1654] = -4.73414338E-01;
-    COFD[1655] = 1.99258685E-02;
-    COFD[1656] = -2.03036402E+01;
-    COFD[1657] = 4.50250781E+00;
-    COFD[1658] = -2.97622106E-01;
-    COFD[1659] = 1.00481473E-02;
-    COFD[1660] = -2.22429814E+01;
-    COFD[1661] = 5.53139819E+00;
-    COFD[1662] = -4.68828555E-01;
-    COFD[1663] = 1.89597887E-02;
+    COFD[1652] = -2.22429814E+01;
+    COFD[1653] = 5.53139819E+00;
+    COFD[1654] = -4.68828555E-01;
+    COFD[1655] = 1.89597887E-02;
+    COFD[1656] = -2.11309207E+01;
+    COFD[1657] = 5.41773516E+00;
+    COFD[1658] = -4.73414338E-01;
+    COFD[1659] = 1.99258685E-02;
+    COFD[1660] = -2.03036402E+01;
+    COFD[1661] = 4.50250781E+00;
+    COFD[1662] = -2.97622106E-01;
+    COFD[1663] = 1.00481473E-02;
     COFD[1664] = -2.09002742E+01;
     COFD[1665] = 4.72895031E+00;
     COFD[1666] = -3.33332771E-01;
@@ -16909,34 +16908,34 @@ void egtransetCOFD(double* COFD) {
     COFD[1733] = 5.18417470E+00;
     COFD[1734] = -4.49491573E-01;
     COFD[1735] = 1.91438508E-02;
-    COFD[1736] = -2.22343363E+01;
-    COFD[1737] = 5.54251230E+00;
-    COFD[1738] = -4.70946314E-01;
-    COFD[1739] = 1.90785869E-02;
-    COFD[1740] = -2.03099025E+01;
-    COFD[1741] = 5.11106992E+00;
-    COFD[1742] = -4.42047129E-01;
-    COFD[1743] = 1.89042990E-02;
-    COFD[1744] = -2.01199204E+01;
-    COFD[1745] = 4.41511629E+00;
-    COFD[1746] = -2.84086963E-01;
-    COFD[1747] = 9.37586971E-03;
+    COFD[1736] = -2.01199204E+01;
+    COFD[1737] = 4.41511629E+00;
+    COFD[1738] = -2.84086963E-01;
+    COFD[1739] = 9.37586971E-03;
+    COFD[1740] = -2.22343363E+01;
+    COFD[1741] = 5.54251230E+00;
+    COFD[1742] = -4.70946314E-01;
+    COFD[1743] = 1.90785869E-02;
+    COFD[1744] = -2.03099025E+01;
+    COFD[1745] = 5.11106992E+00;
+    COFD[1746] = -4.42047129E-01;
+    COFD[1747] = 1.89042990E-02;
     COFD[1748] = -2.11722423E+01;
     COFD[1749] = 5.42846112E+00;
     COFD[1750] = -4.74321870E-01;
     COFD[1751] = 1.99459749E-02;
-    COFD[1752] = -2.11430338E+01;
-    COFD[1753] = 5.41773516E+00;
-    COFD[1754] = -4.73414338E-01;
-    COFD[1755] = 1.99258685E-02;
-    COFD[1756] = -2.03227406E+01;
-    COFD[1757] = 4.50250781E+00;
-    COFD[1758] = -2.97622106E-01;
-    COFD[1759] = 1.00481473E-02;
-    COFD[1760] = -2.22613837E+01;
-    COFD[1761] = 5.53139819E+00;
-    COFD[1762] = -4.68828555E-01;
-    COFD[1763] = 1.89597887E-02;
+    COFD[1752] = -2.22613837E+01;
+    COFD[1753] = 5.53139819E+00;
+    COFD[1754] = -4.68828555E-01;
+    COFD[1755] = 1.89597887E-02;
+    COFD[1756] = -2.11430338E+01;
+    COFD[1757] = 5.41773516E+00;
+    COFD[1758] = -4.73414338E-01;
+    COFD[1759] = 1.99258685E-02;
+    COFD[1760] = -2.03227406E+01;
+    COFD[1761] = 4.50250781E+00;
+    COFD[1762] = -2.97622106E-01;
+    COFD[1763] = 1.00481473E-02;
     COFD[1764] = -2.09224206E+01;
     COFD[1765] = 4.72895031E+00;
     COFD[1766] = -3.33332771E-01;
@@ -17009,34 +17008,34 @@ void egtransetCOFD(double* COFD) {
     COFD[1833] = 4.60874797E+00;
     COFD[1834] = -3.82368716E-01;
     COFD[1835] = 1.65370164E-02;
-    COFD[1836] = -2.13961414E+01;
-    COFD[1837] = 5.46685775E+00;
-    COFD[1838] = -4.78665416E-01;
-    COFD[1839] = 2.01093915E-02;
-    COFD[1840] = -1.83296965E+01;
-    COFD[1841] = 4.48570999E+00;
-    COFD[1842] = -3.67301524E-01;
-    COFD[1843] = 1.59204254E-02;
-    COFD[1844] = -2.16798265E+01;
-    COFD[1845] = 5.36811769E+00;
-    COFD[1846] = -4.37727086E-01;
-    COFD[1847] = 1.72167686E-02;
+    COFD[1836] = -2.16798265E+01;
+    COFD[1837] = 5.36811769E+00;
+    COFD[1838] = -4.37727086E-01;
+    COFD[1839] = 1.72167686E-02;
+    COFD[1840] = -2.13961414E+01;
+    COFD[1841] = 5.46685775E+00;
+    COFD[1842] = -4.78665416E-01;
+    COFD[1843] = 2.01093915E-02;
+    COFD[1844] = -1.83296965E+01;
+    COFD[1845] = 4.48570999E+00;
+    COFD[1846] = -3.67301524E-01;
+    COFD[1847] = 1.59204254E-02;
     COFD[1848] = -1.95770968E+01;
     COFD[1849] = 4.97133070E+00;
     COFD[1850] = -4.25604177E-01;
     COFD[1851] = 1.82582594E-02;
-    COFD[1852] = -1.95154079E+01;
-    COFD[1853] = 4.94787350E+00;
-    COFD[1854] = -4.22829292E-01;
-    COFD[1855] = 1.81487163E-02;
-    COFD[1856] = -2.17547312E+01;
-    COFD[1857] = 5.40298848E+00;
-    COFD[1858] = -4.43954594E-01;
-    COFD[1859] = 1.75542998E-02;
-    COFD[1860] = -2.15206146E+01;
-    COFD[1861] = 5.48426911E+00;
-    COFD[1862] = -4.80606512E-01;
-    COFD[1863] = 2.01811046E-02;
+    COFD[1852] = -2.15206146E+01;
+    COFD[1853] = 5.48426911E+00;
+    COFD[1854] = -4.80606512E-01;
+    COFD[1855] = 2.01811046E-02;
+    COFD[1856] = -1.95154079E+01;
+    COFD[1857] = 4.94787350E+00;
+    COFD[1858] = -4.22829292E-01;
+    COFD[1859] = 1.81487163E-02;
+    COFD[1860] = -2.17547312E+01;
+    COFD[1861] = 5.40298848E+00;
+    COFD[1862] = -4.43954594E-01;
+    COFD[1863] = 1.75542998E-02;
     COFD[1864] = -2.20262793E+01;
     COFD[1865] = 5.49663315E+00;
     COFD[1866] = -4.61182837E-01;
@@ -17109,34 +17108,34 @@ void egtransetCOFD(double* COFD) {
     COFD[1933] = 4.78708023E+00;
     COFD[1934] = -4.03693144E-01;
     COFD[1935] = 1.73884817E-02;
-    COFD[1936] = -2.20725883E+01;
-    COFD[1937] = 5.59642965E+00;
-    COFD[1938] = -4.91577716E-01;
-    COFD[1939] = 2.05159582E-02;
-    COFD[1940] = -1.91118445E+01;
-    COFD[1941] = 4.68715685E+00;
-    COFD[1942] = -3.91979493E-01;
-    COFD[1943] = 1.69314004E-02;
-    COFD[1944] = -2.15802788E+01;
-    COFD[1945] = 5.16868516E+00;
-    COFD[1946] = -4.03721581E-01;
-    COFD[1947] = 1.54206640E-02;
+    COFD[1936] = -2.15802788E+01;
+    COFD[1937] = 5.16868516E+00;
+    COFD[1938] = -4.03721581E-01;
+    COFD[1939] = 1.54206640E-02;
+    COFD[1940] = -2.20725883E+01;
+    COFD[1941] = 5.59642965E+00;
+    COFD[1942] = -4.91577716E-01;
+    COFD[1943] = 2.05159582E-02;
+    COFD[1944] = -1.91118445E+01;
+    COFD[1945] = 4.68715685E+00;
+    COFD[1946] = -3.91979493E-01;
+    COFD[1947] = 1.69314004E-02;
     COFD[1948] = -2.02692384E+01;
     COFD[1949] = 5.14418672E+00;
     COFD[1950] = -4.45631004E-01;
     COFD[1951] = 1.90308403E-02;
-    COFD[1952] = -2.02318658E+01;
-    COFD[1953] = 5.12963391E+00;
-    COFD[1954] = -4.44146826E-01;
-    COFD[1955] = 1.89829640E-02;
-    COFD[1956] = -2.16936515E+01;
-    COFD[1957] = 5.21869603E+00;
-    COFD[1958] = -4.12084772E-01;
-    COFD[1959] = 1.58573035E-02;
-    COFD[1960] = -2.21343023E+01;
-    COFD[1961] = 5.60010742E+00;
-    COFD[1962] = -4.91597429E-01;
-    COFD[1963] = 2.04987718E-02;
+    COFD[1952] = -2.21343023E+01;
+    COFD[1953] = 5.60010742E+00;
+    COFD[1954] = -4.91597429E-01;
+    COFD[1955] = 2.04987718E-02;
+    COFD[1956] = -2.02318658E+01;
+    COFD[1957] = 5.12963391E+00;
+    COFD[1958] = -4.44146826E-01;
+    COFD[1959] = 1.89829640E-02;
+    COFD[1960] = -2.16936515E+01;
+    COFD[1961] = 5.21869603E+00;
+    COFD[1962] = -4.12084772E-01;
+    COFD[1963] = 1.58573035E-02;
     COFD[1964] = -2.20597305E+01;
     COFD[1965] = 5.34774760E+00;
     COFD[1966] = -4.34239753E-01;
@@ -17209,34 +17208,34 @@ void egtransetCOFD(double* COFD) {
     COFD[2033] = 4.46848269E+00;
     COFD[2034] = -3.65269718E-01;
     COFD[2035] = 1.58407652E-02;
-    COFD[2036] = -2.11031143E+01;
-    COFD[2037] = 5.39439999E+00;
-    COFD[2038] = -4.72050184E-01;
-    COFD[2039] = 1.99336257E-02;
-    COFD[2040] = -1.79116531E+01;
-    COFD[2041] = 4.35148286E+00;
-    COFD[2042] = -3.50886647E-01;
-    COFD[2043] = 1.52498573E-02;
-    COFD[2044] = -2.17855148E+01;
-    COFD[2045] = 5.47519298E+00;
-    COFD[2046] = -4.57113040E-01;
-    COFD[2047] = 1.82758312E-02;
+    COFD[2036] = -2.17855148E+01;
+    COFD[2037] = 5.47519298E+00;
+    COFD[2038] = -4.57113040E-01;
+    COFD[2039] = 1.82758312E-02;
+    COFD[2040] = -2.11031143E+01;
+    COFD[2041] = 5.39439999E+00;
+    COFD[2042] = -4.72050184E-01;
+    COFD[2043] = 1.99336257E-02;
+    COFD[2044] = -1.79116531E+01;
+    COFD[2045] = 4.35148286E+00;
+    COFD[2046] = -3.50886647E-01;
+    COFD[2047] = 1.52498573E-02;
     COFD[2048] = -1.91225414E+01;
     COFD[2049] = 4.82869066E+00;
     COFD[2050] = -4.08564514E-01;
     COFD[2051] = 1.75784675E-02;
-    COFD[2052] = -1.90692595E+01;
-    COFD[2053] = 4.80830699E+00;
-    COFD[2054] = -4.06171933E-01;
-    COFD[2055] = 1.74848791E-02;
-    COFD[2056] = -2.18356866E+01;
-    COFD[2057] = 5.49906960E+00;
-    COFD[2058] = -4.61793001E-01;
-    COFD[2059] = 1.85415189E-02;
-    COFD[2060] = -2.12014186E+01;
-    COFD[2061] = 5.40060531E+00;
-    COFD[2062] = -4.72449699E-01;
-    COFD[2063] = 1.99345817E-02;
+    COFD[2052] = -2.12014186E+01;
+    COFD[2053] = 5.40060531E+00;
+    COFD[2054] = -4.72449699E-01;
+    COFD[2055] = 1.99345817E-02;
+    COFD[2056] = -1.90692595E+01;
+    COFD[2057] = 4.80830699E+00;
+    COFD[2058] = -4.06171933E-01;
+    COFD[2059] = 1.74848791E-02;
+    COFD[2060] = -2.18356866E+01;
+    COFD[2061] = 5.49906960E+00;
+    COFD[2062] = -4.61793001E-01;
+    COFD[2063] = 1.85415189E-02;
     COFD[2064] = -2.20398328E+01;
     COFD[2065] = 5.56049839E+00;
     COFD[2066] = -4.74367872E-01;
@@ -17309,34 +17308,34 @@ void egtransetCOFD(double* COFD) {
     COFD[2133] = 4.84393038E+00;
     COFD[2134] = -4.10274737E-01;
     COFD[2135] = 1.76417458E-02;
-    COFD[2136] = -2.21697404E+01;
-    COFD[2137] = 5.60807471E+00;
-    COFD[2138] = -4.91339309E-01;
-    COFD[2139] = 2.04365761E-02;
-    COFD[2140] = -1.93064215E+01;
-    COFD[2141] = 4.74387793E+00;
-    COFD[2142] = -3.98574972E-01;
-    COFD[2143] = 1.71862289E-02;
-    COFD[2144] = -2.14453157E+01;
-    COFD[2145] = 5.07680397E+00;
-    COFD[2146] = -3.88612087E-01;
-    COFD[2147] = 1.46395101E-02;
+    COFD[2136] = -2.14453157E+01;
+    COFD[2137] = 5.07680397E+00;
+    COFD[2138] = -3.88612087E-01;
+    COFD[2139] = 1.46395101E-02;
+    COFD[2140] = -2.21697404E+01;
+    COFD[2141] = 5.60807471E+00;
+    COFD[2142] = -4.91339309E-01;
+    COFD[2143] = 2.04365761E-02;
+    COFD[2144] = -1.93064215E+01;
+    COFD[2145] = 4.74387793E+00;
+    COFD[2146] = -3.98574972E-01;
+    COFD[2147] = 1.71862289E-02;
     COFD[2148] = -2.04309557E+01;
     COFD[2149] = 5.18271974E+00;
     COFD[2150] = -4.49323627E-01;
     COFD[2151] = 1.91373940E-02;
-    COFD[2152] = -2.03775651E+01;
-    COFD[2153] = 5.16159436E+00;
-    COFD[2154] = -4.46935283E-01;
-    COFD[2155] = 1.90480297E-02;
-    COFD[2156] = -2.15816909E+01;
-    COFD[2157] = 5.13708607E+00;
-    COFD[2158] = -3.98445708E-01;
-    COFD[2159] = 1.51455626E-02;
-    COFD[2160] = -2.22317182E+01;
-    COFD[2161] = 5.61211818E+00;
-    COFD[2162] = -4.91432482E-01;
-    COFD[2163] = 2.04238731E-02;
+    COFD[2152] = -2.22317182E+01;
+    COFD[2153] = 5.61211818E+00;
+    COFD[2154] = -4.91432482E-01;
+    COFD[2155] = 2.04238731E-02;
+    COFD[2156] = -2.03775651E+01;
+    COFD[2157] = 5.16159436E+00;
+    COFD[2158] = -4.46935283E-01;
+    COFD[2159] = 1.90480297E-02;
+    COFD[2160] = -2.15816909E+01;
+    COFD[2161] = 5.13708607E+00;
+    COFD[2162] = -3.98445708E-01;
+    COFD[2163] = 1.51455626E-02;
     COFD[2164] = -2.19592125E+01;
     COFD[2165] = 5.27258289E+00;
     COFD[2166] = -4.21502790E-01;
@@ -17409,34 +17408,34 @@ void egtransetCOFD(double* COFD) {
     COFD[2233] = 4.97613338E+00;
     COFD[2234] = -4.26175206E-01;
     COFD[2235] = 1.82809270E-02;
-    COFD[2236] = -2.23890317E+01;
-    COFD[2237] = 5.59178974E+00;
-    COFD[2238] = -4.85668031E-01;
-    COFD[2239] = 2.00491907E-02;
-    COFD[2240] = -1.97709603E+01;
-    COFD[2241] = 4.84731557E+00;
-    COFD[2242] = -4.10638352E-01;
-    COFD[2243] = 1.76543886E-02;
-    COFD[2244] = -2.12219677E+01;
-    COFD[2245] = 4.87252053E+00;
-    COFD[2246] = -3.56127804E-01;
-    COFD[2247] = 1.29948788E-02;
+    COFD[2236] = -2.12219677E+01;
+    COFD[2237] = 4.87252053E+00;
+    COFD[2238] = -3.56127804E-01;
+    COFD[2239] = 1.29948788E-02;
+    COFD[2240] = -2.23890317E+01;
+    COFD[2241] = 5.59178974E+00;
+    COFD[2242] = -4.85668031E-01;
+    COFD[2243] = 2.00491907E-02;
+    COFD[2244] = -1.97709603E+01;
+    COFD[2245] = 4.84731557E+00;
+    COFD[2246] = -4.10638352E-01;
+    COFD[2247] = 1.76543886E-02;
     COFD[2248] = -2.09490548E+01;
     COFD[2249] = 5.31360223E+00;
     COFD[2250] = -4.64787000E-01;
     COFD[2251] = 1.97483720E-02;
-    COFD[2252] = -2.08822487E+01;
-    COFD[2253] = 5.28557747E+00;
-    COFD[2254] = -4.61402384E-01;
-    COFD[2255] = 1.96111546E-02;
-    COFD[2256] = -2.13985484E+01;
-    COFD[2257] = 4.94878244E+00;
-    COFD[2258] = -3.68158605E-01;
-    COFD[2259] = 1.36008797E-02;
-    COFD[2260] = -2.24120415E+01;
-    COFD[2261] = 5.58744076E+00;
-    COFD[2262] = -4.84489462E-01;
-    COFD[2263] = 1.99733042E-02;
+    COFD[2252] = -2.24120415E+01;
+    COFD[2253] = 5.58744076E+00;
+    COFD[2254] = -4.84489462E-01;
+    COFD[2255] = 1.99733042E-02;
+    COFD[2256] = -2.08822487E+01;
+    COFD[2257] = 5.28557747E+00;
+    COFD[2258] = -4.61402384E-01;
+    COFD[2259] = 1.96111546E-02;
+    COFD[2260] = -2.13985484E+01;
+    COFD[2261] = 4.94878244E+00;
+    COFD[2262] = -3.68158605E-01;
+    COFD[2263] = 1.36008797E-02;
     COFD[2264] = -2.19253091E+01;
     COFD[2265] = 5.14570932E+00;
     COFD[2266] = -3.99877142E-01;
@@ -17509,34 +17508,34 @@ void egtransetCOFD(double* COFD) {
     COFD[2333] = 4.96870443E+00;
     COFD[2334] = -4.25292447E-01;
     COFD[2335] = 1.82459096E-02;
-    COFD[2336] = -2.23812726E+01;
-    COFD[2337] = 5.59425354E+00;
-    COFD[2338] = -4.86232980E-01;
-    COFD[2339] = 2.00835981E-02;
-    COFD[2340] = -1.97452574E+01;
-    COFD[2341] = 4.84249900E+00;
-    COFD[2342] = -4.10120448E-01;
-    COFD[2343] = 1.76363500E-02;
-    COFD[2344] = -2.12362684E+01;
-    COFD[2345] = 4.88535789E+00;
-    COFD[2346] = -3.58153894E-01;
-    COFD[2347] = 1.30969624E-02;
+    COFD[2336] = -2.12362684E+01;
+    COFD[2337] = 4.88535789E+00;
+    COFD[2338] = -3.58153894E-01;
+    COFD[2339] = 1.30969624E-02;
+    COFD[2340] = -2.23812726E+01;
+    COFD[2341] = 5.59425354E+00;
+    COFD[2342] = -4.86232980E-01;
+    COFD[2343] = 2.00835981E-02;
+    COFD[2344] = -1.97452574E+01;
+    COFD[2345] = 4.84249900E+00;
+    COFD[2346] = -4.10120448E-01;
+    COFD[2347] = 1.76363500E-02;
     COFD[2348] = -2.09127554E+01;
     COFD[2349] = 5.30526648E+00;
     COFD[2350] = -4.63785596E-01;
     COFD[2351] = 1.97079873E-02;
-    COFD[2352] = -2.08447974E+01;
-    COFD[2353] = 5.27674330E+00;
-    COFD[2354] = -4.60336155E-01;
-    COFD[2355] = 1.95680191E-02;
-    COFD[2356] = -2.14144448E+01;
-    COFD[2357] = 4.96219227E+00;
-    COFD[2358] = -3.70270843E-01;
-    COFD[2359] = 1.37072211E-02;
-    COFD[2360] = -2.24025650E+01;
-    COFD[2361] = 5.58952429E+00;
-    COFD[2362] = -4.85012530E-01;
-    COFD[2363] = 2.00062142E-02;
+    COFD[2352] = -2.24025650E+01;
+    COFD[2353] = 5.58952429E+00;
+    COFD[2354] = -4.85012530E-01;
+    COFD[2355] = 2.00062142E-02;
+    COFD[2356] = -2.08447974E+01;
+    COFD[2357] = 5.27674330E+00;
+    COFD[2358] = -4.60336155E-01;
+    COFD[2359] = 1.95680191E-02;
+    COFD[2360] = -2.14144448E+01;
+    COFD[2361] = 4.96219227E+00;
+    COFD[2362] = -3.70270843E-01;
+    COFD[2363] = 1.37072211E-02;
     COFD[2364] = -2.19322003E+01;
     COFD[2365] = 5.15446948E+00;
     COFD[2366] = -4.01332769E-01;
@@ -17609,34 +17608,34 @@ void egtransetCOFD(double* COFD) {
     COFD[2433] = 5.25183817E+00;
     COFD[2434] = -4.57376333E-01;
     COFD[2435] = 1.94504429E-02;
-    COFD[2436] = -2.28671232E+01;
-    COFD[2437] = 5.50522401E+00;
-    COFD[2438] = -4.63604304E-01;
-    COFD[2439] = 1.86600785E-02;
-    COFD[2440] = -2.10855099E+01;
-    COFD[2441] = 5.15315713E+00;
-    COFD[2442] = -4.46344043E-01;
-    COFD[2443] = 1.90431546E-02;
-    COFD[2444] = -2.04632210E+01;
-    COFD[2445] = 4.26473557E+00;
-    COFD[2446] = -2.61033037E-01;
-    COFD[2447] = 8.23906412E-03;
+    COFD[2436] = -2.04632210E+01;
+    COFD[2437] = 4.26473557E+00;
+    COFD[2438] = -2.61033037E-01;
+    COFD[2439] = 8.23906412E-03;
+    COFD[2440] = -2.28671232E+01;
+    COFD[2441] = 5.50522401E+00;
+    COFD[2442] = -4.63604304E-01;
+    COFD[2443] = 1.86600785E-02;
+    COFD[2444] = -2.10855099E+01;
+    COFD[2445] = 5.15315713E+00;
+    COFD[2446] = -4.46344043E-01;
+    COFD[2447] = 1.90431546E-02;
     COFD[2448] = -2.19557531E+01;
     COFD[2449] = 5.49350509E+00;
     COFD[2450] = -4.81613405E-01;
     COFD[2451] = 2.02171734E-02;
-    COFD[2452] = -2.19060847E+01;
-    COFD[2453] = 5.47162499E+00;
-    COFD[2454] = -4.79195552E-01;
-    COFD[2455] = 2.01289088E-02;
-    COFD[2456] = -2.06870442E+01;
-    COFD[2457] = 4.35920123E+00;
-    COFD[2458] = -2.75491273E-01;
-    COFD[2459] = 8.95100289E-03;
-    COFD[2460] = -2.28458380E+01;
-    COFD[2461] = 5.50134401E+00;
-    COFD[2462] = -4.62488197E-01;
-    COFD[2463] = 1.85873697E-02;
+    COFD[2452] = -2.28458380E+01;
+    COFD[2453] = 5.50134401E+00;
+    COFD[2454] = -4.62488197E-01;
+    COFD[2455] = 1.85873697E-02;
+    COFD[2456] = -2.19060847E+01;
+    COFD[2457] = 5.47162499E+00;
+    COFD[2458] = -4.79195552E-01;
+    COFD[2459] = 2.01289088E-02;
+    COFD[2460] = -2.06870442E+01;
+    COFD[2461] = 4.35920123E+00;
+    COFD[2462] = -2.75491273E-01;
+    COFD[2463] = 8.95100289E-03;
     COFD[2464] = -2.13539532E+01;
     COFD[2465] = 4.61201872E+00;
     COFD[2466] = -3.14803338E-01;
@@ -17721,34 +17720,34 @@ void egtransetCOFTD(double* COFTD) {
     COFTD[33] = 1.21313199E-04;
     COFTD[34] = -7.73071792E-08;
     COFTD[35] = 1.53234639E-11;
-    COFTD[36] = 2.93191523E-01;
-    COFTD[37] = 4.01430006E-04;
-    COFTD[38] = -2.30705763E-07;
-    COFTD[39] = 4.05176586E-11;
-    COFTD[40] = 4.30605547E-01;
-    COFTD[41] = 9.35961902E-05;
-    COFTD[42] = -6.03983623E-08;
-    COFTD[43] = 1.23115170E-11;
-    COFTD[44] = 1.22693382E-01;
-    COFTD[45] = 6.21278143E-04;
-    COFTD[46] = -3.29965208E-07;
-    COFTD[47] = 5.47161548E-11;
+    COFTD[36] = 1.22693382E-01;
+    COFTD[37] = 6.21278143E-04;
+    COFTD[38] = -3.29965208E-07;
+    COFTD[39] = 5.47161548E-11;
+    COFTD[40] = 2.93191523E-01;
+    COFTD[41] = 4.01430006E-04;
+    COFTD[42] = -2.30705763E-07;
+    COFTD[43] = 4.05176586E-11;
+    COFTD[44] = 4.30605547E-01;
+    COFTD[45] = 9.35961902E-05;
+    COFTD[46] = -6.03983623E-08;
+    COFTD[47] = 1.23115170E-11;
     COFTD[48] = 3.31191185E-01;
     COFTD[49] = 1.81326714E-04;
     COFTD[50] = -1.11096391E-07;
     COFTD[51] = 2.07635959E-11;
-    COFTD[52] = 3.39557243E-01;
-    COFTD[53] = 1.79335036E-04;
-    COFTD[54] = -1.10135705E-07;
-    COFTD[55] = 2.06427239E-11;
-    COFTD[56] = 1.31424053E-01;
-    COFTD[57] = 6.16429134E-04;
-    COFTD[58] = -3.28571348E-07;
-    COFTD[59] = 5.46153434E-11;
-    COFTD[60] = 2.78021896E-01;
-    COFTD[61] = 3.89608886E-04;
-    COFTD[62] = -2.23546590E-07;
-    COFTD[63] = 3.92078724E-11;
+    COFTD[52] = 2.78021896E-01;
+    COFTD[53] = 3.89608886E-04;
+    COFTD[54] = -2.23546590E-07;
+    COFTD[55] = 3.92078724E-11;
+    COFTD[56] = 3.39557243E-01;
+    COFTD[57] = 1.79335036E-04;
+    COFTD[58] = -1.10135705E-07;
+    COFTD[59] = 2.06427239E-11;
+    COFTD[60] = 1.31424053E-01;
+    COFTD[61] = 6.16429134E-04;
+    COFTD[62] = -3.28571348E-07;
+    COFTD[63] = 5.46153434E-11;
     COFTD[64] = 1.59288984E-01;
     COFTD[65] = 6.02833801E-04;
     COFTD[66] = -3.24837576E-07;
@@ -17821,34 +17820,34 @@ void egtransetCOFTD(double* COFTD) {
     COFTD[133] = 6.03975942E-04;
     COFTD[134] = -3.27656165E-07;
     COFTD[135] = 5.51168351E-11;
-    COFTD[136] = -2.00309448E-02;
-    COFTD[137] = 8.50440115E-04;
-    COFTD[138] = -4.21064468E-07;
-    COFTD[139] = 6.67959710E-11;
-    COFTD[140] = 2.00119897E-01;
-    COFTD[141] = 5.64793704E-04;
-    COFTD[142] = -3.09445484E-07;
-    COFTD[143] = 5.24139335E-11;
-    COFTD[144] = -1.61357564E-01;
-    COFTD[145] = 9.05920260E-04;
-    COFTD[146] = -4.07879153E-07;
-    COFTD[147] = 6.10626290E-11;
+    COFTD[136] = -1.61357564E-01;
+    COFTD[137] = 9.05920260E-04;
+    COFTD[138] = -4.07879153E-07;
+    COFTD[139] = 6.10626290E-11;
+    COFTD[140] = -2.00309448E-02;
+    COFTD[141] = 8.50440115E-04;
+    COFTD[142] = -4.21064468E-07;
+    COFTD[143] = 6.67959710E-11;
+    COFTD[144] = 2.00119897E-01;
+    COFTD[145] = 5.64793704E-04;
+    COFTD[146] = -3.09445484E-07;
+    COFTD[147] = 5.24139335E-11;
     COFTD[148] = 1.00039110E-01;
     COFTD[149] = 6.50468660E-04;
     COFTD[150] = -3.41778999E-07;
     COFTD[151] = 5.62779132E-11;
-    COFTD[152] = 1.05124122E-01;
-    COFTD[153] = 6.50665957E-04;
-    COFTD[154] = -3.42564538E-07;
-    COFTD[155] = 5.64804120E-11;
-    COFTD[156] = -1.56651581E-01;
-    COFTD[157] = 9.09789751E-04;
-    COFTD[158] = -4.11714242E-07;
-    COFTD[159] = 6.18310893E-11;
-    COFTD[160] = -2.28637575E-02;
-    COFTD[161] = 8.35412914E-04;
-    COFTD[162] = -4.12929260E-07;
-    COFTD[163] = 6.54380945E-11;
+    COFTD[152] = -2.28637575E-02;
+    COFTD[153] = 8.35412914E-04;
+    COFTD[154] = -4.12929260E-07;
+    COFTD[155] = 6.54380945E-11;
+    COFTD[156] = 1.05124122E-01;
+    COFTD[157] = 6.50665957E-04;
+    COFTD[158] = -3.42564538E-07;
+    COFTD[159] = 5.64804120E-11;
+    COFTD[160] = -1.56651581E-01;
+    COFTD[161] = 9.09789751E-04;
+    COFTD[162] = -4.11714242E-07;
+    COFTD[163] = 6.18310893E-11;
     COFTD[164] = -1.41640506E-01;
     COFTD[165] = 9.21404324E-04;
     COFTD[166] = -4.23210110E-07;
