@@ -6584,15 +6584,16 @@ class CPickler(CMill):
                         #Check if QSS species i and QSS species j are both reactants in the reaction containing QSS species j
                         if any(reactant == self.qss_species_list[j] for reactant,_ in  list(set(reaction.reactants))):
                             if any(reactant == self.qss_species_list[i] for reactant,_ in list(set(reaction.reactants))):
-                                sys.exit('Quadratic coupling between '+self.qss_species_list[j]+' and '+self.qss_species_list[i]+' in reaction '+str(r)+' not allowed !!!')
+                                sys.exit('Quadratic coupling between '+self.qss_species_list[j]+' and '+self.qss_species_list[i]+' not allowed !!!')
                             # if QSS specices j is a reactant and QSS species i is a product, then i depends on j
                             elif any(product == self.qss_species_list[i] for product,_ in list(set(reaction.products))):
                                 count += 1
                         # if QSS species j is not a reactant, then it must be a product. Check if QSS species i is also a product
-                        elif any(product == self.qss_species_list[i] for product,_ in list(set(reaction.products))):
-                            sys.exit('Quadratic coupling between '+self.qss_species_list[j]+' and '+self.qss_species_list[i]+'in reaction '+str(r)+' not allowed !!!')
-                        # if QSS species i is a reactant in this reversible reaction, then i depends on j 
-                        elif reaction.reversible and any(reactant == self.qss_species_list[i] for reactant,_ in list(set(reaction.reactants))):
+                        elif reaction.reversible:
+                            if any(product == self.qss_species_list[i] for product,_ in list(set(reaction.products))):
+                                sys.exit('Quadratic coupling between '+self.qss_species_list[j]+' and '+self.qss_species_list[i]+' not allowed !!!')
+                            # if QSS species i is a reactant in this reversible reaction, then i depends on j 
+                            elif any(reactant == self.qss_species_list[i] for reactant,_ in list(set(reaction.reactants))):
                                 count += 1
                                 
                     if count == 0:
