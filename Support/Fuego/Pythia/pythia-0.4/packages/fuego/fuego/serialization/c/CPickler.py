@@ -182,6 +182,38 @@ class CPickler(CMill):
         return
 
 
+    def _renderDocument_CanterQSS(self, mechanism, options=None):
+
+        self._setSpecies(mechanism)
+        # 0/ntroe/nsri/nlindem/nTB/nSimple/nWeird
+        # 0/1    /2   /3      /4  /5      /6
+        self.reactionIndex = mechanism._sort_reactions()
+
+        #chemistry_file.H
+        self._includes(False)
+        self._write()
+        self._write("#define NUM_SPECIES %d" %  (self.nSpecies))
+        self._write()
+        self._header_CanteraQSS(mechanism)
+        #chemistry_file.H
+
+        self._includes_chopCanteraQSS(mechanism)
+        self._ckinit_QSS(mechanism, True)
+
+        # chemkin wrappers
+        self._ckytcp(mechanism, True)
+        self._ckwc(mechanism, True)
+        self._productionRate(mechanism)
+        if (self.nQSSspecies > 0):
+            self._QSS(mechanism)
+
+        self._thermo_CanteraQSS(mechanism)
+
+        ### MECH HEADER -- second file starts here
+        self._print_mech_header(mechanism)
+        ### MECH HEADER
+
+
     ##########################
     #This is the main simplified routine for QSS
     #called in weaver/weaver/mills/Mill.py
@@ -202,7 +234,7 @@ class CPickler(CMill):
 
         self._includes_chop()
         self._statics_QSS(mechanism)
-        self._ckinit_QSS(mechanism)
+        self._ckinit_QSS(mechanism, False)
 
         # chemkin wrappers
         self._ckindx(mechanism)
@@ -223,7 +255,7 @@ class CPickler(CMill):
         self._ckmmwx(mechanism)
         self._ckmmwc(mechanism)
         self._ckytx(mechanism)
-        self._ckytcp(mechanism)
+        self._ckytcp(mechanism, False)
         self._ckytcr(mechanism)
         self._ckxty(mechanism)
         self._ckxtcp(mechanism)
@@ -259,7 +291,7 @@ class CPickler(CMill):
         self._ckabml(mechanism)
         self._ckabms(mechanism)
 
-        self._ckwc(mechanism)
+        self._ckwc(mechanism, False)
         self._ckwyp(mechanism)
         self._ckwxp(mechanism)
         self._ckwyr(mechanism)
@@ -314,8 +346,62 @@ class CPickler(CMill):
             ]
         else:
             self._rep += [
-                '#include <stdlib.h>'
+                '#include <stdlib.h>',
+                '#include <vector>',
             ]
+
+        return
+
+    def _header_CanteraQSS(self, mechanism):
+        self._rep += [
+            '',
+            'void get_imw(double imw_new[]);',
+            'void get_mw(double mw_new[]);',
+            'void gibbs(double *  species, double *  tc);',
+            'void gibbs_qss(double *  species, double *  tc);',
+            'void productionRate(double *  wdot, double *  sc, double T);',
+            'void comp_qfqr(double *  q_f, double *  q_r, double *  sc, double *  qss_sc, double *  tc, double invT);',
+            'void comp_k_f_qss(double *  tc, double invT, double *  k_f);',
+            'void comp_Kc_qss(double *  tc, double invT, double *  Kc);',
+            'void comp_qss_sc(double * sc, double * sc_qss, double * tc, double invT);',
+            'void comp_qss_coeff(double *  qf_co, double *  qr_co, double *  sc, double *  tc, double invT);',
+            'void comp_k_f(double *  tc, double invT, double *  k_f);',
+            'void comp_Kc(double *  tc, double invT, double *  Kc);',
+            'void CKINIT'+sym+'();',
+            'void CKFINALIZE'+sym+'();',
+            'void CKYTCP'+sym+'(double *  P, double *  T, const double *  y, double *  c);',
+            'void CKWC'+sym+'(double *  T, double *  C, double *  wdot);',
+             ]
+
+        self._write()
+
+        self._write('namespace thermo')
+        self._write('{')
+        self._indent()
+        nReactions = len(mechanism.reaction())
+        self._write()
+        self._write('extern double fwd_A[%d], fwd_beta[%d], fwd_Ea[%d];' 
+                    % (nReactions,nReactions,nReactions))
+        self._write('extern double low_A[%d], low_beta[%d], low_Ea[%d];' 
+                    % (nReactions,nReactions,nReactions))
+        self._write('extern double rev_A[%d], rev_beta[%d], rev_Ea[%d];' 
+                    % (nReactions,nReactions,nReactions))
+        self._write('extern double troe_a[%d],troe_Ts[%d], troe_Tss[%d], troe_Tsss[%d];' 
+                    % (nReactions,nReactions,nReactions,nReactions))
+        self._write('extern double sri_a[%d], sri_b[%d], sri_c[%d], sri_d[%d], sri_e[%d];'
+                    % (nReactions,nReactions,nReactions,nReactions,nReactions))
+        self._write('extern double activation_units[%d], prefactor_units[%d], phase_units[%d];'
+                    % (nReactions,nReactions,nReactions))
+        self._write('extern int is_PD[%d], troe_len[%d], sri_len[%d], nTB[%d], *TBid[%d];' 
+                    % (nReactions,nReactions,nReactions,nReactions,nReactions))
+        self._write('extern double *TB[%d];' 
+                    % (nReactions))
+        self._write('extern std::vector<std::vector<double>> kiv; ')
+        self._write('extern std::vector<std::vector<double>> nuv; ')
+        self._write('extern std::vector<std::vector<double>> kiv_qss; ')
+        self._write('extern std::vector<std::vector<double>> nuv_qss; ')
+        self._outdent()
+        self._write('}')
 
         return
 
@@ -511,6 +597,83 @@ class CPickler(CMill):
             ]
         return
 
+    #Pieces for mechanism.cpp
+    def _includes_chopCanteraQSS(self, mechanism):
+        self._rep += [
+            '#include "cantera/kinetics/c7h162521027fc_Fuego.h"'
+            ]
+
+        nReactions = len(mechanism.reaction())
+
+        ispecial   = self.reactionIndex[5:7]
+        nspecial   = ispecial[1] - ispecial[0]
+
+        self._write()
+        self._write('namespace thermo')
+        self._write('{')
+        self._indent()
+        self._write('double fwd_A[%d], fwd_beta[%d], fwd_Ea[%d];' 
+                    % (nReactions,nReactions,nReactions))
+        self._write('double low_A[%d], low_beta[%d], low_Ea[%d];' 
+                    % (nReactions,nReactions,nReactions))
+        self._write('double rev_A[%d], rev_beta[%d], rev_Ea[%d];' 
+                    % (nReactions,nReactions,nReactions))
+        self._write('double troe_a[%d],troe_Ts[%d], troe_Tss[%d], troe_Tsss[%d];' 
+                    % (nReactions,nReactions,nReactions,nReactions))
+        self._write('double sri_a[%d], sri_b[%d], sri_c[%d], sri_d[%d], sri_e[%d];'
+                    % (nReactions,nReactions,nReactions,nReactions,nReactions))
+        self._write('double activation_units[%d], prefactor_units[%d], phase_units[%d];'
+                    % (nReactions,nReactions,nReactions))
+        self._write('int is_PD[%d], troe_len[%d], sri_len[%d], nTB[%d], *TBid[%d];' 
+                    % (nReactions,nReactions,nReactions,nReactions,nReactions))
+        self._write('double *TB[%d];' 
+                    % (nReactions))
+
+        if nspecial > 0:  
+                self._write('double prefactor_units_rev[%d], activation_units_rev[%d];' 
+                            % (nReactions,nReactions))
+
+        self._write('std::vector<std::vector<double>> kiv(%d); ' % (nReactions))
+        self._write('std::vector<std::vector<double>> nuv(%d); ' % (nReactions))
+        self._write('std::vector<std::vector<double>> kiv_qss(%d); ' % (nReactions))
+        self._write('std::vector<std::vector<double>> nuv_qss(%d); ' % (nReactions))
+        self._outdent()
+        self._write('};')
+        self._write()
+        self._write('using namespace thermo;')
+        self._write()
+
+
+        self._write(self.line(' Inverse molecular weights'))
+        self._write('static double imw[%d] = {' %self.nSpecies )
+        self._indent()
+        for sp in range(self.nSpecies):
+            species  = self.nonqss_species[sp]
+            text = '1.0 / %f' % (species.weight)
+            if (sp<self.nSpecies-1):
+               text += ',  '
+            else:
+               text += '};  '
+            self._write(text + self.line('%s' % species.symbol))
+        self._outdent()
+        self._write()
+
+        self._write(self.line(' Molecular weights'))
+        self._write('static double molecular_weights[%d] = {' %self.nSpecies )
+        self._indent()
+        for sp in range(self.nSpecies):
+            species  = self.nonqss_species[sp]
+            text = '%f' % (species.weight)
+            if (sp<self.nSpecies-1):
+               text += ',  '
+            else:
+               text += '};  '
+            self._write(text + self.line('%s' % species.symbol))
+        self._outdent()
+        self._write()
+
+        return
+
 
     def _statics_QSS(self,mechanism):
         nReactions = len(mechanism.reaction())
@@ -613,12 +776,13 @@ class CPickler(CMill):
         return
 
 
-    def _ckinit_QSS(self, mechanism):
+    def _ckinit_QSS(self, mechanism, Cantera):
 
         nElement = len(mechanism.element())
         nReactions = len(mechanism.reaction())
         
-        self._write('#ifndef AMREX_USE_CUDA')
+        if not Cantera:
+            self._write('#ifndef AMREX_USE_CUDA')
         self._write(self.line(' Initializes parameter database'))
         self._write('void CKINIT'+sym+'()')
         self._write('{')
@@ -804,19 +968,20 @@ class CPickler(CMill):
         self._write('}')
         self._write()
 
-        self._write('#else')
+        if not Cantera:
+            self._write('#else')
 
-        self._write(self.line(' TODO: Remove on GPU, right now needed by chemistry_module on FORTRAN'))
-        self._write('AMREX_GPU_HOST_DEVICE void CKINIT'+sym+'()')
-        self._write('{')
-        self._write('}')
-        self._write()
-        self._write('AMREX_GPU_HOST_DEVICE void CKFINALIZE()')
-        self._write('{')
-        self._write('}')
-        self._write()
+            self._write(self.line(' TODO: Remove on GPU, right now needed by chemistry_module on FORTRAN'))
+            self._write('AMREX_GPU_HOST_DEVICE void CKINIT'+sym+'()')
+            self._write('{')
+            self._write('}')
+            self._write()
+            self._write('AMREX_GPU_HOST_DEVICE void CKFINALIZE()')
+            self._write('{')
+            self._write('}')
+            self._write()
 
-        self._write('#endif')
+            self._write('#endif')
 
         return
 
@@ -1323,12 +1488,15 @@ class CPickler(CMill):
         return 
 
 
-    def _ckytcp(self, mechanism):
+    def _ckytcp(self, mechanism, Cantera):
         self._write()
         self._write()
         self._write(self.line(
             'convert y[species] (mass fracs) to c[species] (molar conc)'))
-        self._write('void CKYTCP'+sym+'(double *  P, double *  T, double *  y,  double *  c)')
+        if Cantera:
+            self._write('void CKYTCP'+sym+'(double *  P, double *  T, const double *  y,  double *  c)')
+        else:
+            self._write('void CKYTCP'+sym+'(double *  P, double *  T, double *  y,  double *  c)')
         self._write('{')
         self._indent()
 
@@ -2587,11 +2755,14 @@ class CPickler(CMill):
         return
     
 
-    def _ckwc(self, mechanism):
+    def _ckwc(self, mechanism, Cantera):
         self._write()
         self._write()
         self._write(self.line('compute the production rate for each species'))
-        self._write('AMREX_GPU_HOST_DEVICE void CKWC'+sym+'(double *  T, double *  C,  double *  wdot)')
+        if Cantera: 
+            self._write('void CKWC'+sym+'(double *  T, double *  C,  double *  wdot)')
+        else:
+            self._write('AMREX_GPU_HOST_DEVICE void CKWC'+sym+'(double *  T, double *  C,  double *  wdot)')
         self._write('{')
         self._indent()
 
@@ -4245,6 +4416,19 @@ class CPickler(CMill):
             return dG[3:]
         else:
             return "-"+dG[3:]
+
+
+    def _thermo_CanteraQSS(self, mechanism):
+        speciesInfo    = self._analyzeThermodynamics(mechanism, 0)
+        if (self.nQSSspecies > 0):
+            QSSspeciesInfo = self._analyzeThermodynamics(mechanism, 1)
+        
+        self._gibbs_GPU(speciesInfo, 0)
+        if (self.nQSSspecies > 0):
+            self._gibbs_GPU(QSSspeciesInfo, 1)
+
+        return
+
 
 
     def _thermo_GPU(self, mechanism):
