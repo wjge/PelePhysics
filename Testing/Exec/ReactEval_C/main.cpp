@@ -195,7 +195,7 @@ main (int   argc,
     /* make domain and BoxArray */
     std::vector<int> npts(3,1);
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-        npts[i] = 2;
+        npts[i] = 1;
     }
     npts[1] = third_dim;
 
@@ -383,7 +383,7 @@ main (int   argc,
                 fc_tmp_lcl = react(tmp_vect + i*(NUM_SPECIES+1), tmp_src_vect + i*NUM_SPECIES,
                                    tmp_vect_energy + i, tmp_src_vect_energy + i,
                                    dt_incr, time);
-                //printf("%14.6e %14.6e \n", time, tmp_vect[Ncomp + (NUM_SPECIES+1)]);
+                printf("%14.6e %14.6e \n", time, tmp_vect[NUM_SPECIES]);
 #else
 
 #ifdef USE_CUDA_SUNDIALS_PP

@@ -1,7 +1,7 @@
 #ODE solver options
 # REACTOR mode
-ode.dt  = 1.e-05
-ode.ndt = 1
+ode.dt  = 5.e-04
+ode.ndt = 500
 # Reactor formalism: 1=full e, 2=full h
 ode.reactor_type  = 1
 #verbose
@@ -31,7 +31,7 @@ amr.plot_file  = plt
 # Fuel species 
 fuel_name      = C7H16
 # Second dim 
-third_dim = 64
+third_dim = 1
 
 amrex.fpe_trap_invalid = 1
 amrex.fpe_trap_zero = 1
