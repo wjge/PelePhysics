@@ -285,11 +285,11 @@ main (int   argc,
 #else
 #ifndef CVODE_BOXINTEG
       extra_cells = nc - (nc / ode_ncells) * ode_ncells; 
+      Print() << "("<< extra_cells<<" extra cells) \n";
 #endif
 #endif
 
       Print() << " Integrating " << nc << " cells with a "<<ode_ncells<< " ode cell buffer \n";
-      Print() << "("<< extra_cells<<" extra cells) \n";
 
 #ifndef CVODE_BOXINTEG
       BL_PROFILE_VAR_START(Allocs);

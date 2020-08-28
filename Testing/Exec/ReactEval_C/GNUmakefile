@@ -8,7 +8,7 @@ DIM        = 3
 COMP	   = gcc
 FCOMP	   = gfortran
 
-USE_MPI    = TRUE
+USE_MPI    = FALSE
 USE_OMP    = FALSE
 
 FUEGO_GAS  = TRUE
@@ -30,13 +30,14 @@ DEFINES  += -DMOD_REACTOR
 # Activates use of SUNDIALS: CVODE (default) / ARKODE
 USE_SUNDIALS_PP = TRUE
 ifeq ($(USE_SUNDIALS_PP), TRUE)
-  USE_ARKODE_PP = FALSE
   ifeq ($(USE_CUDA), TRUE)
       DEFINES += -DCVODE_BOXINTEG
       USE_KLU_PP = FALSE
   else
+      DEFINES += -DCVODE_BOXINTEG
       USE_KLU_PP = TRUE
   endif
+  USE_ARKODE_PP = FALSE
 else
   # Activates use of Hari explicit RK
   # will only work if USE_SUNDIALS_PP = FALSE
