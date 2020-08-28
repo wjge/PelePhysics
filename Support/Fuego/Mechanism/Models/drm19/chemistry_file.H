@@ -17,14 +17,18 @@ AMREX_GPU_HOST_DEVICE void speciesEnthalpy(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void speciesEntropy(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void cp_R(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void cv_R(double *  species, double *  tc);
-AMREX_GPU_HOST_DEVICE void productionRate(double *  wdot, double *  sc, double T);
+#ifdef PROD_RATE_THREAD
+AMREX_GPU_HOST_DEVICE void productionRate(double * wdot, double * sc, int stride, double T);
+#else
+AMREX_GPU_HOST_DEVICE void productionRate(double * wdot, double * sc, double T);
+#endif
 AMREX_GPU_HOST_DEVICE void comp_qfqr(double *  q_f, double *  q_r, double *  sc, double *  tc, double invT);
 #ifndef AMREX_USE_CUDA
 void comp_k_f(double *  tc, double invT, double *  k_f);
 void comp_Kc(double *  tc, double invT, double *  Kc);
 #endif
-AMREX_GPU_HOST_DEVICE void CKINIT();
-AMREX_GPU_HOST_DEVICE void CKFINALIZE();
+void CKINIT();
+void CKFINALIZE();
 void CKINDX(int * mm, int * kk, int * ii, int * nfit );
 void CKSYME_STR(amrex::Vector<std::string>& ename);
 void CKSYME(int * kname, int * lenkname);
