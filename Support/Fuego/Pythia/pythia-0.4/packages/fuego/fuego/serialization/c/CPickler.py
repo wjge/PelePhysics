@@ -75,6 +75,116 @@ class CPickler(CMill):
         self.nSpecies = nSpecies
         return
 
+    ##########################
+    #This is the simplified routine for GPU testing
+    #called in weaver/weaver/mills/Mill.py
+    ##########################
+    def _renderDocument_GPU(self, mechanism, options=None):
+
+        self._setSpecies(mechanism)
+        self.reactionIndex = mechanism._sort_reactions()
+
+        #chemistry_file.H
+        self._includes(True)
+        self._header_GPU(mechanism)
+        self._namespace_GPU(mechanism)
+        #chemistry_file.H
+
+        self._includes_chop()
+        self._statics_GPU(mechanism)
+        self._ckinit_GPU(mechanism)
+
+        # chemkin wrappers
+        self._ckindx(mechanism)
+        self._cksyme_str(mechanism)
+        self._cksyme(mechanism)
+        self._cksyms_str(mechanism)
+        self._cksyms(mechanism)
+        self._ckrp(mechanism)
+        self._ckpx(mechanism)
+        self._ckpy(mechanism)
+        self._ckpc(mechanism)
+        self._ckrhox(mechanism)
+        self._ckrhoy(mechanism)
+        self._ckrhoc(mechanism)
+        self._ckwt(mechanism)
+        self._ckawt(mechanism)
+        self._ckmmwy(mechanism)
+        self._ckmmwx(mechanism)
+        self._ckmmwc(mechanism)
+        self._ckytx(mechanism)
+        self._ckytcp(mechanism)
+        self._ckytcr(mechanism)
+        self._ckxty(mechanism)
+        self._ckxtcp(mechanism)
+        self._ckxtcr(mechanism)
+        self._ckctx(mechanism)
+        self._ckcty(mechanism)
+        # polyfits  
+        self._ckcpor(mechanism)
+        self._ckhort(mechanism)
+        self._cksor(mechanism)
+        
+        self._ckcvms(mechanism)
+        self._ckcpms(mechanism)
+        self._ckums(mechanism)
+        self._ckhms(mechanism)
+        self._ckgms(mechanism)
+        self._ckams(mechanism)
+        self._cksms(mechanism)
+
+        self._ckcpbl(mechanism)
+        self._ckcpbs(mechanism)
+        self._ckcvbl(mechanism)
+        self._ckcvbs(mechanism)
+        
+        self._ckhbml(mechanism)
+        self._ckhbms(mechanism)
+        self._ckubml(mechanism)
+        self._ckubms(mechanism)
+        self._cksbml(mechanism)
+        self._cksbms(mechanism)
+        self._ckgbml(mechanism)
+        self._ckgbms(mechanism)
+        self._ckabml(mechanism)
+        self._ckabms(mechanism)
+
+        self._ckwc(mechanism)
+        self._ckwyp(mechanism)
+        self._ckwxp(mechanism)
+        self._ckwyr(mechanism)
+        self._ckwxr(mechanism)
+        
+        self._ckncf(mechanism)
+        
+        # Fuego Functions
+        # GPU version
+        self._productionRate_GPU(mechanism)
+        # ORI CPU version
+        self._productionRate(mechanism)
+        # ORI CPU vectorized version
+        self._DproductionRatePrecond(mechanism)
+        self._DproductionRate(mechanism)
+        self._sparsity(mechanism)
+        # GPU version
+        self._ajac_dummy(mechanism)
+        # ORI CPU version
+        self._ajacPrecond_dummy(mechanism)
+        self._dthermodT(mechanism)
+        self._thermo_GPU(mechanism)
+        self._atomicWeight(mechanism)
+        self._T_given_ey(mechanism)
+        self._T_given_hy(mechanism)
+        #AF: add transport data
+        self._transport(mechanism)
+        #AF: dummy gjs routines
+        self._emptygjs(mechanism)
+
+        ### MECH HEADER -- second file starts here
+        self._print_mech_header(mechanism)
+        ### MECH HEADER
+
+        return
 
     ##########################
     #This is the main routine
@@ -258,7 +368,7 @@ class CPickler(CMill):
         self._T_given_hy(mechanism)
         self._getCriticalParameters(mechanism)
         #AF: add transport data
-        self._trans_chop(mechanism)
+        self._transport(mechanism)
         #AF: dummy gjs routines
         self._emptygjs(mechanism)
 
@@ -289,6 +399,139 @@ class CPickler(CMill):
             ]
 
         return
+
+
+    def _header_GPU(self, mechanism):
+        self._rep += [
+            '',
+            'extern "C"',
+            '{',
+            'AMREX_GPU_HOST_DEVICE void get_imw(double imw_new[]);',
+            'AMREX_GPU_HOST_DEVICE void get_mw(double mw_new[]);',
+            'void atomicWeight(double *  awt);',
+            'AMREX_GPU_HOST_DEVICE void gibbs(double *  species, double *  tc);',
+            'AMREX_GPU_HOST_DEVICE void helmholtz(double *  species, double *  tc);',
+            'AMREX_GPU_HOST_DEVICE void speciesInternalEnergy(double *  species, double *  tc);',
+            'AMREX_GPU_HOST_DEVICE void speciesEnthalpy(double *  species, double *  tc);',
+            'AMREX_GPU_HOST_DEVICE void speciesEntropy(double *  species, double *  tc);',
+            'AMREX_GPU_HOST_DEVICE void cp_R(double *  species, double *  tc);',
+            'AMREX_GPU_HOST_DEVICE void cv_R(double *  species, double *  tc);',
+            'AMREX_GPU_HOST_DEVICE void productionRate(double *  wdot, double *  sc, double T);',
+            'AMREX_GPU_HOST_DEVICE void comp_qfqr(double *  q_f, double *  q_r, double *  sc, double *  tc, double invT);',
+            '#ifndef AMREX_USE_CUDA',
+            'void comp_k_f(double *  tc, double invT, double *  k_f);',
+            'void comp_Kc(double *  tc, double invT, double *  Kc);',
+            '#endif',
+            ##'#ifndef AMREX_USE_CUDA',
+            'AMREX_GPU_HOST_DEVICE void CKINIT'+sym+'();',
+            'AMREX_GPU_HOST_DEVICE void CKFINALIZE'+sym+'();',
+            'void CKINDX'+sym+'(int * mm, int * kk, int * ii, int * nfit );',
+            'void CKSYME_STR(amrex::Vector<std::string>& ename);',
+            'void CKSYME(int * kname, int * lenkname);',
+            'void CKSYMS_STR(amrex::Vector<std::string>& kname);',
+            'void CKSYMS(int * kname, int * lenkname);',
+            'void CKRP'+sym+'(double *  ru, double *  ruc, double *  pa);',
+            'void CKPX'+sym+'(double *  rho, double *  T, double *  x, double *  P);',
+            'AMREX_GPU_HOST_DEVICE void CKPY'+sym+'(double *  rho, double *  T, double *  y, double *  P);',
+            'void CKPC'+sym+'(double *  rho, double *  T, double *  c, double *  P);',
+            'void CKRHOX'+sym+'(double *  P, double *  T, double *  x, double *  rho);',
+            'AMREX_GPU_HOST_DEVICE void CKRHOY'+sym+'(double *  P, double *  T, double *  y, double *  rho);',
+            'void CKRHOC'+sym+'(double *  P, double *  T, double *  c, double *  rho);',
+            'void CKWT'+sym+'(double *  wt);',
+            'void CKAWT'+sym+'(double *  awt);',
+            'AMREX_GPU_HOST_DEVICE void CKMMWY'+sym+'(double *  y, double *  wtm);',
+            'void CKMMWX'+sym+'(double *  x, double *  wtm);',
+            'void CKMMWC'+sym+'(double *  c, double *  wtm);',
+            'AMREX_GPU_HOST_DEVICE void CKYTX'+sym+'(double *  y, double *  x);',
+            'void CKYTCP'+sym+'(double *  P, double *  T, double *  y, double *  c);',
+            'AMREX_GPU_HOST_DEVICE void CKYTCR'+sym+'(double *  rho, double *  T, double *  y, double *  c);',
+            'AMREX_GPU_HOST_DEVICE void CKXTY'+sym+'(double *  x, double *  y);',
+            'void CKXTCP'+sym+'(double *  P, double *  T, double *  x, double *  c);',
+            'void CKXTCR'+sym+'(double *  rho, double *  T, double *  x, double *  c);',
+            'void CKCTX'+sym+'(double *  c, double *  x);',
+            'void CKCTY'+sym+'(double *  c, double *  y);',
+            'void CKCPOR'+sym+'(double *  T, double *  cpor);',
+            'void CKHORT'+sym+'(double *  T, double *  hort);',
+            'void CKSOR'+sym+'(double *  T, double *  sor);',
+            
+            'AMREX_GPU_HOST_DEVICE void CKCVMS'+sym+'(double *  T, double *  cvms);',
+            'AMREX_GPU_HOST_DEVICE void CKCPMS'+sym+'(double *  T, double *  cvms);',
+            'AMREX_GPU_HOST_DEVICE void CKUMS'+sym+'(double *  T, double *  ums);',
+            'AMREX_GPU_HOST_DEVICE void CKHMS'+sym+'(double *  T, double *  ums);',
+            'void CKGMS'+sym+'(double *  T, double *  gms);',
+            'void CKAMS'+sym+'(double *  T, double *  ams);',
+            'void CKSMS'+sym+'(double *  T, double *  sms);',
+            
+            'void CKCPBL'+sym+'(double *  T, double *  x, double *  cpbl);',
+            'AMREX_GPU_HOST_DEVICE void CKCPBS'+sym+'(double *  T, double *  y, double *  cpbs);',
+            'void CKCVBL'+sym+'(double *  T, double *  x, double *  cpbl);',
+            'AMREX_GPU_HOST_DEVICE void CKCVBS'+sym+'(double *  T, double *  y, double *  cpbs);',
+            
+            'void CKHBML'+sym+'(double *  T, double *  x, double *  hbml);',
+            'AMREX_GPU_HOST_DEVICE void CKHBMS'+sym+'(double *  T, double *  y, double *  hbms);',
+            'void CKUBML'+sym+'(double *  T, double *  x, double *  ubml);',
+            'AMREX_GPU_HOST_DEVICE void CKUBMS'+sym+'(double *  T, double *  y, double *  ubms);',
+            'void CKSBML'+sym+'(double *  P, double *  T, double *  x, double *  sbml);',
+            'void CKSBMS'+sym+'(double *  P, double *  T, double *  y, double *  sbms);',
+            'void CKGBML'+sym+'(double *  P, double *  T, double *  x, double *  gbml);',
+            'void CKGBMS'+sym+'(double *  P, double *  T, double *  y, double *  gbms);',
+            'void CKABML'+sym+'(double *  P, double *  T, double *  x, double *  abml);',
+            'void CKABMS'+sym+'(double *  P, double *  T, double *  y, double *  abms);',
+
+            
+            'AMREX_GPU_HOST_DEVICE void CKWC'+sym+'(double *  T, double *  C, double *  wdot);',
+            'void CKWYP'+sym+'(double *  P, double *  T, double *  y, double *  wdot);',
+            'void CKWXP'+sym+'(double *  P, double *  T, double *  x, double *  wdot);',
+            'AMREX_GPU_HOST_DEVICE void CKWYR'+sym+'(double *  rho, double *  T, double *  y, double *  wdot);',
+            'void CKWXR'+sym+'(double *  rho, double *  T, double *  x, double *  wdot);',
+            
+            'void CKNCF'+sym+'(int * ncf);',
+            
+            'AMREX_GPU_HOST_DEVICE void DWDOT(double *  J, double *  sc, double *  T, int * consP);',
+            'AMREX_GPU_HOST_DEVICE void DWDOT_SIMPLIFIED(double *  J, double *  sc, double *  Tp, int * HP);',
+            #'AMREX_GPU_HOST_DEVICE void SLJ_PRECOND_CSC(double *  Jsps, int * indx, int * len, double * sc, double * Tp, int * HP, double * gamma);',
+            'AMREX_GPU_HOST_DEVICE void SPARSITY_INFO(int * nJdata, int * consP, int NCELLS);',
+            'AMREX_GPU_HOST_DEVICE void SPARSITY_INFO_SYST(int * nJdata, int * consP, int NCELLS);',
+            'AMREX_GPU_HOST_DEVICE void SPARSITY_INFO_SYST_SIMPLIFIED(int * nJdata, int * consP);',
+            'AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_CSC(int * rowVals, int * colPtrs, int * consP, int NCELLS);',
+            'AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_CSR(int * colVals, int * rowPtrs, int * consP, int NCELLS, int base);',
+            'AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_SYST_CSR(int * colVals, int * rowPtrs, int * consP, int NCELLS, int base);',
+            'AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_SYST_SIMPLIFIED_CSC(int * rowVals, int * colPtrs, int * indx, int * consP);',
+            'AMREX_GPU_HOST_DEVICE void SPARSITY_PREPROC_SYST_SIMPLIFIED_CSR(int * colVals, int * rowPtr, int * consP, int base);',
+            'AMREX_GPU_HOST_DEVICE void aJacobian(double *  J, double *  sc, double T, int consP);',
+            'AMREX_GPU_HOST_DEVICE void aJacobian_precond(double *  J, double *  sc, double T, int HP);',
+            'AMREX_GPU_HOST_DEVICE void dcvpRdT(double *  species, double *  tc);',
+            'AMREX_GPU_HOST_DEVICE void GET_T_GIVEN_EY(double *  e, double *  y, double *  t, int *ierr);',
+            'AMREX_GPU_HOST_DEVICE void GET_T_GIVEN_HY(double *  h, double *  y, double *  t, int *ierr);',
+            self.line('Transport function declarations'),
+            'void egtransetLENIMC(int* LENIMC);',
+            'void egtransetLENRMC(int* LENRMC);',
+            'void egtransetNO(int* NO);',
+            'void egtransetKK(int* KK);',
+            'void egtransetNLITE(int* NLITE);',
+            'void egtransetPATM(double* PATM);',
+            'void egtransetWT(double* WT);',
+            'void egtransetEPS(double* EPS);',
+            'void egtransetSIG(double* SIG);',
+            'void egtransetDIP(double* DIP);',
+            'void egtransetPOL(double* POL);',
+            'void egtransetZROT(double* ZROT);',
+            'void egtransetNLIN(int* NLIN);',
+            'void egtransetCOFETA(double* COFETA);',
+            'void egtransetCOFLAM(double* COFLAM);',
+            'void egtransetCOFD(double* COFD);',
+            'void egtransetKTDIF(int* KTDIF);',
+            ]
+
+        self._rep += [
+            self.line('gauss-jordan solver external routine'),
+            'AMREX_GPU_HOST_DEVICE void sgjsolve(double* A, double* x, double* b);',
+            'AMREX_GPU_HOST_DEVICE void sgjsolve_simplified(double* A, double* x, double* b);',
+            '}',
+            ]
+
+        return
+
 
 
     def _header_chop(self, mechanism):
@@ -492,6 +735,45 @@ class CPickler(CMill):
 
         return
 
+    def _namespace_GPU(self,mechanism):
+        self._write()
+        self._write('namespace thermo')
+        self._write('{')
+
+        self._indent()
+
+        nReactions = len(mechanism.reaction())
+        self._write()
+        self._write('extern AMREX_GPU_DEVICE_MANAGED double fwd_A[%d], fwd_beta[%d], fwd_Ea[%d];' 
+                    % (nReactions,nReactions,nReactions))
+        self._write('extern AMREX_GPU_DEVICE_MANAGED double low_A[%d], low_beta[%d], low_Ea[%d];' 
+                    % (nReactions,nReactions,nReactions))
+        self._write('extern AMREX_GPU_DEVICE_MANAGED double rev_A[%d], rev_beta[%d], rev_Ea[%d];' 
+                    % (nReactions,nReactions,nReactions))
+        self._write('extern AMREX_GPU_DEVICE_MANAGED double troe_a[%d],troe_Ts[%d], troe_Tss[%d], troe_Tsss[%d];' 
+                    % (nReactions,nReactions,nReactions,nReactions))
+        self._write('extern AMREX_GPU_DEVICE_MANAGED double sri_a[%d], sri_b[%d], sri_c[%d], sri_d[%d], sri_e[%d];'
+                    % (nReactions,nReactions,nReactions,nReactions,nReactions))
+        self._write('extern AMREX_GPU_DEVICE_MANAGED double activation_units[%d], prefactor_units[%d], phase_units[%d];'
+                    % (nReactions,nReactions,nReactions))
+        self._write('extern AMREX_GPU_DEVICE_MANAGED int is_PD[%d], troe_len[%d], sri_len[%d], nTB[%d], *TBid[%d];' 
+                    % (nReactions,nReactions,nReactions,nReactions,nReactions))
+        self._write('extern AMREX_GPU_DEVICE_MANAGED double *TB[%d];' 
+                    % (nReactions))
+
+        self._write()
+        self._write('extern std::vector<std::vector<int>> kiv; ')
+        self._write('extern std::vector<std::vector<int>> nuv; ')
+
+        self._write()
+        self._write('extern AMREX_GPU_DEVICE_MANAGED int ki2D[%d], nu2D[%d];' % (nReactions*5,nReactions*5))
+
+        self._outdent()
+
+        self._write('}')
+
+        return
+
 
     def _namespace(self,mechanism):
         self._write()
@@ -559,6 +841,111 @@ class CPickler(CMill):
             ]
         return
 
+
+    def _statics_GPU(self,mechanism):
+        nReactions = len(mechanism.reaction())
+        nSpecies = len(mechanism.species())
+
+        ispecial   = self.reactionIndex[5:7]
+
+        nspecial   = ispecial[1]   - ispecial[0]
+
+        self._write()
+
+        self._write('namespace thermo')
+        self._write('{')
+        self._indent()
+        self._write('AMREX_GPU_DEVICE_MANAGED double fwd_A[%d], fwd_beta[%d], fwd_Ea[%d];' 
+                    % (nReactions,nReactions,nReactions))
+        self._write('AMREX_GPU_DEVICE_MANAGED double low_A[%d], low_beta[%d], low_Ea[%d];' 
+                    % (nReactions,nReactions,nReactions))
+        self._write('AMREX_GPU_DEVICE_MANAGED double rev_A[%d], rev_beta[%d], rev_Ea[%d];' 
+                    % (nReactions,nReactions,nReactions))
+        self._write('AMREX_GPU_DEVICE_MANAGED double troe_a[%d],troe_Ts[%d], troe_Tss[%d], troe_Tsss[%d];' 
+                    % (nReactions,nReactions,nReactions,nReactions))
+        self._write('AMREX_GPU_DEVICE_MANAGED double sri_a[%d], sri_b[%d], sri_c[%d], sri_d[%d], sri_e[%d];'
+                    % (nReactions,nReactions,nReactions,nReactions,nReactions))
+        self._write('AMREX_GPU_DEVICE_MANAGED double activation_units[%d], prefactor_units[%d], phase_units[%d];'
+                    % (nReactions,nReactions,nReactions))
+        self._write('AMREX_GPU_DEVICE_MANAGED int is_PD[%d], troe_len[%d], sri_len[%d], nTB[%d], *TBid[%d];' 
+                    % (nReactions,nReactions,nReactions,nReactions,nReactions))
+        self._write('AMREX_GPU_DEVICE_MANAGED double *TB[%d];' 
+                    % (nReactions))
+
+        if nspecial > 0:  
+                self._write('AMREX_GPU_DEVICE_MANAGED double prefactor_units_rev[%d], activation_units_rev[%d];' 
+                            % (nReactions,nReactions))
+
+        self._write()
+        self._write('std::vector<std::vector<int>> kiv(%d); ' % (nReactions))
+        self._write('std::vector<std::vector<int>> nuv(%d); ' % (nReactions))
+
+        self._write()
+
+        self._write('AMREX_GPU_DEVICE_MANAGED int ki2D[%d], nu2D[%d];' % (nReactions*5,nReactions*5))
+
+        self._outdent()
+
+        self._write('};')
+
+        self._write()
+
+        self._write('using namespace thermo;')
+        self._write()
+
+
+        self._write(self.line(' Inverse molecular weights'))
+        self._write(self.line(' TODO: check necessity on CPU'))
+        self._write('static AMREX_GPU_DEVICE_MANAGED double imw[%d] = {' %nSpecies )
+        self._indent()
+        for i in range(0,self.nSpecies):
+            species = self.species[i]
+            text = '1.0 / %f' % (species.weight)
+            if (i<self.nSpecies-1):
+               text += ',  '
+            else:
+               text += '};  '
+            self._write(text + self.line('%s' % species.symbol))
+        self._outdent()
+        self._write()
+
+        self._write(self.line(' Inverse molecular weights'))
+        self._write(self.line(' TODO: check necessity because redundant with molecularWeight'))
+        self._write('static AMREX_GPU_DEVICE_MANAGED double molecular_weights[%d] = {' %nSpecies )
+        self._indent()
+        for i in range(0,self.nSpecies):
+            species = self.species[i]
+            text = '%f' % (species.weight)
+            if (i<self.nSpecies-1):
+               text += ',  '
+            else:
+               text += '};  '
+            self._write(text + self.line('%s' % species.symbol))
+        self._outdent()
+        self._write()
+
+        self._write('AMREX_GPU_HOST_DEVICE')
+        self._write('void get_imw(double imw_new[]){')
+        ##self._write('#pragma unroll')
+        self._indent()
+        self._write('for(int i = 0; i<%d; ++i) imw_new[i] = imw[i];' %nSpecies )
+        self._outdent()
+        self._write('}')
+        self._write()
+
+        self._write(self.line(' TODO: check necessity because redundant with CKWT'))
+        self._write('AMREX_GPU_HOST_DEVICE')
+        self._write('void get_mw(double mw_new[]){')
+        ##self._write('#pragma unroll')
+        self._indent()
+        self._write('for(int i = 0; i<%d; ++i) mw_new[i] = molecular_weights[i];' %nSpecies )
+        self._outdent()
+        self._write('}')
+        self._write()
+
+        self._write()
+
+        return
 
     def _statics_chop(self,mechanism):
         nReactions = len(mechanism.reaction())
@@ -1044,6 +1431,160 @@ class CPickler(CMill):
 
         return
 
+
+    def _ckinit_GPU(self, mechanism):
+
+        nElement = len(mechanism.element())
+        nSpecies = len(mechanism.species())
+        nReactions = len(mechanism.reaction())
+        
+        self._write(self.line(' Initializes parameter database'))
+        self._write('void CKINIT'+sym+'()')
+        self._write('{')
+        self._write()
+
+        self._indent()
+
+        # build reverse reaction map
+        rmap = {}
+        for i, reaction in zip(range(nReactions), mechanism.reaction()):
+            rmap[reaction.orig_id-1] = i
+
+        self._write()
+
+        for j in range(nReactions):
+            reaction = mechanism.reaction()[rmap[j]]
+            id = reaction.id - 1
+
+            ki = []
+            nu = []
+            for symbol, coefficient in reaction.reactants:
+                ki.append(mechanism.species(symbol).id)
+                nu.append(-coefficient)
+            for symbol, coefficient in reaction.products:
+                ki.append(mechanism.species(symbol).id)
+                nu.append(coefficient)
+
+            self._write("// (%d):  %s" % (reaction.orig_id - 1, reaction.equation()))
+            kistr = "{" + ','.join(str(x) for x in ki) + "}"
+            nustr = "{" + ','.join(str(x) for x in nu) + "}"
+            self._write("kiv[%d] = %s;" % (id,kistr))
+            self._write("nuv[%d] = %s;" % (id,nustr))
+
+            A, beta, E = reaction.arrhenius
+            self._write("// (%d):  %s" % (reaction.orig_id - 1, reaction.equation()))
+            self._write("fwd_A[%d]     = %.17g;" % (id,A))
+            self._write("fwd_beta[%d]  = %.17g;" % (id,beta))
+            self._write("fwd_Ea[%d]    = %.17g;" % (id,E))
+
+            thirdBody = reaction.thirdBody
+            low = reaction.low
+
+            if (reaction.rev):
+                Ar, betar, Er = reaction.rev
+                self._write("rev_A[%d]     = %.17g;" % (id,Ar))
+                self._write("rev_beta[%d]  = %.17g;" % (id,betar))
+                self._write("rev_Ea[%d]    = %.17g;" % (id,Er))
+                dim_rev       = self._phaseSpaceUnits(reaction.products)
+                if not thirdBody:
+                    uc_rev = self._prefactorUnits(reaction.units["prefactor"], 1-dim_rev)
+                elif not low:
+                    uc_rev = self._prefactorUnits(reaction.units["prefactor"], -dim_rev)
+                else:
+                    uc_rev = self._prefactorUnits(reaction.units["prefactor"], 1-dim_rev)
+                self._write("prefactor_units_rev[%d]  = %.17g;" % (id,uc_rev.value))
+                aeuc_rev = self._activationEnergyUnits(reaction.units["activation"])
+                self._write("activation_units_rev[%d] = %.17g;" % (id,aeuc_rev / Rc / kelvin))
+
+            if (len(reaction.ford) > 0) :
+                if (reaction.rev):
+                    print '\n\n ***** WARNING: Reac is FORD and REV. Results might be wrong !\n'
+                dim = self._phaseSpaceUnits(reaction.ford)
+            else:
+                dim = self._phaseSpaceUnits(reaction.reactants)
+
+            if not thirdBody:
+                uc = self._prefactorUnits(reaction.units["prefactor"], 1-dim) # Case 3 !PD, !TB
+            elif not low:
+                uc = self._prefactorUnits(reaction.units["prefactor"], -dim) # Case 2 !PD, TB
+            else:
+                uc = self._prefactorUnits(reaction.units["prefactor"], 1-dim) # Case 1 PD, TB
+                low_A, low_beta, low_E = low
+                self._write("low_A[%d]     = %.17g;" % (id,low_A))
+                self._write("low_beta[%d]  = %.17g;" % (id,low_beta))
+                self._write("low_Ea[%d]    = %.17g;" % (id,low_E))
+                if reaction.troe:
+                    troe = reaction.troe
+                    ntroe = len(troe)
+                    is_troe = True
+                    self._write("troe_a[%d]    = %.17g;" % (id,troe[0]))
+                    if ntroe>1:
+                        self._write("troe_Tsss[%d] = %.17g;" % (id,troe[1]))
+                    if ntroe>2:
+                        self._write("troe_Ts[%d]   = %.17g;" % (id,troe[2]))
+                    if ntroe>3:
+                        self._write("troe_Tss[%d]  = %.17g;" % (id,troe[3]))
+                    self._write("troe_len[%d]  = %d;" % (id,ntroe))
+                if reaction.sri:
+                    sri = reaction.sri
+                    nsri = len(sri)
+                    is_sri = True
+                    self._write("sri_a[%d]     = %.17g;" % (id,sri[0]))
+                    if nsri>1:
+                        self._write("sri_b[%d]     = %.17g;" % (id,sri[1]))
+                    if nsri>2:
+                        self._write("sri_c[%d]     = %.17g;" % (id,sri[2]))
+                    if nsri>3:
+                        self._write("sri_d[%d]     = %.17g;" % (id,sri[3]))
+                    if nsri>4:
+                        self._write("sri_e[%d]     = %.17g;" % (id,sri[4]))
+                    self._write("sri_len[%d]   = %d;" % (id,nsri))
+
+            self._write("prefactor_units[%d]  = %.17g;" % (id,uc.value))
+            aeuc = self._activationEnergyUnits(reaction.units["activation"])
+            self._write("activation_units[%d] = %.17g;" % (id,aeuc / Rc / kelvin))
+            self._write("phase_units[%d]      = pow(10,-%f);" % (id,dim*6))
+
+            if low:
+                self._write("is_PD[%d] = 1;" % (id) )
+            else:
+                self._write("is_PD[%d] = 0;" % (id) )
+
+
+            if thirdBody:
+                efficiencies = reaction.efficiencies
+                if (len(efficiencies) > 0):
+                    self._write("nTB[%d] = %d;" % (id, len(efficiencies)))
+                    self._write("TB[%d] = (double *) malloc(%d * sizeof(double));" % (id, len(efficiencies)))
+                    self._write("TBid[%d] = (int *) malloc(%d * sizeof(int));" % (id, len(efficiencies)))
+                    for i, eff in enumerate(efficiencies):
+                        symbol, efficiency = eff
+                        self._write("TBid[%d][%d] = %.17g; TB[%d][%d] = %.17g; // %s"
+                                    % (id, i, mechanism.species(symbol).id, id, i, efficiency, symbol ))
+                else:
+                    self._write("nTB[%d] = 0;" % (id))
+            else:
+                self._write("nTB[%d] = 0;" % (id))
+
+            self._write()
+
+        self._outdent()
+        self._write("}")
+        self._write()
+
+        self._write(self.line(' Finalizes parameter database'))
+        self._write('void CKFINALIZE()')
+        self._write('{')
+        self._write('  for (int i=0; i<%d; ++i) {' % (nReactions))
+        self._write('    free(TB[i]); TB[i] = 0; ')
+        self._write('    free(TBid[i]); TBid[i] = 0;')
+        self._write('    nTB[i] = 0;')
+        self._write()
+        self._write('  }')
+        self._write('}')
+        self._write()
+
+        return
 
 
     ################################
@@ -1852,7 +2393,7 @@ class CPickler(CMill):
         return
 
 
-    def _trans_chop(self, mechanism):
+    def _transport(self, mechanism):
         speciesTransport = self._analyzeTransport(mechanism)
         NLITE=0
         idxLightSpecs = []
@@ -6422,6 +6963,47 @@ class CPickler(CMill):
 
         self._write('}')
         self._write()
+
+        return
+
+
+    def _ajac_dummy(self, mechanism):
+
+        self._write()
+        self._write(self.line('compute the reaction Jacobian on CPU'))
+        self._write('AMREX_GPU_HOST_DEVICE void aJacobian(double *  J, double *  sc, double T, int consP)')
+        self._write('{')
+        self._indent()
+
+        self._write('for (int i=0; i<%d; i++) {' % (self.nSpecies+1)**2)
+        self._indent()
+        self._write('J[i] = 0.0;')
+        self._outdent()
+        self._write('}')
+
+        self._outdent()
+        self._write('}')
+        self._write()
+
+        return
+
+
+    def _ajacPrecond_dummy(self, mechanism):
+
+        self._write()
+        self._write(self.line('compute an approx to the reaction Jacobian'))
+        self._write('AMREX_GPU_HOST_DEVICE void aJacobian_precond(double *  J, double *  sc, double T, int HP)')
+        self._write('{')
+        self._indent()
+
+        self._write('for (int i=0; i<%d; i++) {' % (self.nSpecies+1)**2)
+        self._indent()
+        self._write('J[i] = 0.0;')
+        self._outdent()
+        self._write('}')
+
+        self._outdent()
+        self._write('}')
 
         return
 
