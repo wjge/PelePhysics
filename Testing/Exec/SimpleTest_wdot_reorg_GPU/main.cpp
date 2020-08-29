@@ -124,7 +124,6 @@ main (int   argc,
 
           Array4<Real> const& sc   = concentrations.array(mfi);
           Array4<Real> const& temp = temperature.array(mfi);
-          Array4<Real> const& rho  = density.array(mfi);
           Array4<Real> const& w    = wdot.array(mfi);
 
           int numPts = box.numPts();
@@ -134,7 +133,7 @@ main (int   argc,
           {
               Real wtmp; 
 
-              W_spec_d(rho(i,j,k),temp(i,j,k),&(Y(i,j,k,0)),numPts,&wtmp);
+              productionRate(&wtmp,&(sc(i,j,k,0)),numPts,temp(i,j,k));
 
               if (n<num_spec) {
                   w(i,j,k,n) = wtmp;
