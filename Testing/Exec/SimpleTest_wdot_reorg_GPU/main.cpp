@@ -10,6 +10,8 @@
 #include <AMReX_GpuDevice.H>
 #include <EOS.H>
 
+using namespace amrex; 
+
 template <typename L>
 void ForMarc (Box const& box, int nc, L f) noexcept
 {
@@ -100,7 +102,7 @@ main (int   argc,
             temp(i,j,k) = 450;
             rho(i,j,k) = 0.75;
 
-            EOS::RTY2C(rho(i,j,k), temp(i,j,k), &Y_ker[0], &sc_ker[0])
+            EOS::RTY2C(rho(i,j,k), temp(i,j,k), &Y_ker[0], &sc_ker[0]);
 
             for (int n=0; n<num_spec; ++n) {
               sc(i,j,k,n) = sc_ker[n];
@@ -117,7 +119,6 @@ main (int   argc,
 #endif
       {
         BL_PROFILE("COMPUTE_W");
-        FArrayBox Q;
         for (MFIter mfi(concentrations,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
           const Box& box = mfi.tilebox();

@@ -1,4 +1,5 @@
 #include "chemistry_file.H"
+#include <AMReX_Arena.H>
 
 namespace thermo
 {
@@ -17,6 +18,8 @@ namespace thermo
 };
 
 using namespace thermo;
+
+using namespace amrex;
 
 /* Inverse molecular weights */
 /* TODO: check necessity on CPU */
@@ -96,8 +99,8 @@ void CKINIT()
     phase_units[8]      = pow(10,-12.000000);
     is_PD[8] = 0;
     nTB[8] = 7;
-    TB[8] = (double *) malloc(7 * sizeof(double));
-    TBid[8] = (int *) malloc(7 * sizeof(int));
+    TB[8] = (double *) The_Managed_Arena()->alloc(7 * sizeof(double));
+    TBid[8] = (int *) The_Managed_Arena()->alloc(7 * sizeof(int));
     TBid[8][0] = 0; TB[8][0] = 2; // H2
     TBid[8][1] = 5; TB[8][1] = 6; // H2O
     TBid[8][2] = 10; TB[8][2] = 2; // CH4
@@ -196,8 +199,8 @@ void CKINIT()
     phase_units[9]      = pow(10,-12.000000);
     is_PD[9] = 0;
     nTB[9] = 8;
-    TB[9] = (double *) malloc(8 * sizeof(double));
-    TBid[9] = (int *) malloc(8 * sizeof(int));
+    TB[9] = (double *) The_Managed_Arena()->alloc(8 * sizeof(double));
+    TBid[9] = (int *) The_Managed_Arena()->alloc(8 * sizeof(int));
     TBid[9][0] = 0; TB[9][0] = 2; // H2
     TBid[9][1] = 3; TB[9][1] = 6; // O2
     TBid[9][2] = 5; TB[9][2] = 6; // H2O
@@ -323,8 +326,8 @@ void CKINIT()
     phase_units[10]      = pow(10,-12.000000);
     is_PD[10] = 0;
     nTB[10] = 7;
-    TB[10] = (double *) malloc(7 * sizeof(double));
-    TBid[10] = (int *) malloc(7 * sizeof(int));
+    TB[10] = (double *) The_Managed_Arena()->alloc(7 * sizeof(double));
+    TBid[10] = (int *) The_Managed_Arena()->alloc(7 * sizeof(int));
     TBid[10][0] = 3; TB[10][0] = 0; // O2
     TBid[10][1] = 5; TB[10][1] = 0; // H2O
     TBid[10][2] = 11; TB[10][2] = 0.75; // CO
@@ -410,8 +413,8 @@ void CKINIT()
     phase_units[11]      = pow(10,-12.000000);
     is_PD[11] = 0;
     nTB[11] = 6;
-    TB[11] = (double *) malloc(6 * sizeof(double));
-    TBid[11] = (int *) malloc(6 * sizeof(int));
+    TB[11] = (double *) The_Managed_Arena()->alloc(6 * sizeof(double));
+    TBid[11] = (int *) The_Managed_Arena()->alloc(6 * sizeof(int));
     TBid[11][0] = 0; TB[11][0] = 0; // H2
     TBid[11][1] = 5; TB[11][1] = 0; // H2O
     TBid[11][2] = 10; TB[11][2] = 2; // CH4
@@ -470,8 +473,8 @@ void CKINIT()
     phase_units[12]      = pow(10,-12.000000);
     is_PD[12] = 0;
     nTB[12] = 5;
-    TB[12] = (double *) malloc(5 * sizeof(double));
-    TBid[12] = (int *) malloc(5 * sizeof(int));
+    TB[12] = (double *) The_Managed_Arena()->alloc(5 * sizeof(double));
+    TBid[12] = (int *) The_Managed_Arena()->alloc(5 * sizeof(int));
     TBid[12][0] = 0; TB[12][0] = 0.72999999999999998; // H2
     TBid[12][1] = 5; TB[12][1] = 3.6499999999999999; // H2O
     TBid[12][2] = 10; TB[12][2] = 2; // CH4
@@ -524,8 +527,8 @@ void CKINIT()
     phase_units[0]      = pow(10,-12.000000);
     is_PD[0] = 1;
     nTB[0] = 7;
-    TB[0] = (double *) malloc(7 * sizeof(double));
-    TBid[0] = (int *) malloc(7 * sizeof(int));
+    TB[0] = (double *) The_Managed_Arena()->alloc(7 * sizeof(double));
+    TBid[0] = (int *) The_Managed_Arena()->alloc(7 * sizeof(int));
     TBid[0][0] = 0; TB[0][0] = 2; // H2
     TBid[0][1] = 5; TB[0][1] = 6; // H2O
     TBid[0][2] = 10; TB[0][2] = 2; // CH4
@@ -554,8 +557,8 @@ void CKINIT()
     phase_units[1]      = pow(10,-12.000000);
     is_PD[1] = 1;
     nTB[1] = 7;
-    TB[1] = (double *) malloc(7 * sizeof(double));
-    TBid[1] = (int *) malloc(7 * sizeof(int));
+    TB[1] = (double *) The_Managed_Arena()->alloc(7 * sizeof(double));
+    TBid[1] = (int *) The_Managed_Arena()->alloc(7 * sizeof(int));
     TBid[1][0] = 0; TB[1][0] = 2; // H2
     TBid[1][1] = 5; TB[1][1] = 6; // H2O
     TBid[1][2] = 10; TB[1][2] = 2; // CH4
@@ -597,8 +600,8 @@ void CKINIT()
     phase_units[2]      = pow(10,-12.000000);
     is_PD[2] = 1;
     nTB[2] = 7;
-    TB[2] = (double *) malloc(7 * sizeof(double));
-    TBid[2] = (int *) malloc(7 * sizeof(int));
+    TB[2] = (double *) The_Managed_Arena()->alloc(7 * sizeof(double));
+    TBid[2] = (int *) The_Managed_Arena()->alloc(7 * sizeof(int));
     TBid[2][0] = 0; TB[2][0] = 2; // H2
     TBid[2][1] = 5; TB[2][1] = 6; // H2O
     TBid[2][2] = 10; TB[2][2] = 2; // CH4
@@ -640,8 +643,8 @@ void CKINIT()
     phase_units[3]      = pow(10,-12.000000);
     is_PD[3] = 1;
     nTB[3] = 6;
-    TB[3] = (double *) malloc(6 * sizeof(double));
-    TBid[3] = (int *) malloc(6 * sizeof(int));
+    TB[3] = (double *) The_Managed_Arena()->alloc(6 * sizeof(double));
+    TBid[3] = (int *) The_Managed_Arena()->alloc(6 * sizeof(int));
     TBid[3][0] = 0; TB[3][0] = 2; // H2
     TBid[3][1] = 5; TB[3][1] = 6; // H2O
     TBid[3][2] = 10; TB[3][2] = 2; // CH4
@@ -695,8 +698,8 @@ void CKINIT()
     phase_units[4]      = pow(10,-12.000000);
     is_PD[4] = 1;
     nTB[4] = 7;
-    TB[4] = (double *) malloc(7 * sizeof(double));
-    TBid[4] = (int *) malloc(7 * sizeof(int));
+    TB[4] = (double *) The_Managed_Arena()->alloc(7 * sizeof(double));
+    TBid[4] = (int *) The_Managed_Arena()->alloc(7 * sizeof(int));
     TBid[4][0] = 0; TB[4][0] = 2; // H2
     TBid[4][1] = 5; TB[4][1] = 6; // H2O
     TBid[4][2] = 10; TB[4][2] = 2; // CH4
@@ -725,8 +728,8 @@ void CKINIT()
     phase_units[5]      = pow(10,-12.000000);
     is_PD[5] = 1;
     nTB[5] = 7;
-    TB[5] = (double *) malloc(7 * sizeof(double));
-    TBid[5] = (int *) malloc(7 * sizeof(int));
+    TB[5] = (double *) The_Managed_Arena()->alloc(7 * sizeof(double));
+    TBid[5] = (int *) The_Managed_Arena()->alloc(7 * sizeof(int));
     TBid[5][0] = 0; TB[5][0] = 2; // H2
     TBid[5][1] = 5; TB[5][1] = 6; // H2O
     TBid[5][2] = 10; TB[5][2] = 2; // CH4
@@ -768,8 +771,8 @@ void CKINIT()
     phase_units[6]      = pow(10,-12.000000);
     is_PD[6] = 1;
     nTB[6] = 7;
-    TB[6] = (double *) malloc(7 * sizeof(double));
-    TBid[6] = (int *) malloc(7 * sizeof(int));
+    TB[6] = (double *) The_Managed_Arena()->alloc(7 * sizeof(double));
+    TBid[6] = (int *) The_Managed_Arena()->alloc(7 * sizeof(int));
     TBid[6][0] = 0; TB[6][0] = 2; // H2
     TBid[6][1] = 5; TB[6][1] = 6; // H2O
     TBid[6][2] = 10; TB[6][2] = 2; // CH4
@@ -1227,8 +1230,8 @@ void CKINIT()
     phase_units[7]      = pow(10,-12.000000);
     is_PD[7] = 1;
     nTB[7] = 7;
-    TB[7] = (double *) malloc(7 * sizeof(double));
-    TBid[7] = (int *) malloc(7 * sizeof(int));
+    TB[7] = (double *) The_Managed_Arena()->alloc(7 * sizeof(double));
+    TBid[7] = (int *) The_Managed_Arena()->alloc(7 * sizeof(int));
     TBid[7][0] = 0; TB[7][0] = 2; // H2
     TBid[7][1] = 5; TB[7][1] = 6; // H2O
     TBid[7][2] = 10; TB[7][2] = 2; // CH4
@@ -1314,8 +1317,8 @@ void CKINIT()
     phase_units[13]      = pow(10,-6.000000);
     is_PD[13] = 0;
     nTB[13] = 6;
-    TB[13] = (double *) malloc(6 * sizeof(double));
-    TBid[13] = (int *) malloc(6 * sizeof(int));
+    TB[13] = (double *) The_Managed_Arena()->alloc(6 * sizeof(double));
+    TBid[13] = (int *) The_Managed_Arena()->alloc(6 * sizeof(int));
     TBid[13][0] = 0; TB[13][0] = 2; // H2
     TBid[13][1] = 5; TB[13][1] = 0; // H2O
     TBid[13][2] = 10; TB[13][2] = 2; // CH4
@@ -1380,10 +1383,11 @@ void CKINIT()
 void CKFINALIZE()
 {
   for (int i=0; i<84; ++i) {
-    free(TB[i]); TB[i] = 0; 
-    free(TBid[i]); TBid[i] = 0;
-    nTB[i] = 0;
-
+    if (nTB[i] > 0) {
+        The_Managed_Arena()->free(TB[i]);
+        The_Managed_Arena()->free(TBid[i]);
+        nTB[i] = 0;
+    }
   }
 }
 
@@ -2863,7 +2867,7 @@ AMREX_GPU_HOST_DEVICE void CKWC(double *  T, double *  C,  double *  wdot)
     }
 
     /*convert to chemkin units */
-    productionRate(wdot, C, *T);
+    //productionRate(wdot, C, *T);
 
     /*convert to chemkin units */
     for (id = 0; id < 21; ++id) {
@@ -2931,7 +2935,7 @@ void CKWYP(double *  P, double *  T, double *  y,  double *  wdot)
     c[20] = PWORT * y[20]*imw[20]; 
 
     /*convert to chemkin units */
-    productionRate(wdot, c, *T);
+    //productionRate(wdot, c, *T);
 
     /*convert to chemkin units */
     for (id = 0; id < 21; ++id) {
@@ -2954,7 +2958,7 @@ void CKWXP(double *  P, double *  T, double *  x,  double *  wdot)
     }
 
     /*convert to chemkin units */
-    productionRate(wdot, c, *T);
+    //productionRate(wdot, c, *T);
 
     /*convert to chemkin units */
     for (id = 0; id < 21; ++id) {
@@ -2993,7 +2997,7 @@ AMREX_GPU_HOST_DEVICE void CKWYR(double *  rho, double *  T, double *  y,  doubl
     c[20] = 1e6 * (*rho) * y[20]*imw[20]; 
 
     /*call productionRate */
-    productionRate(wdot, c, *T);
+    //productionRate(wdot, c, *T);
 
     /*convert to chemkin units */
     for (id = 0; id < 21; ++id) {
@@ -3041,7 +3045,7 @@ void CKWXR(double *  rho, double *  T, double *  x,  double *  wdot)
     }
 
     /*convert to chemkin units */
-    productionRate(wdot, c, *T);
+    //productionRate(wdot, c, *T);
 
     /*convert to chemkin units */
     for (id = 0; id < 21; ++id) {
@@ -3148,23 +3152,22 @@ void CKNCF(int * ncf)
 
 #ifdef PROD_RATE_THREAD
 /*GPU version of productionRate: 1 thread per reac*/
-AMREX_GPU_HOST_DEVICE inline void  productionRate(double * wdot, double * sc, int stride, double T)
+AMREX_GPU_DEVICE void  productionRate(double * wdot, double * sc, int stride, double T)
 {
     /* Thread indx */
     int idx = threadIdx.x;
 
     double tc[] = { log(T), T, T*T, T*T*T, T*T*T*T }; /*temperature cache */
-    double T    = tc[1];
     double invT = 1.0 / tc[1];
 
     /* Need all reactions to compute curr wdot */
-    __shared__ q_f[84], q_r[84], g_RT[21];
+    __shared__ double q_f[84], q_r[84], g_RT[21];
 
     /* Need the species gibbs for the Kc. Let first thread get it and sync */ 
     if (idx == 0) {
         gibbs(g_RT, tc);
     }
-
+ 
     __syncthreads();
 
     /* get forward reaction rate uncorrected */
@@ -3176,13 +3179,14 @@ AMREX_GPU_HOST_DEVICE inline void  productionRate(double * wdot, double * sc, in
     if (idx < 8) {
         double alpha = 0.0;
         for (int i = 0; i < 21; ++i) {
-            alpha += sc[i];
+            alpha += sc[stride*i];
         }
+        //printf(" -- reac, nTB, alpha %d %d %14.8e \n", idx, nTB[idx], alpha);
         for (int i = 0; i < nTB[idx]; ++i) {
-            alpha += (TB[idx][i] - 1) * sc[TBid[idx][i]];  
+            alpha += (TB[idx][i] - 1) * sc[TBid[idx][i]*stride];  
         }
         double redP, F, logPred, logFcent, troe_c, troe_n, troe, F_troe;
-        redP = alpha / q_f[idx] * phase_units[idx] * low_A[idx] * exp(low_beta[idx] * tc[0] - activation_units[idx] * low_Ea[idx] * invT);
+        redP = alpha / K_f * phase_units[idx] * low_A[idx] * exp(low_beta[idx] * tc[0] - activation_units[idx] * low_Ea[idx] * invT);
         F = redP / (1.0 + redP);
         logPred = log10(redP);
         logFcent = log10(
@@ -3199,12 +3203,13 @@ AMREX_GPU_HOST_DEVICE inline void  productionRate(double * wdot, double * sc, in
     if ((idx > 7) && (idx < 14)) {
         double alpha = 0.0;
         for (int i = 0; i < 21; ++i) {
-            alpha += sc[i];
+            alpha += sc[stride*i];
         }
         for (int i = 0; i < nTB[idx]; ++i) {
-            alpha += (TB[idx][i] - 1) * sc[TBid[idx][i]];  
+            alpha += (TB[idx][i] - 1) * sc[TBid[idx][i]*stride];  
         }
         Corr = alpha;
+        Corr = 1.0;
     }
 
     /*reference concentration: P_atm / (RT) in inverse mol/m^3 */
@@ -3213,8 +3218,8 @@ AMREX_GPU_HOST_DEVICE inline void  productionRate(double * wdot, double * sc, in
 
     /* get species contributions to the qs */
     /* compute Kc */
-    q_f[idx]   = 0.0;
-    q_r[idx]   = 0.0 ; 
+    q_f[idx]   = 1.0;
+    q_r[idx]   = 1.0 ; 
     double K_c = 0.0;
     double dim = 0.0;
     size_t offset = idx*5;
@@ -3223,24 +3228,25 @@ AMREX_GPU_HOST_DEVICE inline void  productionRate(double * wdot, double * sc, in
         int ki = ki2D[offset+j];
         if (nu < 0) {
             if (nu < -1) {
-                q_f[idx] *= pow(sc[ki], -nu);
+                q_f[idx] *= pow(sc[ki*stride], -nu);
                 K_c += -nu * g_RT[ki];
             } else {
-                q_f[idx] *= sc[ki];
+                q_f[idx] *= sc[ki*stride];
                 K_c += g_RT[ki];
             }
             dim += nu;
         } else {
             if (nu > 1) {
-                q_r[idx] *= pow(sc[ki], nu);
+                q_r[idx] *= pow(sc[ki*stride], nu);
                 K_c += -nu * g_RT[ki];
             } else {
-                q_r[idx] *= sc[ki];
+                q_r[idx] *= sc[ki*stride];
                 K_c += -g_RT[ki];
             }
             dim += nu;
         }
     }
+
     K_c = exp(K_c);
     if (dim > 0) {
         K_c *= pow(refC,dim);
@@ -3257,7 +3263,7 @@ AMREX_GPU_HOST_DEVICE inline void  productionRate(double * wdot, double * sc, in
     if (idx<21) {
         *wdot = 0;
         for (int i=0; i<84; ++i) {
-            qdot = q_f[i]-q_r[i];
+            double qdot = q_f[i]-q_r[i];
             size_t offset = i*5;
             for (int j=0; j<5; ++j) {
                 int nu = nu2D[offset+j];

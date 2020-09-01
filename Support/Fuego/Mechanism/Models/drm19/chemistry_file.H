@@ -18,7 +18,7 @@ AMREX_GPU_HOST_DEVICE void speciesEntropy(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void cp_R(double *  species, double *  tc);
 AMREX_GPU_HOST_DEVICE void cv_R(double *  species, double *  tc);
 #ifdef PROD_RATE_THREAD
-AMREX_GPU_HOST_DEVICE void productionRate(double * wdot, double * sc, int stride, double T);
+AMREX_GPU_DEVICE void productionRate(double * wdot, double * sc, int stride, double T);
 #else
 AMREX_GPU_HOST_DEVICE void productionRate(double * wdot, double * sc, double T);
 #endif
