@@ -12,36 +12,6 @@
 
 using namespace amrex; 
 
-template <typename L>
-void ForMarc (Box const& box, int nc, L f) noexcept
-{
-    int ncells = box.numPts();
-    const auto lo  = amrex::lbound(box);
-    const auto len = amrex::length(box);
-    Gpu::ExecutionConfig ec;
-    ec.numBlocks.x = 256;
-    ec.numBlocks.y = 1;
-    ec.numBlocks.z = 1;
-    ec.numThreads.x = nc;
-    ec.numThreads.y = 1;
-    ec.numThreads.z = 1;
-    amrex::launch_global<<<ec.numBlocks, ec.numThreads, ec.sharedMem, amrex::Gpu::gpuStream()>>>(
-    [=] AMREX_GPU_DEVICE () noexcept {
-      for (int icell = blockIdx.x, stride = gridDim.x; icell < ncells; icell += stride)
-      {
-        int k =  icell /   (len.x*len.y);
-        int j = (icell - k*(len.x*len.y)) /   len.x;
-        int i = (icell - k*(len.x*len.y)) - j*len.x;
-        i += lo.x;
-        j += lo.y;
-        k += lo.z;
-        int n = threadIdx.x;
-        f(i,j,k,n);
-      }
-    });
-    AMREX_GPU_ERROR_CHECK();
-}
-
 int
 main (int   argc,
       char* argv[])
@@ -145,16 +115,10 @@ main (int   argc,
 
           int numPts = box.numPts();
 
-          ForMarc(box, num_reac,
-          [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
+          ParallelFor(box,
+          [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
           {
-              Real wtmp; 
-
-              productionRate(&wtmp,&(sc(i,j,k,0)),numPts,temp(i,j,k));
-
-              if (n<num_spec) {
-                  w(i,j,k,n) = wtmp;
-              }
+              productionRate(&(w(i,j,k,0)), &(sc(i,j,k,0)), temp(i,j,k)); 
           });
         }
       }
