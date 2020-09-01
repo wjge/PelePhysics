@@ -20,7 +20,7 @@ AMREX_GPU_HOST_DEVICE void cv_R(double *  species, double *  tc);
 #ifdef PROD_RATE_THREAD
 AMREX_GPU_DEVICE void productionRate(double * wdot, double * sc, int stride, double T);
 #else
-AMREX_GPU_HOST_DEVICE void productionRate(double * wdot, double * sc, double T);
+AMREX_GPU_DEVICE void productionRate(double * wdot, double * sc, double T);
 #endif
 AMREX_GPU_HOST_DEVICE void comp_qfqr(double *  q_f, double *  q_r, double *  sc, double *  tc, double invT);
 #ifndef AMREX_USE_CUDA

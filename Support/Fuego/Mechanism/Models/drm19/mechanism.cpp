@@ -3282,7 +3282,7 @@ AMREX_GPU_DEVICE void  productionRate(double * wdot, double * sc, int stride, do
 
 /*GPU version of productionRate: no more use of thermo namespace vectors */
 /*compute the production rate for each species */
-AMREX_GPU_HOST_DEVICE inline void  productionRate(double * wdot, double * sc, double T)
+AMREX_GPU_DEVICE void  productionRate(double * wdot, double * sc, double T)
 {
     double tc[] = { log(T), T, T*T, T*T*T, T*T*T*T }; /*temperature cache */
     double invT = 1.0 / tc[1];
