@@ -3181,7 +3181,6 @@ AMREX_GPU_DEVICE void  productionRate(double * wdot, double * sc, int stride, do
         for (int i = 0; i < 21; ++i) {
             alpha += sc[stride*i];
         }
-        //printf(" -- reac, nTB, alpha %d %d %14.8e \n", idx, nTB[idx], alpha);
         for (int i = 0; i < nTB[idx]; ++i) {
             alpha += (TB[idx][i] - 1) * sc[TBid[idx][i]*stride];  
         }
@@ -3209,7 +3208,6 @@ AMREX_GPU_DEVICE void  productionRate(double * wdot, double * sc, int stride, do
             alpha += (TB[idx][i] - 1) * sc[TBid[idx][i]*stride];  
         }
         Corr = alpha;
-        Corr = 1.0;
     }
 
     /*reference concentration: P_atm / (RT) in inverse mol/m^3 */
@@ -3221,7 +3219,7 @@ AMREX_GPU_DEVICE void  productionRate(double * wdot, double * sc, int stride, do
     q_f[idx]   = 1.0;
     q_r[idx]   = 1.0 ; 
     double K_c = 0.0;
-    double dim = 0.0;
+    int dim = 0;
     size_t offset = idx*5;
     for (int j=0; j<5; ++j) {
         int nu = nu2D[offset+j];
@@ -3235,7 +3233,7 @@ AMREX_GPU_DEVICE void  productionRate(double * wdot, double * sc, int stride, do
                 K_c += g_RT[ki];
             }
             dim += nu;
-        } else {
+        } else if (nu > 0) {
             if (nu > 1) {
                 q_r[idx] *= pow(sc[ki*stride], nu);
                 K_c += -nu * g_RT[ki];
@@ -3249,9 +3247,13 @@ AMREX_GPU_DEVICE void  productionRate(double * wdot, double * sc, int stride, do
 
     K_c = exp(K_c);
     if (dim > 0) {
-        K_c *= pow(refC,dim);
+        for (int k=0; k<dim; ++k) {
+            K_c *= refC;
+        }
     } else if (dim < 0) {
-        K_c *= pow(refCinv,dim);
+        for (int k=0; k<-dim; ++k) {
+            K_c *= refCinv;
+        }
     } 
 
     q_f[idx] *= Corr * K_f; 
