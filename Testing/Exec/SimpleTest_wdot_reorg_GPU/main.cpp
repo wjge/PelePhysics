@@ -8,6 +8,7 @@
 #include "mechanism.h"
 
 #include <AMReX_GpuDevice.H>
+#include <PlotFileFromMF.H>
 #include <EOS.H>
 
 using namespace amrex; 
@@ -124,7 +125,7 @@ main (int   argc,
         MultiFab::Copy(out,concentrations,0,0,concentrations.nComp(),concentrations.nGrow());
         MultiFab::Copy(out,temperature,0,concentrations.nComp(),1,concentrations.nGrow());
         std::string outfile = Concatenate(pltfile,0);
-        PlotFileFromMF(concentrations,outfile);
+        PlotFileFromMF(out,outfile);
       }
 
       MultiFab wdot(ba,dm,num_spec,num_grow);
@@ -158,13 +159,14 @@ main (int   argc,
           });
         }
       }
-    }
 
     if (do_plt) {
       PlotFileFromMF(wdot,Concatenate(pltfile,1));
     }
 
     EOS::close();
+
+    }
 
     Finalize();
 
