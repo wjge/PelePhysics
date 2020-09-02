@@ -119,7 +119,17 @@ main (int   argc,
           ParallelFor(box,
           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
           {
-              productionRate(&(w(i,j,k,0)), &(sc(i,j,k,0)), temp(i,j,k)); 
+              amrex::Real conc[NUM_SPECIES];
+              amrex::Real prod_rate[NUM_SPECIES];
+
+              for (int n = 0; n < NUM_SPECIES; n++) {
+                  conc[n] = sc(i,j,k,n);
+                  prod_rate[n] = 0.0;
+              }
+              productionRate(prod_rate, conc, temp(i,j,k)); 
+              for (int n = 0; n < NUM_SPECIES; n++) {
+                  w(i,j,k,n) = prod_rate[n];
+              }
           });
         }
       }
