@@ -1,0 +1,9 @@
+ The case was run at 60 atm (constant pressure) and the data extracted was about to be integrated by the ODE solvers over time step, dt = 2.332360992e-08 seconds.
+
+Extract as ./main3d..ex file=<state> fileF=<force> N=<number> seed=<randomseed>
+
+Each rank writes its own data to junkXXXX, cat all these to state_L4_raw.dat, then process using:
+
+python normalizeState.py state_L4_raw.dat dodecane_lu state_L4.dat
+
+
