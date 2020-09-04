@@ -139,11 +139,11 @@ main (int   argc,
     }
     AMREX_ALWAYS_ASSERT(Npts>0);
 
-    Box domain(IntVect(D_DECL(0,0,0)),
-               IntVect(D_DECL(Npts-1,0,0)));
+    Box domain_in(IntVect(D_DECL(0,0,0)),
+                  IntVect(D_DECL(Npts-1,0,0)));
 
-    FArrayBox state(domain,Nspec+2); // rhoY + rhoE + T
-    FArrayBox F(domain,Nspec+1); // F[rhoY] + F[rhoH]
+    FArrayBox state_in(domain_in,Nspec+2); // rhoY + rhoE + T
+    FArrayBox F_in(domain_in,Nspec+1); // F[rhoY] + F[rhoH]
 
     std::string valLine;
     int Nvals=-1;
@@ -159,21 +159,32 @@ main (int   argc,
       std::stringstream(valTokens[Rcomp]) >> rho;
       for (int n=0; n<Nspec; ++n) {      
         std::stringstream(valTokens[Ycomp+n]) >> Y[n];
-        std::stringstream(valTokens[FYcomp+n]) >> F(iv,n);
-        state(iv,n) = rho * Y[n];
+        std::stringstream(valTokens[FYcomp+n]) >> F_in(iv,n);
+        state_in(iv,n) = rho * Y[n];
       }
-      std::stringstream(valTokens[Tcomp]) >> state(iv,Nspec+1);
-      std::stringstream(valTokens[FHcomp]) >> F(iv,Nspec);
-      EOS::TY2H(state(iv,Nspec+1),Y,H);
-      state(iv,Nspec) = rho * H;
+      std::stringstream(valTokens[Tcomp]) >> state_in(iv,Nspec+1);
+      std::stringstream(valTokens[FHcomp]) >> F_in(iv,Nspec);
+      EOS::TY2H(state_in(iv,Nspec+1),Y,H);
+      state_in(iv,Nspec) = rho * H;
     }
     ifs.close();
 
     {
       std::ofstream ofs("state_in.fab");
-      state.writeOn(ofs);
+      state_in.writeOn(ofs);
       ofs.close();
     }
+
+    Box domain(domain_in);
+    int ipt = -1;
+    pp.query("ipt",ipt);
+    if (ipt>0 && ipt<Npts) {
+      IntVect ivpt(D_DECL(ipt,0,0));
+      domain = Box(ivpt,ivpt);
+    }
+
+    FArrayBox state(domain,state_in.nComp()); state.copy(state_in);
+    FArrayBox F(domain,F_in.nComp()); F.copy(F_in);
 
     Print() << "Integrating "<< domain.numPts() << " cells for: " << dt << " seconds" << std::endl;
 
