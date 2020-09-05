@@ -1,3 +1,4 @@
+infile=state_L4.dat
 ipt = 990
 ode.dt  = 2.332360992e-08
 ode.ndt = 1
